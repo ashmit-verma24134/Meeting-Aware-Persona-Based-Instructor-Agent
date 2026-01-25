@@ -1,0 +1,9 @@
+[Speaker 1] So, this is my vision glass. This is the range parameter that how many centimeters or how many units it can do and this is for example, you cannot see 60 degrees. Like we can only see what is ahead of us. That in radius like that it is there. And this is how much the object is visible. So, this is a vision glass basically.
+
+[Speaker 2] So, this is what we observed. Try to keep it simple, keep everything simple, make sure the system is not forgotten.
+
+[Speaker 1] We are adding rooms with width and height. A person can only see up to 5 meters. If an object is at 6 meters, it should not be visible. This is implemented in demo.py. We created a world object and added walls. If a wall is in the field of view, objects behind it are not visible. Entities have types and locations. There are multiple agents, and currently we are printing their visible objects.
+
+[Speaker 1] In Jericho, each node represents a room. We need to define which objects exist in each room and specify coordinates for vision to work.
+
+[Speaker 2] When Jericho returns a message, it will list visible objects. Try to keep the first cut simple. First configure Jericho with your system without extra complexity. Show Jericho working first, then extend it later.

@@ -1,0 +1,152 @@
+[Speaker 1]
+What do we actually, what have you understood?
+
+[Speaker 2]
+Basically I understood that in a meeting, how there are agents that transcribe everything and what is being said. Something similar to that, but like for the entire, everything that is being shown in the meeting, like what is being presented, who the people are.
+
+[Speaker 1]
+So, let me show you what, one of the recordings which I downloaded. So, let me share my screen. So, I'm showing you, I downloaded this recording from, you were in AI, right? I was in AI course. Of course you did, right. So, we did all this stuff on the iCAP. You did any recording on iCAP?
+
+[Speaker 1]
+So, I'll just, I downloaded one of them, right? One minute. So, let's say this one, right? So, this is a recording. Oops, why is it not showing?
+
+[Speaker 2]
+You don't need your laptop.
+
+[Speaker 1]
+One sec, one sec. Let's play. Okay. So, you can see this, right? So, this is a recording of one of your classmates. What happened here? So, this is, he's recording this and he's going through the whole thing, right? So, you can, so at some point he's opening this. At this point, the LLM has no clue what's going on, right? Later on, he also shows a demo of some kind, right? He does all this. And this is not from the course. This is from the iCAP, some demo that he gave, right? Like you gave a demo, right? It's one of those, right? This is not for the course. So, he gives at some point a demo. So, you can see he's giving a demo. Sometimes opening the course, sometimes giving a demo. It's all recorded on iCAP. I downloaded that for you. Now the question is this part is not, the LLM has no clue about this in iCAP, number one. Number two, the meeting recording which is being captured does not have any idea what's happening on the screen in general, right? In iCAP, it has the PDF. It has whatever course the student has uploaded or this applicant has uploaded that it has, right? But it doesn't have what he's showing on the screen, okay? So, the first thing we can do is take this video. I can give you more. It just takes a bit of time to download them. I can give you more of them, but they're not too big. They are 50 MB, et cetera, et cetera, videos. We'll find a way to efficiently share the data. Slack is not the best way. What I can do is I can create a classroom for all of us and we'll just share on the classroom, right? I'll upload these videos there and all that material for this particular classroom. And we'll share everything over there. And then we'll, what you need to do on this is we need to now break it up into frames, right? So, first thing you need to do is take this video. I'll give you more. You've done CVM, right? You know how to process a video and break the frames. You can run a basic change detection.
+
+[Speaker 2]
+Change detection.
+
+[Speaker 1]
+Change detection.
+
+[Speaker 2]
+Oh, change detection.
+
+[Speaker 1]
+You just figure out where the basic frames are changing, right? So, there's one part where he's just showing this code, one part where he's showing this, one part. So, the basic different pieces are there. And then, so now you know this piece, this piece, this piece, the three different pieces are there. And now for each of these pieces, first step should be let us find out what he's doing. Oh, okay. Right? So, he's showing some code, right? So, this, that you can just take some sample frames from this, from that part of that thing and just pass it to Vision LLM, right? Could be Gemini with Vision. Do you have Gemini key in this? I have Gemini. It will, you use a free quota to the extent possible. At any point of time you face a problem, actually there should be no problem because. It's 300 dollars. Huh?
+
+[Speaker 2]
+It's 300 dollars.
+
+[Speaker 1]
+Free, right? So, if for some reason your quota limits are, at least your rate limit is going to exceed, et cetera, I'll give you a key. For the moment you can just use that because you won't use it much. It's not like you're using it continuously, right? You use it just to extract from this. What is he doing? I mean, this is, are you showing a screen? Are you doing this? Are you doing that, et cetera, right? Next step we can go into the, say, okay, for a few videos we can actually use the LLM to generate the ground truth. That means what is on the screen exactly, fully. There is a scene with this, this, this, this. It will do that. That will cost you more tokens because you're giving more frames. That's the next level of change detection. First level is broadly what's happening. And within the demo, every time something significant changes, more detail, you'll again, you'll get more detail. This has changed. So, that's the ground truth. Once we get that, right, then it's a matter of making it efficient because you can't be giving every frame with LLM, right? So, now once you have ground truth from many videos, right, now we can see what kind of vision model can be used to, we can use a blip or something like Puneet was saying there, right, to extract that text from that, that, that pieces. And now we have a description of what's happening in the video plus texts. And then we have the third problem, which is you have the recording. And recording a transcription is not a problem. I mean, I use free tools for transcribing. They're going to give us their own whatever rocket read or something they have, right? But right now, we can just transcribe the actual audio, whatever is happening. From this video, we can transcribe. You can take the audio out of the video, right? And then we can give it to a transcription tool, like the Google scribe or something. You have to run it many times, maybe three a day. You can do one and a half hours a day. You can do it for free, right? So, you just transcribe. You have the video transcription of the recording. You have what is extracted from the frames. Now, we just have to stitch them together to make a better context. Right? And then the chatbot, which is going to ask questions on this context, will also be able to answer questions on what has happened in the video and also be able to, in the context of ICAP, also be able to ask questions about what he's doing on the screen. Now, what I've said is a very broad thing. There will be many nuances of issues in that, right? So, there will be issues of when to do the next level of. You can't give every frame to the LLM, nor can you. We can do that initially to generate ground truth, right? But the mixture of pain detection and text extraction and broad description of what is happening, how to make that more efficient, that will be the core. First part, if we can just get done, let's say, in Jan only, with LLM only, without any vision other than change detection. Right? Next will be all about making it more explicit. Broad picture is clear?
+
+[Speaker 2]
+So, I think the first step is from this video that we did, we need to take the detection and take the broad...
+
+[Speaker 1]
+First you take the audio.
+
+[Speaker 2]
+Take the audio.
+
+[Speaker 1]
+Right?
+
+[Speaker 2]
+Not audio, video.
+
+[Speaker 1]
+Why audio? Transcription is there. And then you can get an idea of what he's doing at what point of time. Right? So, there is a change detection and there is the transcript of the audio along with the timestamp. So, you know that this part is different from this part is different from this part. For each of these different parts, right, you have the audio or the textual transcript of that part also. And then you can just feed it to the LLC. What is he doing at this point of time? Is he showing a demo? Not doing a demo? So, now you know he's showing a demo.
+
+[Speaker 2]
+Right.
+
+[Speaker 1]
+Now, for the audience showing code. Now, for showing code, showing demo, next level of analysis is to take. Right. So, what do you think you can do by next meeting?
+
+[Speaker 2]
+By next meeting, I think I can get a sense.
+
+[Speaker 1]
+No, no. A little bit more detail.
+
+[Speaker 2]
+Okay. So,
+
+[Speaker 1]
+How many videos will I get? I'll give you one right now. I'll give you two more, two, three more. I'll download them and give you a few.
+
+[Speaker 2]
+So, all of these videos are in different screens. So, I'll do a change detection.
+
+[Speaker 1]
+So, you know which are the basic parts. You'll transcribe and say, okay, describe what is happening on each of these parts. And then, and then we fill that with the LLM and add some more context from the screen to that transcript. So, right now you're saying I'm doing this, I'm doing this, I'm doing this. Right. What is on the screen should be added to that transcript.
+
+[Speaker 2]
+Okay, okay. So, I asked the LLM to change this into a text. Text. F Okay.
+
+[Speaker 1]
+What is he actually doing on the screen? Okay, okay. So, then that means we insert into the transcript, right? Those pieces. So, now the transcript is a bigger thing. It's not just what the student is saying or the applicant is saying. It's also what he's doing on the screen. You can insert in any which way. So, by next meeting you can't do all this, I'm sure. What can you do? What realistically minimum you can do all this by next meeting?
+
+[Speaker 2]
+I think I can do it. One week is a long time. So, it's the first week.
+
+[Speaker 1]
+First week.
+
+[Speaker 2]
+No classes also.
+
+[Speaker 1]
+So, let's say let's have a stretch target. See how much you can do by next week. I'll give you a few videos. You're doing nothing on the screen right now. So, this video is useless. But this video we'll just record it and take a download anyway because that will be the source of future videos, right? Meeting videos, right? So, maybe other meetings like I'll be having a meeting in the evening with some other students. Maybe I'll record that also. But leave it for this week. This week you just take some of the iCAP videos which I'm going to give you. Okay. And the future next meeting you will also be doing something on the screen. That will also get recorded. No, no, but that part will also be recorded. Right. So, the transcript of that will again be shoved into your system. We'll recursively use it every time. Whatever you have up to then and see whether it's useful to us. Yes. And the other guy will build a chat bot of the whole thing hopefully. Let's see. Right now you're just trying to enhance that recording or the transcript with more information. You want to enhance that transcript with more information basically from the screen. Okay. Right. What's going on? Clear? Okay. So, I will now give you videos. I will also give you a recording of this meeting. Right. Which you should also translate. Okay. Right. And anyway, keep it for record purposes. What will be done with the recording of that meeting? The other guy will figure out what to do. We'll make something. So, as of now, let's keep this time.
+
+[Speaker 1]
+If there's a reason for this time to be replaced by somebody else, we'll move it here and there.
+
+[Speaker 2]
+That's fine.
+
+[Speaker 1]
+But maybe we'll keep it 11.30. Okay. If you can make it. Or you have a problem getting here.
+
+[Speaker 2]
+No, no. If it is the first day, I was getting my application. Okay.
+
+[Speaker 1]
+Otherwise, you don't have a class tonight. No. In the morning. Right. So, 11.30. Because my class ended at 11 after answering questions, etc. By 11.30, I'll be here. Cool? Any other questions you have?
+
+[Speaker 2]
+No. So, I'll share my updates on Slack. Yes. Every day.
+
+[Speaker 1]
+Whenever you have questions, issues, you share on Slack, etc. And the whole idea of this second guy's project is that he'll build a Slack bot, right, which will take the transcript of this meeting. And your question, at least I'll answer it, but hopefully Slack bot also will answer it. Let's see where that goes. He's having some trouble registering for some reason. I don't know.
+
+[Speaker 2]
+He needs some help.
+
+[Speaker 1]
+Why don't you reach out to him? Do you have his email?
+
+[Speaker 2]
+He's in Slack.
+
+[Speaker 1]
+I'll put him on Slack. Cool? Good. All right. Thanks. We're done.
+
+[Speaker 2]
+Okay. That's it for the meeting?
+
+[Speaker 1]
+The meeting is typically not going to be more than 20 minutes. Unless there's a lot to show.
+
+[Speaker 2]
+Okay.
+
+[Speaker 1]
+Anything else you have to discuss?
+
+[Speaker 2]
+No. So, when will I have to train a model?
+
+[Speaker 1]
+You will have to train a model once we decide that. Because we cannot be giving this whole thing. You can't give every frame with NLM, no? We may not train a model. We will now. We'll have a discussion. Okay. Okay. Okay. We'll have to do it using a normal computer vision model. Which computer is the machine vision model to use? You also decide. Nobody trains from scratch or what? You always use something.
+
+[Speaker 2]
+You don't use the hero.
+
+[Speaker 1]
+That's object detection, not text. Blip. Blip. Blip. Blip was the text extraction model. Blip will probably do something. But search. How do you best extraction of text from these things? We will have to fine-tune some more which model to fine-tune we don't But that's after we generate a lot of ground truth using the LLMs to generate the ground truth for that right Anyway, you'll have the recording and transcript in case there's a doubt you can always refer to the transcript or ask me questions Okay, good You

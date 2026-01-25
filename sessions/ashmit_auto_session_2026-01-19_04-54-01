@@ -1,0 +1,23 @@
+{
+  "user_id": "ashmit",
+  "meeting_name": "auto_session",
+  "session_start_time": "2026-01-19T04:54:01.331748",
+  "session_end_time": "2026-01-19T04:58:46.982602",
+  "conversation": [
+    {
+      "question": "what was the next steps decided in last meeting?",
+      "answer": "The team agreed that the immediate next step is to build the simple web\u2011based meeting\u2011agent prototype, create a repository for the code, push it and add collaborators, and then hook the backend up to a.",
+      "timestamp": "2026-01-19T04:54:57.689172"
+    },
+    {
+      "question": "what agents sir said to use",
+      "answer": "Sir said that a separate agent should be used to decide whether a new job (i. e. , a new context or task) is needed for a specific user\u2019s query.",
+      "timestamp": "2026-01-19T04:55:42.709032"
+    },
+    {
+      "question": "explain me that in simpler terms",
+      "answer": "Sir said we need a separate agent. It decides whether a new job\u2014a new context or task\u2014is required for a particular user\u2019s query.",
+      "timestamp": "2026-01-19T04:56:31.612241"
+    }
+  ]
+}

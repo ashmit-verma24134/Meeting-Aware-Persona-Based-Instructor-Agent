@@ -1,0 +1,537 @@
+{
+  "ashmit_auto_session_2026-01-25_13-58-33": [
+    {
+      "question": "what were treatments for migraine?",
+      "standalone_query": "what were treatments for migraine?",
+      "answer": "This was not clearly discussed in the meeting.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "not_in_transcript",
+      "timestamp": "2026-01-25T08:28:46.690311+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-25_14-03-38": [
+    {
+      "question": "what were treatments for migraine?",
+      "standalone_query": "what were treatments for migraine?",
+      "answer": "This was not clearly discussed in the meeting.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "not_in_transcript",
+      "timestamp": "2026-01-25T08:33:54.624211+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-25_14-28-35": [
+    {
+      "question": "what were treatments for migraine?",
+      "standalone_query": "what were treatments for migraine?",
+      "answer": "This was not clearly discussed in the meeting.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "not_in_transcript",
+      "timestamp": "2026-01-25T08:58:47.222373+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-25_14-30-58": [
+    {
+      "question": "what were treatments for migraine?",
+      "standalone_query": "what were treatments for migraine?",
+      "answer": "This was not clearly discussed in the meeting.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "not_in_transcript",
+      "timestamp": "2026-01-25T09:01:11.414121+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-25_14-41-58": [
+    {
+      "question": "what were treatments for migraine?",
+      "standalone_query": "what were treatments for migraine?",
+      "answer": "This was not clearly discussed in the meeting.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "not_in_transcript",
+      "timestamp": "2026-01-25T09:12:12.202212+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-25_14-44-15": [
+    {
+      "question": "what were treatments for migraine?",
+      "standalone_query": "what were treatments for migraine?",
+      "answer": "This was not clearly discussed in the meeting.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "not_in_transcript",
+      "timestamp": "2026-01-25T09:14:27.244892+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-25_14-46-51": [
+    {
+      "question": "what were treatments for migraine?",
+      "standalone_query": "what were treatments for migraine?",
+      "answer": "This was not clearly discussed in the meeting.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "not_in_transcript",
+      "timestamp": "2026-01-25T09:17:04.784115+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-25_14-50-08": [
+    {
+      "question": "what were treatments for migraine?",
+      "standalone_query": "what were treatments for migraine?",
+      "answer": "The treatments for migraine are dark room, painkillers, and rest.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:20:22.966997+00:00"
+    },
+    {
+      "question": "what are symptoms for flu?",
+      "standalone_query": "what are symptoms for flu?",
+      "answer": "This was not clearly discussed in the meeting.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:21:22.817257+00:00"
+    },
+    {
+      "question": "What was the two agent thing sir discussed about?",
+      "standalone_query": "What was the two agent thing sir discussed about?",
+      "answer": "There is a different type of agent there. Is there something where I need to talk? Or I can elevate the conversation.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:21:32.680507+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-25_14-52-51": [
+    {
+      "question": "what were steps decided in last meeting?",
+      "standalone_query": "what were steps decided in last meeting?",
+      "answer": "The immediate action item for the next meeting was to build a simple web-based meeting agent that answers questions for the meeting. The first option was to integrate a web-based meeting, which was initially planned but later considered a problem.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:23:10.017820+00:00"
+    },
+    {
+      "question": "What was the two agent thing sir discussed about?",
+      "standalone_query": "What was the two agent thing sir discussed about?",
+      "answer": "There is a different type of agent there. Is there something where I need to talk? Or I can elevate the conversation.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:23:28.280904+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-25_14-56-48": [
+    {
+      "question": "What was the two agent thing sir discussed about?",
+      "standalone_query": "What was the two agent thing sir discussed about?",
+      "answer": "Here's a summary of the meeting in 3-5 bullet points covering goals, agenda, decisions, and action items:\n\n* **Goals:** The goal of the meeting was to discuss the progress of a project involving meeting transcripts and natural language processing (NLP) to create a meeting agent that can answer questions based on the transcripts.\n* **Agenda:** The agenda included discussing the manual chunking of transcripts, embedding transcripts in a FIOS data structure, and using a LLM to explain the transcripts. The team also discussed the use of a Chinese model for demo purposes and the need to use a better model in the future.\n* **Decisions:**\n + The team decided to use a web-based meeting agent as the first option for the next meeting.\n + The team agreed to document all experiments and results systematically.\n + The team decided to create different vectors for each user to prevent overlapping in the future.\n* **Action Items:**\n + Implement a lambda function to create memories and follow-up questions.\n + Integrate a simple web-based meeting agent that can answer questions for the meeting.\n + Use a better model for the LLM and experiment with different models.\n + Normalize transcripts to prevent hallucination and improve results.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "meeting_summary_latest",
+      "timestamp": "2026-01-25T09:26:54.703170+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-25_14-58-07": [
+    {
+      "question": "What was the two agent thing sir discussed about?",
+      "standalone_query": "What was the two agent thing sir discussed about?",
+      "answer": "The two agent thing sir discussed about was a chatbot that would have multiple agents, one to find out what the user is asking and another to look at the meeting recordings and evaluate the response.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:28:22.875091+00:00"
+    },
+    {
+      "question": "what were treatments for migraine?",
+      "standalone_query": "what were treatments for migraine?",
+      "answer": "The treatments for migraine mentioned in the meeting were dark room, painkillers, and rest.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:28:45.617271+00:00"
+    },
+    {
+      "question": "what were steps decided for last meeting?",
+      "standalone_query": "what were steps decided for last meeting?",
+      "answer": "The steps decided for the last meeting were to implement a simple web-based meeting agent that can answer questions for the meeting. The immediate action item for the next meeting was to build this web-based meeting agent.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:29:26.295368+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-25_15-01-05": [
+    {
+      "question": "what were treatments for migraine?",
+      "standalone_query": "what were treatments for migraine?",
+      "answer": "The treatments for migraine mentioned in the meeting were dark room, painkillers, and rest.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:31:20.983436+00:00"
+    },
+    {
+      "question": "what were steps decided for last meeting?",
+      "standalone_query": "what were steps decided for last meeting?",
+      "answer": "1. Automate the chunking process.\n2. Use a better model for embedding files.\n3. Document the process systematically.\n4. Store metadata for each user.\n5. Implement a lambda function for session ID.\n6. Integrate a simple web-based meeting agent.\n7. Normalize transcripts.\n8. Check the code for the Gemini model.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-25T09:31:25.534978+00:00"
+    },
+    {
+      "question": "What was the two agent thing sir discussed about?",
+      "standalone_query": "What was the two agent thing sir discussed about?",
+      "answer": "The two agent thing sir discussed about was a chatbot that would have multiple agents, one to find out what the user is asking and another to look at the meeting recordings and evaluate the response.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:31:51.952064+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-25_15-02-58": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:33:18.325649+00:00"
+    },
+    {
+      "question": "what were steps decided for last meeting?",
+      "standalone_query": "what were steps decided for last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-25T09:33:28.214774+00:00"
+    },
+    {
+      "question": "In Jericho, each node represents what ?",
+      "standalone_query": "In Jericho, each node represents what ?",
+      "answer": "In Jericho, each node represents a room.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:34:54.724436+00:00"
+    },
+    {
+      "question": "what shapes room were we adding?",
+      "standalone_query": "what shapes room were we adding?",
+      "answer": "We were adding rooms of cuboid shape.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:39:15.767712+00:00"
+    },
+    {
+      "question": "saboteur arrived from what direction?",
+      "standalone_query": "saboteur arrived from what direction?",
+      "answer": "The saboteur arrived from the north.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:40:30.251232+00:00"
+    },
+    {
+      "question": "cuboid shapes will help?",
+      "standalone_query": "cuboid shapes will help?",
+      "answer": "Adding cuboid shapes to the 2D world will help in creating rooms of various shapes and sizes, allowing for more complex environments and interactions between agents.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:40:50.364729+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-25_15-13-37": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:43:52.177130+00:00"
+    }
+  ],
+  "ashmit_test_2026-01-25_15-15-33": [
+    {
+      "question": "Why was manual chunking introduced?",
+      "standalone_query": "Why was manual chunking introduced?",
+      "answer": "Manual chunking was introduced to divide transcripts into smaller chunks based on topic changes, as the previous method of giving the entire transcript to the LLM was resulting in hallucinations and incorrect answers. This was done to improve the accuracy of the model by matching the user query with the relevant transcript chunk.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:45:48.138472+00:00"
+    },
+    {
+      "question": "Explain that in simple terms.",
+      "standalone_query": "Explain that in simple terms.",
+      "answer": "The project involves creating a chatbot that can represent an instructor or a personal assistant in meetings. It will take inputs from meeting transcripts, past data, and the instructor's speaking style to provide answers to questions or doubts raised during the meeting. The chatbot will be able to understand and respond to questions in both English and Hindi, and will also be able to summarize meetings and provide concise answers to questions.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:46:07.262318+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-25_15-16-59": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:47:12.310461+00:00"
+    },
+    {
+      "question": "what were steps decided for last meeting?",
+      "standalone_query": "what were steps decided for last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-25T09:47:18.455508+00:00"
+    },
+    {
+      "question": "In Jericho, each node represents what ?",
+      "standalone_query": "In Jericho, each node represents what ?",
+      "answer": "In Jericho, each node represents a room.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:47:52.056900+00:00"
+    },
+    {
+      "question": "what shapes room were we adding?",
+      "standalone_query": "what shapes room were we adding?",
+      "answer": "We were adding rooms of cuboid shape.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:48:50.005575+00:00"
+    },
+    {
+      "question": "saboteur arrived from what direction?",
+      "standalone_query": "saboteur arrived from what direction?",
+      "answer": "The saboteur arrived from the north.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:50:17.143823+00:00"
+    },
+    {
+      "question": "cuboid shapes will help?",
+      "standalone_query": "cuboid shapes will help?",
+      "answer": "Adding cuboid shapes to the 2D world will help in creating rooms of various shapes and sizes, allowing for more complex environments and interactions between agents.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:52:06.737008+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-25_15-22-33": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "RETRIEVAL_ONLY",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-25T09:52:47.685033+00:00"
+    }
+  ]
+}

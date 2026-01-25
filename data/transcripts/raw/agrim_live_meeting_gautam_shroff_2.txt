@@ -1,0 +1,523 @@
+
+[Speaker 1]
+So, you have to wait, because you are supposed to be at 11.38, no I had received the, it was 12. No, no, no, I changed it. Anyway, just wait, it is not 11.30. Okay. We will meet today, but first let me finish this. So, this stores the information for every thing. What is that on the frame?
+
+What is the topic on the frame? You have to join the meeting and share. Oh.
+
+Okay. That is like Google meeting.
+
+[Speaker 2]
+Google meeting.
+
+[Speaker 1]
+There is a Google meeting up today. Oh, is it on Gmail? No, it is on calendar.
+
+Open your calendar. Yes, open calendar.
+
+[Speaker 2]
+Yes, yes, go ahead. Yeah. Open calendar.
+
+It should be there.
+
+[Speaker 1]
+Now you can share the screen. Done. Shut this, shut the mic.
+
+Okay. Yeah. So, then there is evidence.
+
+So, there is evidence for each summary and every, like each thing is sourced. Like the name, the serving, this is the decision item. These are different decisions taken by people.
+
+There are different actions taken by people. Then there is a chapter. Chapters are like a general summary and time frame.
+
+This was the title summary. People, decisions, action items. This is the, like, let's say you have a speaker called Rahul.
+
+So, this will try to find the name of the speaker by using. Okay. So, this is the meeting stage in which you have speaker notes.
+
+You have all the speakers. All they are. Then, you know, all the.
+
+You are telling me the how. You haven't told me what. What is it going to do?
+
+What have you done? Right. What is all this about?
+
+You are going to the internals of it.
+
+[Speaker 2]
+Yeah.
+
+[Speaker 1]
+What is the actual, what have you built? Okay. So, first it takes out the aspect using.
+
+I think it was deep gram. Deep gram, yeah. Yeah, deep gram.
+
+And then it takes out. So, you take the audio, take the video. Yeah.
+
+Take the audio, take the video. You have a video to start with.
+
+[Speaker 2]
+Yeah.
+
+[Speaker 1]
+We take key frames from the video using. There is another library called Cpredict. ICpredict.
+
+But this doesn't work. There is a fallback also using. Let's see how the images are.
+
+And then we use. To get the details from the key frames. Screenshots of the video.
+
+And. Summary from the audio. And then.
+
+The audio you are passing to the Gemini. You are passing through the transcription. Through the transcription.
+
+And then. And then we make. Small time frames for movements.
+
+So, they can be slightly changing. Key frames changing or like. The person stops talking.
+
+There is a break between the speech. We create a small time frame. And then.
+
+We compare. The post accessibility of all these time frames. And whichever time frame was similar.
+
+We will open it in the templates. So. Then we use these chapters.
+
+And. Then we pass them to. The editor to create.
+
+Like summary. Then we also store different things like. The name of the speaker.
+
+What else is happening. So, let's see what works so far. Yeah.
+
+So, this was the output. These are the chapters that got generated. I have stored them into five active objects.
+
+This is the summary. The title we got. This is for this video.
+
+This is video. Okay. So.
+
+We have the key points. Some of the decisions. That were made.
+
+And then these are the movement IDs. So, like this is. This.
+
+These are the movements to make up the chapter. Okay. So, like.
+
+We got. This movement from. 90 seconds second.
+
+To the hundred and third second. And. We have the text also.
+
+These are the other chapters. This is the frame analysis. For all the different frames.
+
+That have been detected by the. I think. We get a view.
+
+Like what are they. Is it slides. Is it mixed.
+
+Is it camera. What the topic is. The visual summary.
+
+Like what is on the screen. The text. The entities.
+
+And then. If there is a name of the speaker present. On the screen.
+
+Then. These are the different key frames. These are the movements.
+
+I was talking about. The key frames. The audio.
+
+Because. This. This library.
+
+Actually. Gives. The different speakers.
+
+So. But. I can say.
+
+You can see. The AI. Evaluator was there.
+
+It was given. The name of the speaker 0. And then.
+
+The student was speaking. It was given a label of 1. And then.
+
+For when. Passing to the. For example.
+
+Let's say. The student. Or the.
+
+Purchases something. Like my name is. Example.
+
+Or like. An hour here. Or like.
+
+Let's say. His name is visible. On the screen.
+
+This speaker. Will get replaced by that. So at the end.
+
+This. The other. The other group.
+
+This has. The meetings already. Okay.
+
+So. As regards. The goals of the project.
+
+What. Progress has been made. So far.
+
+What are the goals. And where have we reached. The goals was to.
+
+I think. Implement it in the earlier time. No.
+
+Implement what. Like. So the first goal is.
+
+To. To. Create.
+
+Data. Which includes. The demonstration.
+
+Which are done on the screen. Right. There is something happening.
+
+In terms of. In the meeting. Or in the presentation.
+
+Which is. Based on. The conversation.
+
+And any other context. Which is pre-provided. Which is the.
+
+PDF file. Or whatever. That is already there.
+
+Right. So that data. Anyway.
+
+Is already there. The transcript is there. Everything is there.
+
+But. What is happening on the screen. At a particular point in time.
+
+Is not there. Right. So you have the transcript.
+
+You have the context. And. Now you have done something.
+
+Which has created all this. Structure. Idea was to.
+
+Firstly. In batch mode. Augment that.
+
+Meeting transcript. With. Some information about.
+
+What the. Presenter is presenting. On the screen.
+
+In terms of a. Demonstration. So.
+
+Have you been able to say. This is a demo going on. Versus.
+
+Something else. This is part of the presentation. Or whatever.
+
+Slide one. Slide two. Slide three.
+
+Yeah. I think it is. You could say.
+
+For example. This is a night. Demonstration.
+
+And. Showcase the. Time code.
+
+Yeah. But. Where is that demo happening.
+
+What key frame is it happening. So you have generated. A whole bunch of stuff.
+
+But. It is fine. But is it.
+
+Can we actually. Get out. In this.
+
+Presentation. At this key frame. This.
+
+From this frame. To this frame. Somebody is giving a demo.
+
+Yes. I think. Presentation.
+
+Yeah. In these tablets. This is what that.
+
+Evidence object was about. Yeah. So like.
+
+Let us say. For this one. You get.
+
+This summary. The presentation introduces. An AI chatbot.
+
+In this file. Yeah.
+
+[Speaker 2]
+And then.
+
+[Speaker 1]
+Where do you get the references. From what. Moments.
+
+Like. What. We talked about.
+
+It will be shown on the screen. Yeah. But you are not.
+
+You are not answering my question. There is a. So this.
+
+You have done a lot of stuff. But. I think.
+
+I still do not see. That. In this entire.
+
+Transcript. When. Is.
+
+The. Presenter. Actually.
+
+Either showing a demo. Or showing some code. Do we have that information.
+
+It should be somewhere in the chapter. But it is not. Given clearly.
+
+Yeah. So what we wanted to do. Was.
+
+Okay. You have done something. It is fine.
+
+Right. Interesting. Certainly interesting.
+
+But does it solve the problem. If it starts. It may solve some other problem.
+
+[Speaker 2]
+Right.
+
+[Speaker 1]
+It may say. Okay. I have dumped all this.
+
+Now. I do not know. What the hell this is.
+
+Right. Some information has come out. Right.
+
+But. Is it. Telling me.
+
+That. This. Transcript.
+
+Is. There. And.
+
+Then. From. This.
+
+Period. To. This.
+
+Period. There. Is.
+
+A. Demo. Going.
+
+On. And. Number.
+
+Two. Within. That.
+
+Demo. What. Is.
+
+Going. On. Is.
+
+The. Description. What.
+
+That. Presented. In.
+
+That. Demo. Exactly.
+
+What. That. Narration.
+
+If. You. Were.
+
+To. Describe. This.
+
+Demo. To. Me.
+
+That. This. Is.
+
+What. The. Person.
+
+Presented. This. Is.
+
+What. Actually. Presented.
+
+Right. Or. This.
+
+Is. Slide. One.
+
+Slide. One. Set.
+
+This. That. Lot.
+
+Of. Stuff. Can.
+
+Come. From. The.
+
+Context. Etc. Etc.
+
+Right. So. What.
+
+You. Produced. Is.
+
+Actually. More. Data.
+
+But. It's. Not.
+
+Informative. In. The.
+
+Sense. That. We.
+
+Wanted. It. To.
+
+Be. Right. So.
+
+Yes. You. Could.
+
+Probably. Use. This.
+
+Data. Information. That.
+
+I think. Is. Definitely.
+
+There. But. I don't.
+
+Think. That. Is.
+
+Happening. So. What.
+
+We. Wanted. Were.
+
+Two. Things. One.
+
+Is. In. Batch.
+
+Mode. That. This.
+
+Entire. Meeting. Should.
+
+Be. Enhanced. The.
+
+Transcript. Of. That.
+
+Meeting. Needs. To.
+
+Be. Enhanced. With.
+
+Whatever. Is. On.
+
+The. Screen. Could.
+
+Be. A. Presentation.
+
+Slide. On. The.
+
+Screen. And. A.
+
+Narration. What. That.
+
+Slide. Is. All.
+
+That. In. Some.
+
+Sense. Already. There.
+
+Because. The. PDF.
+
+Of. That. Somewhere.
+
+Is. There. The.
+
+File. Is. Also.
+
+There. On. The.
+
+Screen. The. File.
+
+Also. The. What.
+
+Is. Be. A.
+
+Screen. The. File.
+
+Is. That. Screen.
+
+Is. So. The.
+
+They.
+
+[Speaker 2]
+A.
+
+[Speaker 1]
+In. The. asking questions only about based on what he's speaking, but nothing to do with the screen.
+
+But suppose the guy is speaking, but the screen is showing something totally wrong. Or the screen is, it has no idea what's on the screen, right? So, so a lot of stuff has been generated, but from these two goals perspective, to what extent have we got there?
+
+That's what I think we need to think. Think like from this data generated algorithm, we can go. So what I think we need to do now is, we need to take the result of what has happened so far.
+
+And say this is the input, and this is the desired output, right? And now that I think we should stay on Slack. At least this time, at least after this meeting, can you summarize on Slack, what are the two inputs and outputs that we need?
+
+One is batch mode, one is data type. And at least then Pankaj can take a look. He's also on Slack.
+
+He has no clue what the hell is going on, right? Second thing is, this particular meeting that we are having today, get a transcript of that meeting. Summarize that transcript and post it on Slack, right?
+
+So at least we know that we are keeping them up to date in what is happening, right? And of course, this meeting recording is there, but I don't, we can't share this recording with them. It's on, it's clear sort of what we're talking about?
+
+Yeah, I think so. So like, basically they just need to get a batch summary. Batch summary will be done fast, right?
+
+I think this deliverable will be done very fast. And the next thing will be to, by the way, they will have to supply their little tool or whatever, and then we have to do it with their tool. Rather than this meeting, so that's all.
+
+Meanwhile, before they supply that tool, let's see if we can then, after the batch summary is done, maybe a week after next, we can work on, can we make it real-time, which I can integrate. Right? Okay, so I think the batch summary should be done.
+
+Batch summary should be done based on meetings, but now let's generate that batch summary for not just that meeting, but let's generate for the other meetings which are shared.
+
+[Speaker 2]
+Yeah, yeah.
+
+[Speaker 1]
+And so now we have results for three, four meetings, right? Let that be the target for next week. A batch summary process, this is what the person is telling me about on the screen at this particular time, where the demos are, et cetera.
+
+So then now that can be the basis for what, what's his name? Akshit, right. Akshit can put into his chat box, right.
+
+So, I have a request actually. So they write out the meetings that are not shared with anyone speaker. Yeah.
+
+So if it's possible, could I get some? You will, huh? So this will be there.
+
+Right, then our previous meeting is also there, I think. Usman, two speakers, and then the other guy's meeting will also be there. Soon there'll be two speakers, and earlier there was no presentation.
+
+Now they'll be starting to making presentations. Right? You are making?
+
+They also make, the guy who's coming, he'll make, the next guy will make. Okay. So then that'll start happening.
+
+But since there was a confusion with the previous meeting, are we done today? I think we have to go now. I'll get the batch summary.
+
+Yeah. I'd like you to make a GitHub repo for this. Okay, sure.
+
+Right? And, you know, add me also. Yeah.
+
+And then we can add them also. Right? Okay.
+
+So, don't make it public. Yeah. Make it private.
+
+Add me, and then we'll add Pankaj. And then we'll see. Same events.
+
+Yeah, yeah, same events, right? Okay? Okay.
+
+So action items, write down on Slack. Goals, write down on Slack. Just do a summary of today's meeting and put it on Slack.
+
+And then we will see what's going on. Okay. Today's meeting, come when it's recorded and ready, I'll upload it, and then you can get it.
+
+Okay, ultimately, my goal is, I want this integrated real-time, if I can. Their goal, they have to specify after seeing this. Right?
+
+Exactly what they want. So they shouldn't be specified by Pankaj? No, no, no.
+
+The core engine should be generic, but there'll be a real-time version, and there'll be a batch version. Okay. Batch version will be, everything will be based on what you're doing now, but batch version will be more toward what they want.
+
+Right? And the real-time version is what is required by them. Okay.
+
+But core engine will be using these only, right? Yeah. How long does it take, the whole pipeline?
+
+Like, this video is 10 minutes, I think, and around two minutes. Mm-hmm. I think if it's real-time, you can do, like, one frame takes very long.
+
+It's very quick, probably one frame.
+
+[Speaker 2]
+Uh-huh.
+
+[Speaker 1]
+Like, it's, like, 80 frames or something, it's a video for two minutes. Uh-huh. But chain detection, in terms of the keyframe, whether it's a keyframe or not a keyframe, based on what is there.
+
+I mean, that architecture will have to be well done. To, in real-time, see, is this something new happening, number one. And B, is it a demo?
+
+If it's a demo, I start augmenting. If it's not a demo, I don't want to augment. So, anyway, everything is there.
+
+Yeah. So, overall, we're able to think through this. But first, let's get past this phase.
+
+From this to a system is a journey, okay? This is easy. Getting into a system which is usable in real-time, or a system which is usable for their purpose, is a journey.
+
+You don't have to do much. You can get the keyframes and also, call the internet to see. We'll have to think about that.
+
+Uh-huh. We'll think about that. Even what is there today, everything is happening in real-time.
+
+[Speaker 2]
+Mm-hmm.
+
+[Speaker 1]
+Seconds, transcription is happening, it's batched. Every 10 seconds, it's being batched, right? So, it's not a simple architecture.
+
+It's a complex architecture. It was done by one of you guys, right? So, it can be done.
+
+But it's a good, solid piece of engineering has to be done. Anyway, those steps have been taken. Okay?
+
+Okay. All right, we'll end this one. Anything else that we need to capture in the recording?
+
+No, I think that's it. I think we'll provide the batch and release on the tomorrow after. Okay.
+
+Yeah.

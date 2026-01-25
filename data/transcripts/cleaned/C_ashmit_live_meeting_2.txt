@@ -1,0 +1,195 @@
+[Speaker 2]: I am speaking in English also in between, I am speaking in Hindi also in between. So, it was being messy.
+
+[Speaker 1]: That's okay, but you don't have to read it.
+
+[Speaker 2]: Okay.
+
+[Speaker 1]: LLM has to read it.
+
+[Speaker 2]: LLM has to read it.
+
+[Speaker 1]: Will you do it yourself?
+
+[Speaker 2]: So, sir, like I am speaking in Hindi in between. I am speaking in English from here and speaking in Hindi in between. So, the Hindi one that has come in between. So, that should be in English only or should it be in Hindi separately?
+
+[Speaker 1]: They say that you do multimodal transcription. Yes. And then the chat board that you will make, it will read it and give the full response in English.
+
+[Speaker 2]: So, it will understand the Hindi one.
+
+[Speaker 1]: Let's see.
+
+[Speaker 2]: Okay.
+
+[Speaker 1]: Do that only. Now see, you are speaking in Hindi, is it recording? Yes. Let's see what happens.
+
+[Speaker 2]: Okay. Right. Also, sir, there was one more thing. Like I am saying something 100%, so 100% it was not coming right.
+
+[Speaker 1]: See, there is transcription. Okay. There is language detection. Yes, language detection. There is translation.
+
+[Speaker 2]: Yes.
+
+[Speaker 1]: We will put all of them on one. Right.
+
+[Speaker 2]: Okay.
+
+[Speaker 1]: This is the meeting. More meetings will come. We will do all of that. So, now what have you understood is the project. Not this. You are asking what is the problem. Okay. What is the definition of the problem? Yes.
+
+[Speaker 2]: So, sir, what I have understood in total is like I have to create a LLM or a chatbot that is like representing you or any instructor or as a personal base that we can keep in a meeting or that we can keep in a meeting. It can take inputs from the meeting, from the transcripts that we provide to him or from your past data and how you speak and also I am collecting your email replies and all just to report that data. And then if you are not available, like if you are available at that moment and some person asks, so you can reply. But if you are not available at that moment, so whatever that the chatbot has understood from all the past data and all. So, he could reply best by accessing the internet to the student who is like asking doubt or asking his grades. How did you get the internet? I didn't get the grades. What do you mean by internet? I mean, sir, like I said, whatever happened, he can access the internet and tell something better.
+
+[Speaker 1]: Yes, that is okay. So, one is it should respond. Suppose you say I am confused, should I be doing this in the project or not doing this in the project? My assumption is correct or wrong. Then on the basis of the meeting recordings and my past responses, you should give the best possible answer. Number one. Second, if we have a doubt, can I am doing, I am going to use this pre-trained model, let us say or something. I am going to use this internet resource. If you were to ask me, can you suggest something better? I may think what I know. But then LMA also knows what is on the internet. So, it may also find on the internet.
+
+[Speaker 2]: So, it can do that.
+
+[Speaker 1]: So, the first that is good. So, what you are going to build is going to be number one, a chat, an agent based with have maybe multiple agents. So, one is going to try to find out what the guy is asking. One is going to try to look at the meeting recordings and see what is going to be evaluated the response. Multiple mini agents will be there.
+
+[Speaker 2]: And then we will be collaborating. Collaborating to give the answer.
+
+[Speaker 1]: That is one thing you want to do. Second, that is, but and that is going to have as a resource. The transcriptions of various meetings. The transcriptions may have multilingual content. So, you have to deal with the multilingual content. That is the one aspect. Let us first keep two years English content.
+
+[Speaker 2]: Just English.
+
+[Speaker 1]: Part one. Right.
+
+[Speaker 2]: Okay.
+
+[Speaker 1]: Part one, let us see English content. The Hindi part doesn't give its okay. Right. Or only Hindi content. Whatever. We will just see. Okay. Maybe there is one file which is Hindi. One file is English. We can break it up. We will do something. Right. We will do something to make it work. Right. So, there is somebody. You ask a question from this meeting. What happened in this meeting? What were the goals? What were the. That is what the read.ai audit does.
+
+[Speaker 2]: Something like that. It will answer. Right.
+
+[Speaker 1]: Rather than give me a summary. Read.ai what does it do? It gives me a summary. I have to read it. Right. Summarize this meeting and all that. Right. But I have to read the damn summary.
+
+[Speaker 2]: So, can we do something that it speaks?
+
+[Speaker 1]: That is a different thing. Right. Problem with these meeting summarizations is it takes up my time to read the damn meeting. I have to read the meeting summary. It takes time. But I have a doubt. And I asked for a doubt. Right. So, it will tell me. Okay. So, first goal. For month of January. Okay. Right. It has to be finished. Is. Let us just call it a simple chatbot. Web interface.
+
+[Speaker 2]: Right. Okay.
+
+[Speaker 1]: Not slack back another thing. Web interface. Meetings. Jo bhi ho rahi hai. Uspe if anybody asks a question. Right. Based on this meeting. It should give a proper concise answer.
+
+[Speaker 2]: Okay. Right.
+
+[Speaker 1]: Let us get that. Right. Okay. Second. Immediate. Once that is done. So, this is basically. There is a UI piece. There will be the core chat interface. We should keep it clean. So, that it can be called from anywhere. Right. And there is the repository of meetings, transcripts, etc. Properly organized. So, that everyone can read. Right. Second. Very small piece. Perhaps in half of February. Connected to slack.
+
+[Speaker 2]: Okay. That is the thing. Connected to slack.
+
+[Speaker 1]: So, the slackbot. So, that on slack. When we are putting. I will put you on slack also. Okay. Your chatbot. First will be web based. Second will be. Chat. Second will be slack. So, it will be on slack. You are connected to the same channel that we are talking.
+
+[Speaker 2]: Okay.
+
+[Speaker 1]: So, why. It will decide. So, there the other thing comes. Once you connect it. It is not. If you have to. You could have. That bot could respond to a DM. Like the chat message. Chat. Chat. DM. DM.
+
+[Speaker 2]: Each DM different.
+
+[Speaker 1]: No, no. Suppose I DM the bot. Okay. Then I am asking a question. That is one. Second is I am having a conversation. The chatbot decides to come in.
+
+[Speaker 2]: Okay. By himself. Okay. It is listening to conversation.
+
+[Speaker 1]: So, there is a different type of agent there. Deciding. Is there something where I need to talk?
+
+[Speaker 2]: I could help. Or I can elevate the conversation. Right.
+
+[Speaker 1]: Okay. Alright. Okay. At this point. Okay. Right. And March. Half of March is holiday. But anyway. You have to work in holiday. March is. If I have. I am doing some work. You are doing. Agrim is doing. Somebody else is doing. And it has a code base.
+
+[Speaker 2]: Okay.
+
+[Speaker 1]: Right. If this bot has access to this code base. Can it see? Is it doing? Is it doing the right work or not right? Based on.
+
+[Speaker 2]: Evaluating the code base.
+
+[Speaker 1]: Based on the meeting. Is it doing. What I am supposed to do. Or doing something else. Oh.
+
+[Speaker 2]: Okay.
+
+[Speaker 1]: Okay.
+
+[Speaker 2]: It's like. It's evaluating the code. Is that.
+
+[Speaker 1]: For example. I don't ask questions. About your code. Except in the five. Ten minutes. I can look at the code. Right. Right. It can look at the code. Continuously. Okay. Let us say. We just give it. Git access. It will periodically. Do a git pull. Right. And it will periodically. Look. And if it wants to ask a question. About the code. It will ask questions.
+
+[Speaker 2]: It will ask questions.
+
+[Speaker 1]: What are you doing here? What is that? What is that? So you feel like. There is a reviewer of the code. Somebody who is trying to. Understand the code. And whatever. It gets the answers. It keeps putting that back.
+
+[Speaker 2]: Okay. He is basically evaluating. If it is correct or not.
+
+[Speaker 1]: It is correct. And it is clarifying.
+
+[Speaker 2]: And clarifying. Right. Okay.
+
+[Speaker 1]: So you feel. That there is somebody. Over there. Okay. So. So. So. So. So. So. So. So. So. No need. Especially if.
+
+[Speaker 2]: So. I.
+
+[Speaker 1]: I will give you the transcript of the first meeting, transcribe the meeting, run the chat on that, run it on the command line, make the interview, this agent, that agent, who will actually answer questions on that chat. Read more in UI, UI is wasting time actually. Because once this part works, the UI will come on the web, it will come on the site, it will come separately. It should answer the questions properly.
+
+[Speaker 2]: So sir, right now just in English.
+
+[Speaker 1]: Whatever is in it, first type it in English. Right. Let's see what happens. Let's see. Whatever is there. You can go to troublescribe, you can give three videos, three recordings of 30 minutes per day. Do it. I will keep giving you meetings, as meetings happen. Two are done today. Three are done. I will give you three today. This is it. There are two more. Start with those three first.
+
+[Speaker 2]: Right.
+
+[Speaker 1]: And it will be done by next week. Now what is your schedule? Meeting schedule.
+
+[Speaker 2]: So what?
+
+[Speaker 1]: What is your class schedule? When are you free?
+
+[Speaker 2]: Sir, right. On Monday, there is a DBMS. Till when will you be free on Monday? On Monday, from 11 to 12.30, there is a DBMS. And then there is a KELA. 1, 2, 3. Then free.
+
+[Speaker 1]: So Monday or Thursday? Hello. Hello. Hello. Yes. Yes. No, we don't want anything.
+
+[Speaker 2]: Thank you. Sir, from 11 to 12.30, there is a DBMS. Then DBMS 2, 2, 3. Then free.
+
+[Speaker 1]: And till when is there a DBMS on Monday? There is no class on Friday. Till when is there a DBMS on Monday?
+
+[Speaker 2]: DBMS on Monday. Sir, from 11 to 12.30. So can we meet after 12.30?
+
+[Speaker 1]: Yes. When is your next class after that?
+
+[Speaker 2]: Sir, it is on 3.00. Till 3.00, right? From 3.00 to 4.30, there is a DBMS. You can come at 12.30. Yes.
+
+[Speaker 1]: So from 12.30 to 12.35, where is the class? Class is on C1.0. So it will take 5 minutes to come. You will come by 12.35, right? So we will meet at 12.30 on Monday.
+
+[Speaker 2]: Meet. Okay.
+
+[Speaker 1]: I will send the invite also. Okay.
+
+[Speaker 2]: Every Monday. Sir, when will you send the meeting?
+
+[Speaker 1]: I am making a classroom.
+
+[Speaker 2]: Okay.
+
+[Speaker 1]: I will make a classroom for this project. Actually, I have made a classroom for the other project. I will put you in that. It is called Multimodal Meeting Agent.
+
+[Speaker 2]: Okay.
+
+[Speaker 1]: Right. I will put you in that classroom. Okay. I will give you access to that in Slack. I will make a separate Slack for your project. Okay. I will make a new channel for your Slack, your project in Slack. But you will have access to both. But I will put you in one classroom. Okay. Because I am uploading a lot there. Why should I upload separately? I will put you in one place. Okay. And not only meetings, there are other videos, recordings, etc. All these things are there. You will have to take out the audio from the meeting recording.
+
+[Speaker 2]: Yes.
+
+[Speaker 1]: Then it will be a video.
+
+[Speaker 2]: You will have to take out the audio of the video. Yes, I will do that.
+
+[Speaker 1]: You will have to take that out. Yes, I will do that. And you will have to index it. Right. Let's get one agent which will work on these three meetings. These three meetings. Right. You will have to say which meeting are we talking about and who am I? If I am Agreem, we will talk about the Agreem meeting. If it is you, you will talk about this meeting. If somebody is a third person, you will talk about that meeting. You will have to ask questions about that meeting. Okay. And that meeting will increase. You have three projects now.
+
+[Speaker 2]: Okay. So you will have to ask about each meeting separately.
+
+[Speaker 1]: Yes. Okay. When you ask, which project are you in? Not which meeting.
+
+[Speaker 2]: Okay.
+
+[Speaker 1]: Who are you? Say if you are Ashmit, then…
+
+[Speaker 2]: If you are Ashmit, then we will have access to that meeting.
+
+[Speaker 1]: Sir, not just the last one. There will always be a meeting next week. There will be a meeting every week. There will be many meetings for the same person, same student. It will be based on login. Okay. Who is logging in? Who is which?
+
+[Speaker 2]: Okay. Right.
+
+[Speaker 1]: Which is your…
+
+[Speaker 2]: Login will be based on that. Okay.
+
+[Speaker 1]: Okay? Yes. See? Yes. Done? Yes, sir. Next week, 12.30. Next week. All right. Thank you so much. All right. Come on.

@@ -1,0 +1,47 @@
+[Speaker 2] You mentioned that the patient's behavior is controlled using a LanGraph based state machine. Please elaborate more on your point.
+
+[Speaker 1] What LanGraph state machine is doing is like in our backend, what is happening is each session is created. Let me show you in the PPT. Like in our system, each session is created and what LanGraph is doing, it is transitioning the state of that session ID. Like I am storing some variables like diagnosis, symptoms, and questions asked in your backend, Flask backend. And what LanGraph is doing is it is transitioning, it is updating the memory of each session. Like we can consider our Flask as a bucket and which have some certain boxes and LanGraph as a man that is updating those boxes. So now I will be explaining the system architecture. Each frontend session maps to a unique backend session object here. So what happens is like our Flask backend session holds all the patient state, symptom states, and questions asked and nothing is shared globally in it. So then what happened is for every message, we invoke a LanGraph based patient agent using graph.invokeState. This ensures deterministic state-driven behavior instead of prompt-based randomness. And because state is a session scope, multiple users can interact simultaneously without any memory leakage or cross-user contamination. And so the technologies that I use is HTML for CS frontend, CSS and JavaScript. I kept it simple for lightweight framework. For backend, I use Python and Flask. For agent framework, I use LanGraph and LanChain. And for data, I have used in-memory session store because right now we are not having much of the data. In future scopes, I have added this that I would be adding the backend too. But right now I have done it in in-memory session store only like to reduce the heaviness.
+
+[Speaker 2] You mentioned that LanGraph ensures deterministic state-driven behavior. Could you elaborate on how backquote graph invoke underscore state backquote achieves this deterministic behavior, contrasting it with prompt-based randomness?
+
+[Speaker 1] The deterministic behavior is achieved by the rules like let me show you in this diseases and treatments.py files. Actually, what's happening is I have certainly putted and constrained. Right now, I have not added much of the diseases. I have only constrained it to three diseases. The deterministic behavior is because I have added these symptoms and optional symptoms. I have limited them and I have putted them into diseases and treatments.py. So, this is achieving the deterministic behavior. Also, LanGraph is only ensuring the symptoms from these files.
+
+[Speaker 2] You mentioned adding rich symptoms and opiates optional symptoms to achieve deterministic behavior. Could you elaborate on how these specific additions ensure a more predictable outcome in the simulation?
+
+[Speaker 1] So, what the required symptoms are doing is required symptoms are the symptoms that are specifically needed to diagnose a particular disease. But optional symptoms are the symptoms that increase the confidence bar that I will show you afterwards in the project. Let me explain the key design choices and engineering decisions. So, what I am doing is my session is a scoped state, not a global memory. Each user session maintains its own isolated patient state. So, no state is global. Every request mutates only its session state. The LanGraph for control flow is not a prompt. The LLM cannot skip steps because transitions are enforced by the graph. Also, it is a rubric-based diagnosis evaluation. Diagnosis correctness is checked against revealed evidence and not model confidence. And separation of intent classification and symptom revelation. Understanding a question does not automatically reveal a symptom. Also, design choice 5 is like you can see why the model leans towards a diagnosis. Live system and demo demonstrator is here. This is the backend evidence. Here I created a session through a session ID and thread ID. Then I ask particularly symptoms that are revealed gradually. Also, here is the diagnosis which is allowed only after a sufficient evidence. LanGraph transition is questioning it to ready for diagnosis. Here is the testing of my model.
+
+[Speaker 1] These are the diseases and these are the required symptoms that I was talking about. The fever, cough, headache, nausea, vomiting. And these are the optional symptoms that increase the patient memory which increase basically the confidence bar. Also, the minimum question needed to diagnose which should be required symptoms basically. These are the special interaction test cases like greeting and your duration ambiguity handling like how many days have it been that I will show. Let me show you that too like right now. Like here I will ask hi. So patient will be replying by this. Then I will ask for his symptoms which it says that that's not been an issue. Now nausea is a symptom which is between food poisoning.
+
+[Speaker 2] I'm following your presentation well. Please continue your explanation of the required and optional symptoms.
+
+[Speaker 1] So food poisoning is a symptom between food poisoning and migraine and nausea. So what happens is I will elaborate further more to a specific disease to increase diagnostic confidence. Like I will be asking do you have stomach ache which it shows it doesn't have us. So we will be constraining the symptoms.
+
+[Speaker 2] You mentioned elaborating further on a specific disease to increase diagnostic confidence. Please continue.
+
+[Speaker 1] So we are seeing that nausea and light sensitivity is going specifically. So what we'll be doing next is asking do you have this. So these three symptoms.
+
+[Speaker 2] Could you elaborate on what you mean by going specifically in the context of nausea and light sensitivity?
+
+[Speaker 1] Mm hmm. So what's happening is like in flask backend. Right now we were having symptoms like an empty array. And then what's happening is the state the land graph like I am asking the symptoms and the symptoms however the symptoms as are getting revealed they are going in the your flask backend. And what's happening there is it is transitioning that state for the particular session ID of this patient which is 998620F0. And what's happening if I create a new session like a new patient. So that would be having a different session ID. And the land graph would be connecting to different session ID then. But now right now we are doing this. So what I will be doing is diagnosis migraine. So diagnosis migraine is good. Right now I will be showcasing the good test cases. Then I will be also showing the error test cases. Like if the diagnosis I have done is bad or something. Treatment. So different treatments like for migraine there are three treatments dark room painkillers and rest. And for food poisoning ORS hydrogen diseases are these.
+
+[Speaker 2] I'm following your presentation. Please continue.
+
+[Speaker 1] Now once the treatment is completed the session is stopped. So the session ID of this particular patient is done. So what will happen next is like we will be showing the diagnosis migraine. We will be going in patient 2. We will ask again from you. Also the each patient would be having random disease. I have done random in my script.js file. Through that the each patient would be having a different disease. Like a random disease not a different.
+
+[Speaker 2] You mentioned assigning each patient a random disease using back quote script. What's the symptoms of flu?
+
+[Speaker 1] It was fever cough. So now I can diagnose it with flu. Now I will be showcasing what if my diagnosis is wrong. Like if I diagnose.
+
+[Speaker 2] I'm following your question.
+
+[Speaker 1] With migraine.
+
+[Speaker 2] Please continue. And I'll do my best to help you understand the symptoms.
+
+[Speaker 1] Like if I do a diagnosis as something else. So what will happen like it will show that verdict is incorrect. So I will now show. This is the error handling that I have done in my project. Like what if the particular doctor gets to diagnosis us patient wrongly. Diagnosis flu. Now it shows that.
+
+[Speaker 2] You mentioned that the system shows what verdict is incorrect. Can you elaborate on how the system determines that a diagnosis is incorrect and what specific steps are taken in the error handling process. It meant of this is. So session is you elaborate on what aspects of the treatment you are referring to.
+
+[Speaker 1] Now I will be showing what if the treatment is wrong. Like if I.
+
+[Speaker 2] Evaluation has been successfully saved. You may now disconnect. We are done here. Like what if I do now. We are done here. Please return to your task.

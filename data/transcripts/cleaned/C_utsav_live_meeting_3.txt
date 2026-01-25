@@ -1,0 +1,117 @@
+[Speaker 1] speaker, you just connect Okay, so the first thing that I tried, it was that I tried first in Jericho, like how can we, I made a simple script first that, you can just start it. So just a basic script that will be, that will ask us for actions and this was one of the games that was invented in Jericho. Hello? I think it will... So, basically, we can choose our options and... So, I was exploring, like, how it works in the games or things, I don't know. So, this was, like, the user is giving an input to the agent and it is taking action and doing all those things. So, basically, this was the first thing and then I tried... This is just plain Jericho. So this was like I wanted to explore how it works. So I saw that. So how the environment works. So that's the first thing that I see. And then you might try to inform. So first, I want to also say that I am. So it will provide me an ID, it's private. So then the next thing that I said, I want to inform seven. So there are lots of rules within it. So what happens is that we can create like a room. So we have to create a room and then we have to create items and every item. What is this? This is inform ID. So this is the language that is used for creating Jio games. we can create rooms, we can create objects and entities. So, every object will have its own properties and we can interact. So, basically, this what happens is that all environment are reset. First of all, environment is set. And this is environment.
+
+[Speaker 2] I know that. Now, tell me, in the framework you had created.
+
+[Speaker 1] Yes.
+
+[Speaker 2] There was a concept of an agent, right? Doing something.
+
+[Speaker 1] Yes.
+
+[Speaker 2] Have you done anything together with that or this would be an independent game? The thing that I showed you last.
+
+[Speaker 1] Yes. No, this is independent. The thing that I was struck about is that, okay, I also tried making my own game and all. I tried to make an NPC and all.
+
+[Speaker 2] What was the goal? What was the goal you set for last?
+
+[Speaker 1] I had to create an agent in the Jericho that interacts and then I had to also check out the Jetman API, how we can do.
+
+[Speaker 2] The idea was that you have an agent. What did you do last? What did you show me last time?
+
+[Speaker 1] Last time I showed my script that creates walls and room and, it recognizes that in the field of view these objects are there and agent can send messages to each other. That's what you told me to explore with Jericho.
+
+[Speaker 2] The idea was that your agent could be a rapper around Jericho. That was what we discussed first. Your agent, there is going to be some position of that guy. For you, for Jericho, you are moving around in various rooms. When you move to a particular room, then your agent sort of come into your last time's agent is sitting in that room. It has, what is this, there are some items, no?
+
+[Speaker 1] Yes. This is the observation. All this, this is a particular thing and then the item, what is the event, what is there in that room? We do inventory. This is what the description shows. Every room has like text description.
+
+[Speaker 2] I agree, but what else is there? There must be some item in that room, right? There are some things that you have etc. etc. Now the idea was that once you're doing all this, you're moving around in this room, What was that we discussed last time? Tell me. You're supposed to summarize that also. We didn't do that. Right? So, the agent will be the basic. So, the agent will be able to interact.
+
+[Speaker 1] And with what?
+
+[Speaker 2] With, we will have our script on top of Jericho. Then the agent will be able to interact. So, agent can interact with Jericho is fine. It's just a matter of writing an LLM which will do things. Right. Which is, anyway, You just have to call them and you do something to take the output you give. What was the, we discussed something that you could write a wrapper on
+
+[Speaker 1] One thing we had discussed was that, okay, my code was about how the room looks. Like, in the room that at this position, this object is there. So, Jerry code just say that agent is in that room, and within the room, at what position, what things are there, that will be your Python code. That will not... That's not possible in Form 7 and Jerry.
+
+[Speaker 2] That's fine, okay, right. So, what have you... So, you put that aside.
+
+[Speaker 1] Yes, there can be a workaround, so I am trying those things also. But that you are not doing. But directly it's not possible.
+
+[Speaker 2] Alright, so now what are you, what is your goal, what are you trying to do?
+
+[Speaker 1] So, this is the one thing I did and the second thing, using inform rules I tried to make an NPC inside inform. So, basically,
+
+[Speaker 2] You made a game?
+
+[Speaker 1] Yes, using Inform7, this ID. And that game is being run in this script. So, what happens in this game is that there is a server here, that's our NPC basically. So, I am acting over all commands, the house is to the node. You can see a heavy chest and a saboteur there. I will do things, so here the saboteur arrives from the north. So what happens is that I try to base the NPC. It will move around north and south and take the chest. It will do things on its own. So I did not command the saboteur to move.
+
+[Speaker 2] Can you insert this saboteur in another existing game? By modifying the code of that?
+
+[Speaker 1] If I get the infant code.
+
+[Speaker 2] So, this is my game.
+
+[Speaker 1] No, but inside the Jericho, the master, all that could be there, right?
+
+[Speaker 2] Yes, all of that would have that, is it not, the Z5s we could have that? You can open it up. So, can you actually put a character inside that game?
+
+[Speaker 1] I can.
+
+[Speaker 2] You can, right? So, now what we should do is, so you have explored Jericho, you know how to put NPC. Now, what we need to do is, you need to, have a mechanism to put a NPC in one of their games. Because I don't want to write the entire description of words and all that stuff. Well, that creative stuff, I don't want to waste that. And somebody already done it. We'll work with that. But we should be able to put some NPC into that game. That NPC will, suppose you as a player go into that game, right, and you see an NPC there. You should be able to talk to that NPC. How to do that? Now there is a saboteur is there. Saboteur is now sitting, it's there, that guy only knows the saboteur is there. The fact that that saboteur is there, there should be something about that saboteur in some database which is outside Jericho, which is your database, there is this saboteur, it has some phase, whatever, etcetera, some metadata is there, and now if I want to speak to saboteur, I should be able to put an action here, speak to saboteur. That action should be picked up, that will not go to Jericho, that will go to your system, that will go and say I am speaking to saboteur, And saboteur will be, will say, okay, this is what I said. Saboteur will respond. There will be a conversation between you and saboteur. Jericho is not aware that we are talking. Jericho has no clue. Jericho only deals with movements of things. And what, who picks up, what is where, etc. And then they can move around and separate. Right. So, the idea is this, that right now you are talking to saboteur. The saboteur may actually give you an avatar which is actually playing this game with them, right? So then you are basically making this whole thing into a multi-user system. Many people can be playing this game. So they are all NPCs, as far as I am concerned, they are NPCs, right? And for that guy, you are the NPC. So we will create a system where The next two players are playing on both the systems, they are the agent and the other is the NPC. But before that, before you come to that situation right now, suppose there is an NPC, the fact that the NPC is being controlled by somebody else, that is part two. Think about it. But the idea is that can you talk to them? So then when you can, talk, then it's like, I go there, there is this guy over there, like, there's a context of that guy and my conversation, then that guy moves around, I move around, that guy comes back, then that conversation is retrieved, then I can continue the conversation with that guy. So it's like, it's like that simulacra, simulacra, but instead of moving around in those rooms, you're moving around in this game. And these, these things are all moving around and you're doing this. But now, so the control of this saboteur, Right now, you are able to move that way around, right?
+
+[Speaker 1] Yes.
+
+[Speaker 2] How?
+
+[Speaker 1] By, actually, my agent or the cemetery. Cemetery, how does it move?
+
+[Speaker 2] Cemetery, it moves on its own. So, what happens is that there are, it informs that there are every turn rules. So, once I did an action, it's like a tick. So, after every tick, every turn rules are activated. So, cemetery will have, there's a random function and inform also. So, it will do, like, cause a point, And it will say I should wait or I should go somewhere. That's your code.
+
+[Speaker 1] You've written that code. For saboteur. That saboteur code could also be an agent playing the game. That's saboteur. But then, Jericho, do we have like two agents?
+
+[Speaker 2] I think only one agent.
+
+[Speaker 1] No, no. Only one. But that, what that saboteur needs to, he's in a particular room. You know, what is all in that room, you know. It can decide to move there, there, etc. It can decide, right? That's a decision that you can take, right? Just like you are taking right now, right? One of the guys can be the main agent. Other guys are NPCs are playing the game, right? For the moment. That NPC, what it does, it's up to you to decide how it does, right? Instead of having something random, that guy can also be seeing and doing various things. In some sense, that can be an NPC agent. It can call anything to decide what to do, right? Now the, now that's the tricky part, that inside the inform7 code, there are after rules. So, in the inform only we have to specify rules.
+
+[Speaker 1] But can it not, that rule cannot call code. So, yes, that's, that's the thing, that the rule works within itself.
+
+[Speaker 2] But that rule can, it's just some Python code or what is it?
+
+[Speaker 1] No, those are inform7 code. InformSum. So it's a different language, like this. I guess you can see that the lab is a room. So InformSum, there are objects. There is a room or like this only. It can create room objects and every room has, we can add a west, north, east, south, four directions. So into four directions, we can add another room. So it's a very constricted language. So where is that 7W? How is that added? Let me see. It may be in another file. This one was... I think I have overwritten that code. Okay, yes, this is the same code. The garden is a room and this is a description of that. So the house is north of the garden. So like this is the code of that. So if we write the house is north of the garden, there will be room here. The player is in the garden. So that means us. The heavy chest is a container in the house. It is closed and locked. So, closed and locked are its properties. They are Boolean properties. So, this language is there. The saboteur, where is it defined, doesn't it? The saboteur is a man in the house. So, it will start in the house. Understand, wait is waiting. So, carry on waiting. So, we added extra action of wait to the saboteur because it can choose or not to choose to do an action. So, there is no option in inform that we cannot do an action. So I created an action that's paid. It's called paid, so it does nothing. So every time when the saboteur is in the house. So a turn is done and we give it a command. That's one turn. So every time when the saboteur is in the house, it carries a silver cane, heavy chest is locked, try the saboteur and lock it in the hand. So like that, after every turn, these rules will be applied to saboteur. And it will decide whether to do it or not. So this is the random one. So that may be a random direction. then destination will move away from location of servitor. If destination is a room, try the servitor going there.
+
+[Speaker 1] Now this goes into a file, is it?
+
+[Speaker 2] Yes, this will be, we can release it and like that. Release where? No, it will release as a Z8 or Z55. The entire code, game? Yes, this code. So, for now it's Z code. But the Z code is for the entire game? Yes, it's for the entire game. And this is a tool? Yes, this is IDE.
+
+[Speaker 1] So, then some other mechanisms have to be used, right? So, then in some sense the fact that this particular, so in some sense you are going to have to have the game is there which will only have the descriptions of various things, right? And there will be, which room the saboteur is in we do not know, right? If it starts in the house, it starts in the house in 7 years and then it every turn it goes randomly to one room and if it is in the house then it will and it sees a chest and it has a key it will unlock it. These are the rules of 7 years. Okay, so let's assume that there is a for the moment there is a there is an NPC in various places and they can move randomly. Now the question is if you enter a room, and that NVC called saboteur is there, right? It's moving around, it's a nice, it's not a reason, right? But the talking to that guy, and maintaining the context of your conversation with that guy, that is up to you. That is in your own. If you come across that guy again, then the context is retrieved and the conversation continues. You understand what I'm saying? So this, there could be ten to five different agents sitting in various places all moving around randomly. If they come together, then this is, the conversation starts from where you have talked to them, you have talked to them, now the conversation of both of them together, you are talking to each other, right? And they are also talking back to you. So conversation between you as an agent and these NPCs, you are taking care of in your system. I see. You are playing this game, there are some NPCs which are sitting over there and they are talking to you, right? You are the one who is moving around in the game, right? They are moving randomly, right? At the moment, you can also be moving randomly. How does it matter? You are moving randomly, they are moving randomly. So in some sense, both of them are equal. We can make it more stateful. I can add some properties to separator that will change with every interaction so we can make it more stateful also. So it will not be completely random. That change is going to be hard coded inside this code.
+
+[Speaker 1] Yes. So let's say the properties of separator is that like happy equal to true or false. So, if he interacts with us, he is happy. If he is happy, he is more likely to go to North. There is no way to get just this particular side of this code can... On run tag, we cannot do. On run tag, once the game is running, then we cannot install this element on the code. So, the decision making will be hard coded in this code.
+
+[Speaker 2] No, but it can read things which are in the room, right?
+
+[Speaker 1] Yes, yes, yes. It can say what things are there in the room and we also have a guard view feature that we can, for the user also, we can retract everything that is there in the whole room. So, we can make such rules like for a Saturday.
+
+[Speaker 2] So, it can read everything which is there, right? Right. And that, everything which is there can be written by anybody else? Can we return? Can you... Say that I want to place something in the room, that something has properties which you decide. From the Python's group. Or from your, when you talk to zero you can say I can, I want to put a note in the room which says this.
+
+[Speaker 1] We can do that. Text which is your own text.
+
+[Speaker 2] But like the objects must exist at the starting.
+
+[Speaker 1] But can you change the properties of the object?
+
+[Speaker 2] Yes, we can change the properties. So what properties?
+
+[Speaker 1] Yeah, like the chest was locked. No, but can it have text in the properties?
+
+[Speaker 2] Yeah, it can say. So, like, we are saying, say you wait.
+
+[Speaker 1] Yeah, but can that you wait? Suppose I say, I write, there's a piece of paper there. Okay. And as an agent playing the game, can I say, write on this piece of paper something? I have not seen this. We can probably do that. Because descriptions exist for every object. But that description is changed here, or changed by the agent.
+
+[Speaker 2] No, it can be changed. Probably changed. In Enform score or by the agent? In Enform score.
+
+[Speaker 1] But by the agent acting, you can't change it? OK. So then maybe this stuff about what is there in which room, et cetera. So that's what I said in the beginning. You need to take this game and map out the entire thing and create a copy of that map, the graph. Right, and then the, what is happening, what is the context of each agent with each other agent is kept with you. You have a sort of parallel copy of what's going on over here, right? And you can keep running that and figuring out what's going on over there. You have a God view, right? You know what is where. You always know what is where. You can keep that updated. And then, then the context of, what that agent is thinking, doing, etc., etc., right, is there in your context, right? So, you understand what I am trying to say, right? You want to be able to talk to these players in this game, just like in simulacra, they are talking to each other. And that context is maintained. The next time that you talk to that agent, he remembers what you said last time, etc. That conversation can be played, right?
+
+[Speaker 2] Yes, but we want that conversation inside the uniform.
+
+[Speaker 1] In your name. That's what you should do. And from that, we can make the movies, right? And then the next step is those agents which are keeping track, one of them is the guy who is running the ticks. The others can be people who are connected. They are avatars which are just playing. They don't have to be actually playing because they are avatars of people. Can you summarize what you are doing in Slack? You summarize what you decided to do. You want to create a layer on top where you can talk to these NPCs and the NPCs have to be inside the game which exists. These two things let's see we can do. You can talk to them, maintain their context. So you know what is the context of my chat with this guy, chat with that guy, where we met, which room we met, all that stuff we know. It's just a little layer on top where I can talk to the NPC. And then we use these games to create those sort of narratives. This is my story, your story. You can have a story from his point of view also, Saboteur's point of view. So all that can be done later. Once you have this basic framework. OK. Can you repeat?
+
+[Speaker 1] What we will do is, we will create a layer of the Enfon7 game. All the other players, apart from our player, of the user, they will be as NPCs, they will be taking their own decision in the cherry-picking. But, the conversation that they were having, we will show in the states of them in our Python code. So now, when I encounter you, right, as an NPC, you are the NPC, I will have a conversation with you. That conversation will happen in the Python. That context is stored in your database, right? Okay. That is stage one. Next, we can have, they can also talk to each other. All that can happen, right? Because I think what is happening is up to you. So, you are effectively, your own symbol cry is happening, right? is a copy of your simulgra. It's just that the descriptions of what is happening in terms of the environment and what is this area or some castle or this, all that is coming from the game. So it's a little bit more interesting. The simulgra was one fixed area, right? Here any game, it can be, right? So it is arbitrary. So all the users will be as an NPC first and then moving and some of the rules will be hard coded in the genico. All their movements. All movements and actions in the game are hard coded. But what they are talking and what they are interacting with each other. Okay, maybe we can have some actions that are on the Python end that are not happening on Jericho, but they are happening on the Python end. Like I slapped another thing. Exactly. It may not be happening on the Python end. Jericho may be used to just track the movements. Movements and any items which are lying around, etc. Because if the item is there, it comes back, the item is still there, somebody picked it up, all that stuff can be inside Jericho. So some action, user will not, the over end user will not know what is happening inside. He can observe, right? In the end, there will be no loser. There will only be an enemy. So ultimately from this, I want to create a, any particular, particular strand of thing happening, room plus time. Time plus locations. I'll create that narrative from this, whatever history is there or what is going on and from there it will appear on you. So we can create many stories of what is happening. That is part two. Once we can create things happening, interaction happening in the world, then we can look at snapshots of it and then back the story, that story, that story. So what I will try to do is that I will look upon that God using and what I can, let's say my This is room 1, this is room 2 and this is the agent here and this is the NPC here. What they are looking at, I will apply loop command on both of them and what I say is that when we put the print statement here, So, I will print all of the observations together from the genic room and the observation will be like agent observe this at this room at this time and NPC observe this. Both of this maybe will be feed into an LLM and LLM will be also be fed along with these observations their personalities or whatever. Interaction. Let us see, okay. Good, anything else? No, I think that's as much and let me see. This was Gemini. Okay, now 12, it's going to be 11.30 on Monday. Clear? Okay with you, right? All right.

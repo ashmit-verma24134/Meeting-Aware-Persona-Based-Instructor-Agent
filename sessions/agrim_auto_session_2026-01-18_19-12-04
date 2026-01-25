@@ -1,0 +1,18 @@
+{
+  "user_id": "agrim",
+  "meeting_name": "auto_session",
+  "session_start_time": "2026-01-18T19:12:04.342570",
+  "session_end_time": "2026-01-18T19:12:18.350340",
+  "conversation": [
+    {
+      "question": "what was the issue of second guy",
+      "answer": "The second guy was experiencing trouble registering for the Slack bot project.",
+      "timestamp": "2026-01-18T19:12:09.688910"
+    },
+    {
+      "question": "what was deepgram thing sir said",
+      "answer": "He said that the pipeline first extracts the audio using Deepgram before processing the video frames and other data.",
+      "timestamp": "2026-01-18T19:12:16.153559"
+    }
+  ]
+}

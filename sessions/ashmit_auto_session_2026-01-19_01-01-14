@@ -1,0 +1,38 @@
+{
+  "user_id": "ashmit",
+  "meeting_name": "auto_session",
+  "session_start_time": "2026-01-19T01:01:14.820497",
+  "session_end_time": "2026-01-19T01:09:21.614013",
+  "conversation": [
+    {
+      "question": "what were the goal of last meeting?",
+      "answer": "The goal of the last meeting was to split the meeting transcripts into chunks and create embeddings for those chunks so they can be stored and later retrieved to answer questions about the meetings.",
+      "timestamp": "2026-01-19T01:01:46.644450"
+    },
+    {
+      "question": "what were the goals of last meeting?",
+      "answer": "The goal was to split each meeting transcript into logical chunks, embed those chunks and store the embeddings so they can be retrieved for question\u2011answering. Using that indexed data the team aims to build a simple web\u2011based meeting\u2011assistant (later also a CLI/Slack integration) that can answer queries about any meeting.",
+      "timestamp": "2026-01-19T01:02:09.055463"
+    },
+    {
+      "question": "what agents did sir said to made?",
+      "answer": "Sir mentioned creating two agents:\u202fa separate agent that decides whether a new job (or new context) is needed for a specific user, and a simple web\u2011based meeting agent that can answer questions about meeting transcripts. He also referred to implementing a Lambda\u2011function\u2011based agent later to handle follow\u2011up questions.",
+      "timestamp": "2026-01-19T01:03:05.284272"
+    },
+    {
+      "question": "explain that in simpler terms",
+      "answer": "Sir mentioned creating two agents: a separate agent that decides whether a new job (or new context) is needed for a specific user, and a simple web\u2011based meeting agent that.",
+      "timestamp": "2026-01-19T01:03:25.748287"
+    },
+    {
+      "question": "what did sir told about script normalization",
+      "answer": "Sir said there isn\u2019t a specific model for normalizing transcripts; you can use Gemini to strip out noisy parts, but otherwise you should just feed the raw transcripts to an LLM and then store them.",
+      "timestamp": "2026-01-19T01:08:25.224585"
+    },
+    {
+      "question": "can i use gemini to clean transcripts",
+      "answer": "Yes, you can use Gemini to clean the transcripts by asking it to remove noisy or irrelevant parts. The discussion mentioned going into Gemini and telling it to \u201cget rid of stuff which appears to be noisy. \u201d This suggests Gemini can be used for transcript normalization.",
+      "timestamp": "2026-01-19T01:09:12.990802"
+    }
+  ]
+}

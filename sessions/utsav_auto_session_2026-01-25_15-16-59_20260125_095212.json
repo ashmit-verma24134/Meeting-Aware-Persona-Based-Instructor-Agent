@@ -1,0 +1,38 @@
+{
+  "user_id": "utsav",
+  "meeting_name": "auto_session",
+  "session_start_time": "2026-01-25T15:16:59.140177",
+  "session_end_time": "2026-01-25T15:22:12.994783",
+  "conversation": [
+    {
+      "question": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "timestamp": "2026-01-25T09:47:12.310461+00:00"
+    },
+    {
+      "question": "what were steps decided for last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "timestamp": "2026-01-25T09:47:18.455508+00:00"
+    },
+    {
+      "question": "In Jericho, each node represents what ?",
+      "answer": "In Jericho, each node represents a room.",
+      "timestamp": "2026-01-25T09:47:52.056900+00:00"
+    },
+    {
+      "question": "what shapes room were we adding?",
+      "answer": "We were adding rooms of cuboid shape.",
+      "timestamp": "2026-01-25T09:48:50.005575+00:00"
+    },
+    {
+      "question": "saboteur arrived from what direction?",
+      "answer": "The saboteur arrived from the north.",
+      "timestamp": "2026-01-25T09:50:17.143823+00:00"
+    },
+    {
+      "question": "cuboid shapes will help?",
+      "answer": "Adding cuboid shapes to the 2D world will help in creating rooms of various shapes and sizes, allowing for more complex environments and interactions between agents.",
+      "timestamp": "2026-01-25T09:52:06.737008+00:00"
+    }
+  ]
+}

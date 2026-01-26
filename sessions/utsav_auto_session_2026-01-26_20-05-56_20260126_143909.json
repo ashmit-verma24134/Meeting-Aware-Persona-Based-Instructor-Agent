@@ -1,0 +1,23 @@
+{
+  "user_id": "utsav",
+  "meeting_name": "auto_session",
+  "session_start_time": "2026-01-26T20:05:56.861922",
+  "session_end_time": "2026-01-26T20:09:09.318412",
+  "conversation": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "timestamp": "2026-01-26T14:36:11.936041+00:00"
+    },
+    {
+      "question": "what shapes were room of",
+      "answer": "The rooms were of cuboid shape.",
+      "timestamp": "2026-01-26T14:36:37.807534+00:00"
+    },
+    {
+      "question": "did i need to develop a system for players to talk to npc",
+      "answer": "Yes, you needed to develop a system for players to talk to NPCs and have conversations, which was step 9 in the list of next steps decided in the last meeting.",
+      "timestamp": "2026-01-26T14:37:08.670877+00:00"
+    }
+  ]
+}

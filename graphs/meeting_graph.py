@@ -4,6 +4,9 @@ from agents.text_utils import clean_answer
 from agents.source_decider_agent import decide_source_node
 from agents.decision_types import Decision
 from agents.text_utils import trim_chunk_text
+from agents.decision_types import Decision
+from memory.chat_utils import get_chat_texts
+from memory.chat_vector_store import ChatVectorStore
 
 
 import numpy as np
@@ -78,25 +81,27 @@ def query_understanding_node(state: MeetingState):
 
     Responsibilities:
     - Rewrite query if needed
-    - Resolve references using recent chat
+    - Resolve references using chat (semantic, not last-k)
     - Extract HARD constraints (temporal / domain)
 
-     DOES NOT decide routing
-     DOES NOT set Decision
+    DOES NOT:
+    - Decide routing
+    - Touch Decision
     """
 
     state.setdefault("path", [])
     state["path"].append("query")
 
     # -------------------------------------------------
-    # 1. Fetch recent chat (coreference only)
+    # 1️⃣ Fetch RELEVANT chat for reference resolution
+    #    (NOT last-k, NOT TTL fragile)
     # -------------------------------------------------
-    recent = session_memory.get_recent_context(
-        state["session_id"], k=2
+    recent = get_chat_texts(
+        session_id=state["session_id"]
     )
 
     # -------------------------------------------------
-    # 2. Rewrite / annotate query (NO CONTROL LOGIC)
+    # 2️⃣ Rewrite / annotate query (NO CONTROL LOGIC)
     # -------------------------------------------------
     analysis = understand_query(
         state["question"],
@@ -110,7 +115,7 @@ def query_understanding_node(state: MeetingState):
     )
 
     # -------------------------------------------------
-    # 3.  HARD TEMPORAL CONSTRAINT (DETERMINISTIC)
+    # 3️⃣ HARD TEMPORAL CONSTRAINT (DETERMINISTIC)
     # -------------------------------------------------
     q = state["question"].lower()
 
@@ -120,16 +125,15 @@ def query_understanding_node(state: MeetingState):
         "previous meeting",
         "most recent meeting",
         "last call",
-        "last discussion"
+        "last discussion",
     ]
 
-    if any(k in q for k in TEMPORAL_KEYS):
-        state["temporal_constraint"] = "latest"
-    else:
-        state["temporal_constraint"] = None
+    state["temporal_constraint"] = (
+        "latest" if any(k in q for k in TEMPORAL_KEYS) else None
+    )
 
     # -------------------------------------------------
-    # 4. DOMAIN CONSTRAINT (PASSIVE ONLY)
+    # 4️⃣ DOMAIN CONSTRAINT (PASSIVE ONLY)
     # -------------------------------------------------
     project_type = analysis.get("project_type")
     state["domain_constraint"] = (
@@ -139,15 +143,8 @@ def query_understanding_node(state: MeetingState):
     )
 
     # -------------------------------------------------
-    # 5. Explicitly unset reasoning outputs
-    # -------------------------------------------------
-    state["decision"] = None
-    state["question_intent"] = None
-    state["time_scope"] = "unknown"
-    state["meeting_indices"] = None
-
-    # -------------------------------------------------
-    # 6. Reset downstream artifacts
+    # 5️⃣ Reset ONLY downstream answer artifacts
+    #     (DO NOT touch decision)
     # -------------------------------------------------
     state["candidate_answer"] = None
     state["final_answer"] = None
@@ -157,6 +154,9 @@ def query_understanding_node(state: MeetingState):
     state["meeting_indices"] = None
     state["_all_meeting_indices"] = None
 
+    # Leave these untouched:
+    # - state["decision"]
+    # - state["confidence"]
 
     return state
 
@@ -165,56 +165,42 @@ def query_understanding_node(state: MeetingState):
 
 def coordinator_node(state: MeetingState):
     """
-    COORDINATOR / ROUTER NODE
+    COORDINATOR / ROUTER NODE (FINAL, SAFE)
 
     Responsibilities:
-    - Decide execution path
-    - Enforce chat-vs-retrieval rules
-    - Owns Decision completely
+    - Route based ONLY on precomputed signals
+    - Does NOT inspect chat
+    - Does NOT inspect retrieval
+    - Does NOT invent decisions
     """
 
     state["path"].append("coordinator")
 
-    has_reference = bool(
-    state.get("reference_chunks")
-    or state.get("retrieved_chunks")
-    )
-
-
     # -------------------------------------------------
-    # 1. Ignore empty / noop queries
+    # 1️⃣ Ignore noop / empty queries (terminal)
     # -------------------------------------------------
     if state.get("ignore"):
         state["decision"] = Decision.IGNORE
         return state
 
     # -------------------------------------------------
-    # 2. Chat-only dominance check
+    # 2️⃣ Decision MUST already exist
     # -------------------------------------------------
-    recent = session_memory.get_recent_context(
-        state["session_id"], k=4
-    )
+    decision = state.get("decision")
 
-    REFERENTIAL = {"this", "that", "it", "those", "they"}
-
-    tokens = set(state["question"].lower().split())
-    if has_reference and session_memory.chat_can_answer(
-        question=state["question"],
-        recent_context=recent
-    ):
-        state["decision"] = Decision.CHAT_ONLY
+    if decision == Decision.CHAT_ONLY:
         return state
 
+    if decision == Decision.RETRIEVAL_ONLY:
+        return state
 
     # -------------------------------------------------
-    # 3. Default → retrieval
+    # 3️⃣ Safety fallback (should not happen)
     # -------------------------------------------------
+    # If no decision was set upstream, default safely
     state["decision"] = Decision.RETRIEVAL_ONLY
+    state["method"] = "coordinator_fallback"
     return state
-
-
-
-
 
 
 def meeting_summary_node(state: MeetingState):
@@ -323,45 +309,72 @@ SUMMARY:
 
 
 
+from agents.text_utils import clean_answer, SAFE_ABSTAIN
+from agents.decision_types import Decision
+from memory.session_memory import session_memory
+
+
 def pure_chat_node(state: MeetingState):
     """
-    Handles conversational follow-ups using ONLY chat memory.
+    Executes CHAT_ONLY answers using chat memory.
 
-    GUARANTEES (DOC-ALIGNED):
-    - Uses ONLY prior chat turns (source="chat")
-    - No meeting / transcript / retrieval usage
-    - No new facts or grounding
-    - Only clarification / rephrasing of prior AI responses
+    GUARANTEES:
+    - Uses ONLY chat memory (TEXT)
+    - No FAISS
+    - No retrieval
+    - No new facts
+    - Allows compression / explanation when asked
     """
 
     state.setdefault("path", [])
     state["path"].append("pure_chat")
 
-    # -------------------------------------------------
-    # 0. HARD ASSERT: this path is CHAT_ONLY
-    # -------------------------------------------------
+    # HARD ASSERT
     state["decision"] = Decision.CHAT_ONLY
 
     # -------------------------------------------------
-    # 1. Retrieve relevant chat context (semantic, not last-k)
+    # 1️⃣ Retrieve relevant chat context (TEXT ONLY)
     # -------------------------------------------------
     chat_chunks = session_memory.retrieve_chat_chunks(
         session_id=state["session_id"],
         query=state["question"],
-        k=3
+        k=4
     )
 
-    # No conversational grounding → safe abstain
-    if not chat_chunks:
-        # FALL BACK to retrieval instead of abstaining
-        state["decision"] = Decision.RETRIEVAL_ONLY
-        return state
+    print("\n PURE CHAT DEBUG")
+    print("Retrieved chat chunks:", len(chat_chunks))
 
+    if not chat_chunks:
+        print("❌ No chat grounding → abstain")
+        state["final_answer"] = SAFE_ABSTAIN
+        state["method"] = "chat_no_memory"
+        return state
 
     chat_context = "\n\n".join(chat_chunks)
 
     # -------------------------------------------------
-    # 2. STRICT conversational-only prompt
+    # 2️⃣ Detect user intent (brief / summary / explain)
+    # -------------------------------------------------
+    q = state["question"].lower()
+
+    BRIEF_KEYS = {
+        "brief", "summarize", "summary",
+        "short", "in brief", "shortly"
+    }
+
+    wants_brief = any(k in q for k in BRIEF_KEYS)
+
+    if wants_brief:
+        task_instruction = (
+            "Summarize the information in 1–2 concise lines."
+        )
+    else:
+        task_instruction = (
+            "Explain the information clearly in simple terms."
+        )
+
+    # -------------------------------------------------
+    # 3️⃣ STRICT but SMART conversational prompt
     # -------------------------------------------------
     prompt = f"""
 You are continuing an existing conversation.
@@ -369,10 +382,14 @@ You are continuing an existing conversation.
 STRICT RULES:
 - Use ONLY the CHAT CONTEXT below.
 - Do NOT add new facts or assumptions.
+- Do NOT introduce new decisions.
 - Do NOT reference meetings, transcripts, files, or retrieval.
-- ONLY clarify, explain, or rephrase what the AI already said.
-- If the question requires any new information,
-  respond EXACTLY with: "{SAFE_ABSTAIN}"
+- You MAY compress, summarize, or explain existing information.
+- If the answer is not fully present in chat,
+  reply EXACTLY with: "{SAFE_ABSTAIN}"
+
+TASK:
+{task_instruction}
 
 CHAT CONTEXT:
 {chat_context}
@@ -381,36 +398,36 @@ USER QUESTION:
 "{state['question']}"
 
 ANSWER:
-"""
+""".strip()
 
     try:
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.0,         
-            max_tokens=180
+            temperature=0.0,
+            max_tokens=120,
         )
-
         answer = response.choices[0].message.content.strip()
         if not answer:
             answer = SAFE_ABSTAIN
 
     except Exception as e:
-        print(f"Pure Chat Error: {e}")
+        print("[PURE_CHAT_ERROR]", e)
         answer = SAFE_ABSTAIN
 
     # -------------------------------------------------
-    # 3. Finalize (LIGHT CLEAN ONLY)
+    # 4️⃣ Finalize
     # -------------------------------------------------
     state["final_answer"] = clean_answer(answer)
     state["method"] = "chat_only"
     state["context_extended"] = False
 
-    #  Explicitly clear evidence fields (safety)
+    # SAFETY CLEANUP
     state["retrieved_chunks"] = []
     state["meeting_indices"] = None
 
     return state
+
 
 def retrieve_chunks_node(state: MeetingState):
 
@@ -581,12 +598,7 @@ def infer_intent_node(state: MeetingState):
 
 
 def post_retrieve_router(state: MeetingState):
-    """
-    Routes between:
-    - meeting_summary   → ONLY when explicitly asked
-    - action_summary    → decisions / steps / next actions
-    - chunk_answer      → factual answers & explanations
-    """
+
 
     q = state.get("question", "").lower()
     sq = state.get("standalone_query", "").lower()
@@ -622,19 +634,19 @@ def post_retrieve_router(state: MeetingState):
     def matches(keys, text):
         return any(k in text for k in keys)
 
-    # 1️⃣ Explicit summary ONLY
+    #  Explicit summary ONLY
     if matches(SUMMARY_KEYS, q) or matches(SUMMARY_KEYS, sq):
         return "meeting_summary"
 
-    # 2️⃣ Decisions / steps / actions ( HIGH PRIORITY)
+    #  Decisions / steps / actions ( HIGH PRIORITY)
     if matches(ACTION_KEYS, q) or matches(ACTION_KEYS, sq):
         return "action_summary"
 
-    # 3️⃣ Conceptual / discussion questions
+    # Conceptual / discussion questions
     if matches(DISCUSSION_KEYS, q) or matches(DISCUSSION_KEYS, sq):
         return "chunk_answer"
 
-    # 4️⃣ Default → factual QA
+    #  Default → factual QA
     return "chunk_answer"
 
 
@@ -832,6 +844,188 @@ def generate_with_confidence(
         return SAFE_ABSTAIN, 0.0
 
     return answer, confidence
+
+
+from memory.chat_utils import get_chat_texts
+from memory.chat_vector_store import ChatVectorStore
+import re
+
+
+def chat_confidence(
+    question: str,
+    retrieved_chat_chunks: list[str],
+) -> float:
+    """
+    Confidence that CHAT ALONE can answer the question.
+
+    RULES:
+    - NO LLM
+    - Lexical overlap only
+    - Strict thresholds
+    """
+
+    if not question or not retrieved_chat_chunks:
+        return 0.0
+
+    question = question.lower().strip()
+    chat_text = " ".join(retrieved_chat_chunks).lower()
+
+    def keywords(text: str):
+        return {
+            w for w in re.findall(r"\b[a-z]{4,}\b", text)
+        }
+
+    q_words = keywords(question)
+    c_words = keywords(chat_text)
+
+    if not q_words or not c_words:
+        return 0.0
+
+    overlap = q_words & c_words
+    overlap_count = len(overlap)
+    density = overlap_count / max(len(q_words), 1)
+
+    # STRICT GATES
+    if overlap_count >= 3 and density >= 0.4:
+        return 0.6
+
+    if overlap_count >= 2 and density >= 0.25:
+        return 0.45
+
+    if overlap_count == 1:
+        return 0.25
+
+    return 0.0
+
+
+from agents.decision_types import Decision
+from memory.chat_vector_store import chat_vector_store
+from memory.chat_utils import get_chat_texts
+
+
+def chat_recall_node(state: MeetingState):
+    """
+    CHAT MINI-QA SYSTEM (EMBEDDING-FIRST, PERSISTENT)
+
+    RULES:
+    - Referential follow-ups → CHAT_ONLY (last turn)
+    - High confidence        → CHAT_ONLY
+    - Low confidence         → RETRIEVAL
+    """
+
+    CHAT_CONFIDENCE_THRESHOLD = 0.55
+
+    state.setdefault("path", [])
+    state["path"].append("chat_recall")
+
+    query = state.get("standalone_query", state["question"]).lower()
+
+    # -------------------------------------------------
+    #  🔥 REFERENTIAL FOLLOW-UP SHORTCIRCUIT
+    # -------------------------------------------------
+    REFERENTIAL_KEYS = {
+        "summarize that",
+        "summary of that",
+        "explain that",
+        "explain this",
+        "in brief",
+        "briefly",
+        "short me",
+        "summarize this"
+    }
+
+    if any(k in query for k in REFERENTIAL_KEYS):
+        last_turn = get_chat_texts(
+            session_id=state["session_id"],
+            k=1
+        )
+        if last_turn:
+            print(" Referential follow-up → CHAT_ONLY (last turn)")
+            state["decision"] = Decision.CHAT_ONLY
+            state["confidence"] = 0.9
+            state["method"] = "referential_chat"
+            return state
+
+    # -------------------------------------------------
+    #  Check chat memory presence
+    # -------------------------------------------------
+    chat_texts = get_chat_texts(
+        session_id=state["session_id"],
+        k=20
+    )
+
+    print("\n CHAT RECALL DEBUG")
+    print("Query:", query)
+    print("Chat texts count:", len(chat_texts))
+
+    if not chat_texts:
+        print(" No chat texts → RETRIEVAL")
+        state["decision"] = Decision.RETRIEVAL_ONLY
+        state["confidence"] = 0.0
+        state["method"] = "chat_empty"
+        return state
+
+    # -------------------------------------------------
+    #  FAISS store status
+    # -------------------------------------------------
+    print("\n CHAT VECTOR STORE DEBUG")
+    print("Texts in vector store:", len(chat_vector_store.texts))
+    print("FAISS empty:", chat_vector_store.is_empty())
+
+    if chat_vector_store.is_empty():
+        print(" FAISS empty → RETRIEVAL")
+        state["decision"] = Decision.RETRIEVAL_ONLY
+        state["confidence"] = 0.0
+        state["method"] = "chat_vector_empty"
+        return state
+
+    # -------------------------------------------------
+    #  Semantic search
+    # -------------------------------------------------
+    results = chat_vector_store.search(
+        query=query,
+        k=3
+    )
+
+    print("\n CHAT FAISS RESULTS")
+    for text, score in results:
+        print(f"score={score:.3f} | {text[:120]}")
+
+    if not results:
+        print(" No semantic hit → RETRIEVAL")
+        state["decision"] = Decision.RETRIEVAL_ONLY
+        state["confidence"] = 0.0
+        state["method"] = "chat_no_match"
+        return state
+
+    retrieved_texts = [t for (t, _) in results]
+
+    # -------------------------------------------------
+    #  Confidence gate (LEXICAL ONLY)
+    # -------------------------------------------------
+    conf = chat_confidence(
+        question=query,
+        retrieved_chat_chunks=retrieved_texts
+    )
+
+    print("\n CHAT CONFIDENCE DEBUG")
+    print("confidence:", conf)
+
+    state["confidence"] = conf
+
+    # -------------------------------------------------
+    #  FINAL ROUTING
+    # -------------------------------------------------
+    if conf >= CHAT_CONFIDENCE_THRESHOLD:
+        print(" High confidence → CHAT_ONLY")
+        state["decision"] = Decision.CHAT_ONLY
+        state["method"] = "chat_high_confidence"
+    else:
+        print(" Low confidence → RETRIEVAL")
+        state["decision"] = Decision.RETRIEVAL_ONLY
+        state["method"] = "chat_confidence_low"
+
+    return state
 
 
 
@@ -1063,50 +1257,82 @@ def verification_node(state: MeetingState):
     # -------------------------------------------------
     return state
 
-# FINALIZE NODE (Updated)
+# FINALIZE NODE (FINAL FIXED VERSION)
+
 from agents.text_utils import clean_answer, SAFE_ABSTAIN
+from agents.decision_types import Decision
+from memory.session_memory import session_memory
+from memory.chat_vector_store import chat_vector_store
+
 
 def finalize_node(state: MeetingState):
+    state.setdefault("path", [])
     state["path"].append("finalize")
 
-    # 1. Determine the Final Answer
-    # If a specialized node already set final_answer → KEEP IT
+    # -------------------------------------------------
+    #  Determine final answer
+    # -------------------------------------------------
     if state.get("final_answer"):
         answer = state["final_answer"]
     else:
         raw = state.get("candidate_answer")
-        if raw:
-            answer = clean_answer(raw)
-        else:
-            answer = SAFE_ABSTAIN
+        answer = clean_answer(raw) if raw else SAFE_ABSTAIN
 
-    # 2. Extract Metadata (Meeting Index)
+    # -------------------------------------------------
+    #  Decide MEMORY SOURCE
+    # -------------------------------------------------
+    decision = state.get("decision")
+
+    #  FINAL RULE:
+    # Any user-visible answer is conversational memory
+    if decision in (Decision.CHAT_ONLY, Decision.RETRIEVAL_ONLY):
+        source = "chat"
+    else:
+        source = "system"
+
+    # -------------------------------------------------
+    #  Meeting index (metadata only)
+    # -------------------------------------------------
     meeting_index = None
     retrieved = state.get("retrieved_chunks")
-
     if (
         isinstance(retrieved, list)
-        and len(retrieved) > 0
+        and retrieved
         and isinstance(retrieved[0], dict)
     ):
         meeting_index = retrieved[0].get("meeting_index")
 
-    # 3. Save to Session Memory
-    session_memory.add_turn(
-        session_id=state["session_id"],
-        question=state["question"],
-        answer=answer,
-        source=state.get("decision"),
-        meeting_index=meeting_index,
-        method=state.get("method"),
-        standalone_query=state.get("standalone_query"),
-        time_scope=state.get("time_scope"),
-        meeting_indices=state.get("meeting_indices"),
-    )
+    # -------------------------------------------------
+    #  Store memory + FAISS (skip abstains)
+    # -------------------------------------------------
+    if answer != SAFE_ABSTAIN:
+        # ---- Session memory (JSON) ----
+        session_memory.add_turn(
+            session_id=state["session_id"],
+            question=state["question"],
+            answer=answer,
+            source=source,
+            meeting_index=meeting_index,
+            method=state.get("method"),
+            standalone_query=state.get("standalone_query"),
+            time_scope=state.get("time_scope"),
+            meeting_indices=state.get("meeting_indices"),
+        )
 
-    # 4. Commit
+        # ---- Vector memory (FAISS) ----
+        chat_text = f"User: {state['question']}\nAI: {answer}"
+        chat_vector_store.add_texts([chat_text])
+
+        # 🔍 Optional debug (keep for now)
+        print(" CHAT VECTOR STORE SIZE:", len(chat_vector_store.texts))
+
+    # -------------------------------------------------
+    #  Commit
+    # -------------------------------------------------
     state["final_answer"] = answer
     return state
+
+
 
 
 graph = StateGraph(MeetingState)
@@ -1115,6 +1341,7 @@ graph = StateGraph(MeetingState)
 # 1. ADD NODES
 # -------------------------------------------------
 graph.add_node("query", query_understanding_node)
+graph.add_node("chat_recall", chat_recall_node)
 graph.add_node("coordinator", coordinator_node)
 
 graph.add_node("pure_chat", pure_chat_node)
@@ -1135,9 +1362,10 @@ graph.add_node("finalize", finalize_node)
 graph.set_entry_point("query")
 
 # -------------------------------------------------
-# 3. QUERY → COORDINATOR
+# 3. QUERY → CHAT_RECALL → COORDINATOR
 # -------------------------------------------------
-graph.add_edge("query", "coordinator")
+graph.add_edge("query", "chat_recall")
+graph.add_edge("chat_recall", "coordinator")
 
 graph.add_conditional_edges(
     "coordinator",
@@ -1150,13 +1378,13 @@ graph.add_conditional_edges(
 )
 
 # -------------------------------------------------
-# 4. RETRIEVAL PIPELINE (LINEAR, SAFE)
+# 4. RETRIEVAL PIPELINE
 # -------------------------------------------------
 graph.add_edge("retrieve", "infer_intent")
 graph.add_edge("infer_intent", "decide_source")
 
 # -------------------------------------------------
-# 5. SINGLE ROUTER ( ONLY ONE)
+# 5. POST-RETRIEVE ROUTER
 # -------------------------------------------------
 graph.add_conditional_edges(
     "decide_source",
@@ -1169,7 +1397,7 @@ graph.add_conditional_edges(
 )
 
 # -------------------------------------------------
-# 6. LINEAR TERMINAL PATHS
+# 6. TERMINAL PATHS
 # -------------------------------------------------
 graph.add_edge("pure_chat", "finalize")
 graph.add_edge("meeting_summary", "finalize")
@@ -1183,7 +1411,5 @@ graph.add_edge("verify", "finalize")
 # -------------------------------------------------
 graph.add_edge("finalize", END)
 
-# -------------------------------------------------
-# 8. COMPILE
-# -------------------------------------------------
 meeting_graph = graph.compile()
+

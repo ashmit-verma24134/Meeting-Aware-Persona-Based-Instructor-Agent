@@ -35,17 +35,17 @@ def save_session(session_filename: str, session_data: dict):
     sessions_dir = Path("sessions")
     sessions_dir.mkdir(exist_ok=True)
 
-    # 🔒 Sanitize filename
+    #  Sanitize filename
     safe_name = _safe_filename(session_filename)
 
-    # 🕒 Add fallback timestamp if missing
+    #  Add fallback timestamp if missing
     if not safe_name.endswith(".json"):
         ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         safe_name = f"{safe_name}_{ts}.json"
 
     file_path = sessions_dir / safe_name
 
-    # 🛡 Atomic write (write → rename)
+    #  Atomic write (write → rename)
     temp_path = file_path.with_suffix(".tmp")
 
     with open(temp_path, "w", encoding="utf-8") as f:

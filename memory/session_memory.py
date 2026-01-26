@@ -6,15 +6,7 @@ from typing import Optional, List, Dict
 
 
 class SessionMemory:
-    """
-    GOOGLE-ALIGNED SHORT-TERM SESSION MEMORY
 
-    PRINCIPLES (per Google docs):
-    - Short-term memory = conversational context, NOT evidence
-    - Memory dominance only for follow-ups / clarification
-    - No intent inference, no domain inference
-    - Stateless-safe: memory can be externalized
-    """
 
     def __init__(
         self,
@@ -75,6 +67,13 @@ class SessionMemory:
         - retrieval/summary → NOT reused as chat evidence
         """
 
+        #  DEBUG PRINTS
+        print("\n SESSION_MEMORY.add_turn")
+        print("Q:", question)
+        print("A:", answer[:120])
+        print("source:", source)
+        print("meeting_index:", meeting_index)
+
         now = datetime.now(timezone.utc)
 
         if session_id not in self.sessions:
@@ -94,13 +93,13 @@ class SessionMemory:
             }
         )
 
-        # Enforce windowing (Google short-term memory guidance)
+        # Enforce windowing
         self.sessions[session_id] = self.sessions[session_id][-self.max_turns :]
 
         self._save_to_disk()
 
     # -------------------------------------------------
-    # Read APIs (SAFE)
+    # Read APIs
     # -------------------------------------------------
 
     def _is_fresh(self, ts: str) -> bool:
@@ -113,7 +112,6 @@ class SessionMemory:
     def get_recent_context(self, session_id: str, k: int = 4) -> List[Dict]:
         """
         Recent conversational turns (fresh only).
-        Used for pronouns / follow-ups.
         """
         if session_id not in self.sessions:
             return []
@@ -125,49 +123,8 @@ class SessionMemory:
         ]
         return fresh[-k:]
 
-    # def get_full_session(self, session_id: str) -> List[Dict]:
-    #     if session_id not in self.sessions:
-    #         return []
-    #     return list(self.sessions[session_id])
-
     # -------------------------------------------------
-    # 🔥 CHAT DOMINANCE CHECK (GOOGLE-CORRECT)
-    # -------------------------------------------------
-
-    def chat_can_answer(self, question: str, recent_context: List[Dict]) -> bool:
-        """
-        Determines whether CHAT_ONLY is allowed.
-
-        HARD RULES:
-        - Question is short or referential
-        - Refers to something in recent chat
-        - No new entities introduced
-        """
-
-        if not recent_context:
-            return False
-
-        q_tokens = set(re.findall(r"\w+", question.lower()))
-        if not q_tokens:
-            return False
-
-        # Very short follow-ups ("explain more", "what about that")
-        if len(q_tokens) <= 4:
-            return True
-
-        context_text = " ".join(
-            f"{t.get('question','')} {t.get('answer','')}"
-            for t in recent_context
-            if t.get("source") == "chat"
-        ).lower()
-
-        overlap = q_tokens & set(re.findall(r"\w+", context_text))
-
-        # Require meaningful overlap
-        return len(overlap) >= 2
-
-    # -------------------------------------------------
-    # Chat retriever (used ONLY in CHAT_ONLY path)
+    # Chat-only helpers
     # -------------------------------------------------
 
     def retrieve_chat_chunks(
@@ -178,10 +135,6 @@ class SessionMemory:
     ) -> List[str]:
         """
         Lightweight chat retriever.
-
-        GUARANTEES:
-        - source == "chat" only
-        - NOT factual grounding
         """
 
         if session_id not in self.sessions:
@@ -217,6 +170,6 @@ class SessionMemory:
 
 
 # -------------------------------------------------
-# Global singleton (production-safe)
+# Global singleton
 # -------------------------------------------------
 session_memory = SessionMemory()

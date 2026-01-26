@@ -533,5 +533,459 @@
       "method": "answer_entailment_verified",
       "timestamp": "2026-01-25T09:52:47.685033+00:00"
     }
+  ],
+  "ashmit_auto_session_2026-01-26_19-31-10": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Automate the chunking process.\n2. Use a better model for embedding files.\n3. Document the process systematically.\n4. Store metadata for each user.\n5. Implement a lambda function for session ID.\n6. Integrate a simple web-based meeting agent.\n7. Normalize transcripts.\n8. Check the code for the Gemini model.",
+      "source": "retrieval",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-26T14:01:16.364035+00:00"
+    },
+    {
+      "question": "what were treatments for migraine?",
+      "standalone_query": "what were treatments for migraine?",
+      "answer": "The treatments for migraine mentioned in the meeting were dark room, painkillers, and rest.",
+      "source": "retrieval",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-26T14:01:53.383139+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-26_19-35-11": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Automate the chunking process.\n2. Use a better model for embedding files.\n3. Document the process systematically.\n4. Store metadata for each user.\n5. Implement a lambda function for session ID.\n6. Integrate a simple web-based meeting agent.\n7. Normalize transcripts.\n8. Check the code for the Gemini model.",
+      "source": "retrieval",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-26T14:05:17.556315+00:00"
+    },
+    {
+      "question": "what were treatments for migraine?",
+      "standalone_query": "what were treatments for migraine?",
+      "answer": "The treatments for migraine mentioned in the meeting were dark room, painkillers, and rest.",
+      "source": "retrieval",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-26T14:05:27.504183+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-26_19-38-13": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Automate the chunking process.\n2. Use a better model for embedding files.\n3. Document the process systematically.\n4. Store metadata for each user.\n5. Implement a lambda function for session ID.\n6. Integrate a simple web-based meeting agent.\n7. Normalize transcripts.\n8. Check the code for the Gemini model.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-26T14:08:20.017275+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-26_19-43-08": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Automate the chunking process.\n2. Use a better model for embedding files.\n3. Document the process systematically.\n4. Store metadata for each user.\n5. Implement a lambda function for session ID.\n6. Integrate a simple web-based meeting agent.\n7. Normalize transcripts.\n8. Check the code for the Gemini model.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-26T14:13:13.702533+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-26_19-49-39": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Automate the chunking process.\n2. Use a better model for embedding files.\n3. Document the process systematically.\n4. Store metadata for each user.\n5. Implement a lambda function for session ID.\n6. Integrate a simple web-based meeting agent.\n7. Normalize transcripts.\n8. Check the code for the Gemini model.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-26T14:19:44.517009+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-26_19-52-03": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Automate the chunking process.\n2. Use a better model for embedding files.\n3. Document the process systematically.\n4. Store metadata for each user.\n5. Implement a lambda function for session ID.\n6. Integrate a simple web-based meeting agent.\n7. Normalize transcripts.\n8. Check the code for the Gemini model.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-26T14:22:08.611222+00:00"
+    },
+    {
+      "question": "was Storing metadata for each user a next step?",
+      "standalone_query": "was Storing metadata for each user a next step?",
+      "answer": "Yes, storing metadata for each user was one of the next steps decided in the last meeting.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-26T14:22:16.188974+00:00"
+    }
+  ],
+  "ashmit_auto_session_2026-01-26_19-58-46": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Automate the chunking process.\n2. Use a better model for embedding files.\n3. Document the process systematically.\n4. Store metadata for each user.\n5. Implement a lambda function for session ID.\n6. Integrate a simple web-based meeting agent.\n7. Normalize transcripts.\n8. Check the code for the Gemini model.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-26T14:28:51.529257+00:00"
+    },
+    {
+      "question": "what were treatments for migraine?",
+      "standalone_query": "what were treatments for migraine?",
+      "answer": "The treatments for migraine mentioned in the meeting were dark room, painkillers, and rest.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-26T14:29:03.534536+00:00"
+    },
+    {
+      "question": "was Storing metadata for each user a next step?",
+      "standalone_query": "was Storing metadata for each user a next step?",
+      "answer": "Yes, storing metadata for each user was one of the next steps decided in the last meeting.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-26T14:29:05.775869+00:00"
+    },
+    {
+      "question": "what were treatments for migraine?",
+      "standalone_query": "what were treatments for migraine?",
+      "answer": "The treatments for migraine mentioned in the meeting were dark room, painkillers, and rest.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-26T14:30:31.734967+00:00"
+    },
+    {
+      "question": "what was two agent thing sir told about?",
+      "standalone_query": "what was two agent thing sir told about?",
+      "answer": "There will be multiple mini agents, one trying to find out what the guy is asking and another looking at the meeting recordings to evaluate the response.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-26T14:30:51.462303+00:00"
+    },
+    {
+      "question": "what mini agents?",
+      "standalone_query": "what mini agents?",
+      "answer": "There will be multiple mini agents, one trying to find out what the guy is asking and another looking at the meeting recordings to evaluate the response.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-26T14:30:59.564640+00:00"
+    },
+    {
+      "question": "what is another agent doing?",
+      "standalone_query": "what is another agent doing?",
+      "answer": "Another agent is looking at the meeting recordings to evaluate the response.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-26T14:31:27.273443+00:00"
+    },
+    {
+      "question": "was automating chunking process a next  step?",
+      "standalone_query": "was automating chunking process a next  step?",
+      "answer": "Yes, automating the chunking process was one of the next steps decided in the last meeting.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-26T14:32:07.974195+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-26_20-05-56": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-26T14:36:11.936041+00:00"
+    },
+    {
+      "question": "what shapes were room of",
+      "standalone_query": "what shapes were room of",
+      "answer": "The rooms were of cuboid shape.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-26T14:36:37.807534+00:00"
+    },
+    {
+      "question": "did i need to develop a system for players to talk to npc",
+      "standalone_query": "did i need to develop a system for players to talk to npc",
+      "answer": "Yes, you needed to develop a system for players to talk to NPCs and have conversations, which was step 9 in the list of next steps decided in the last meeting.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-26T14:37:08.670877+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-26_20-14-21": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-26T14:44:27.606118+00:00"
+    },
+    {
+      "question": "what shapes were room of",
+      "standalone_query": "what shapes were room of",
+      "answer": "The rooms were of cuboid shape.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-26T14:44:53.073104+00:00"
+    },
+    {
+      "question": "did i need to develop a system for players to talk to npc",
+      "standalone_query": "did i need to develop a system for players to talk to npc",
+      "answer": "Yes, you needed to develop a system for players to talk to NPCs and have conversations, which was step 9 in the list of next steps decided in the last meeting.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-26T14:44:56.572007+00:00"
+    },
+    {
+      "question": "summarize that",
+      "standalone_query": "summarize that",
+      "answer": "**Goals:**\n\n* Explore the Jericho framework and its capabilities\n* Create a mechanism to put an NPC (Non-Player Character) in an existing game\n* Develop a system where NPCs can interact with players and each other\n\n**Agenda:**\n\n* Discuss the Jericho framework and its limitations\n* Explore the use of Inform7 and its rules\n* Develop a plan to integrate NPCs into the game\n\n**Decisions:**\n\n* The saboteur NPC can be controlled by a user and interact with the game environment\n* The NPC can be integrated into the game using a separate database to store metadata\n* The system will be designed to allow multiple users to play the game as NPCs\n\n**Action Items:**\n\n* Develop a mechanism to put an NPC in an existing game\n* Create a system to allow NPCs to interact with players and each other\n* Integrate the NPC system into the game using a separate database to store metadata",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "meeting_summary_latest",
+      "timestamp": "2026-01-26T14:45:29.043210+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-26_20-20-37": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-26T14:50:43.547179+00:00"
+    },
+    {
+      "question": "what shapes were room of",
+      "standalone_query": "what shapes were room of",
+      "answer": "The rooms were of cuboid shape.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-26T14:51:08.991072+00:00"
+    },
+    {
+      "question": "did i need to develop a system for players to talk to npc",
+      "standalone_query": "did i need to develop a system for players to talk to npc",
+      "answer": "Yes, you needed to develop a system for players to talk to NPCs and have conversations, which was step 9 in the list of next steps decided in the last meeting.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-26T14:51:14.912707+00:00"
+    },
+    {
+      "question": "explain that in brief?",
+      "standalone_query": "explain that in brief?",
+      "answer": "You needed to develop a system for players to talk to NPCs and have conversations, which is step 9 in the list of next steps decided in the last meeting.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-26T14:51:24.796220+00:00"
+    },
+    {
+      "question": "summarize that",
+      "standalone_query": "summarize that",
+      "answer": "You needed to develop a system for players to talk to NPCs and have conversations, which is step 9 in the list of next steps.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-26T14:51:42.134006+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-26_20-24-25": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-26T14:54:30.480612+00:00"
+    },
+    {
+      "question": "what shapes were room of",
+      "standalone_query": "what shapes were room of",
+      "answer": "The rooms were of cuboid shape.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-26T14:54:56.350052+00:00"
+    },
+    {
+      "question": "did i need to develop a system for players to talk to npc",
+      "standalone_query": "did i need to develop a system for players to talk to npc",
+      "answer": "Yes, you needed to develop a system for players to talk to NPCs and have conversations, which is step 9.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-26T14:55:00.646258+00:00"
+    },
+    {
+      "question": "explain that in brief?",
+      "standalone_query": "explain that in brief?",
+      "answer": "The next steps decided in the last meeting involve implementing various features for NPCs in a game, including control, interaction, movement, and conversation capabilities.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-26T14:55:03.059481+00:00"
+    },
+    {
+      "question": "summarize that",
+      "standalone_query": "summarize that",
+      "answer": "The next steps involve implementing features for NPCs in a game, including control, interaction, movement, and conversation capabilities.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-26T14:55:09.751003+00:00"
+    }
   ]
 }

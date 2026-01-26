@@ -1,86 +1,55 @@
 from graphs.meeting_graph import meeting_graph
-from memory.session_memory import session_memory
-from agents.query_understanding_agent import understand_query
-from agents.decision_types import Decision
 
 SAFE_ABSTAIN = "This was not clearly discussed in the meeting."
 
 
 def supervisor(user_id: str, session_id: str, question: str):
     """
-    GOOGLE-ALIGNED COORDINATOR AGENT
+    GOOGLE-ALIGNED SUPERVISOR (DUMB ORCHESTRATOR)
 
     RULES:
-    - Uses enums only (no string decisions)
-    - No intent inference
-    - No domain inference
-    - No evidence inspection
-    - Delegates ALL logic to the graph
+    - NO chat inspection
+    - NO decision logic
+    - NO retrieval logic
+    - Graph is the brain
     """
 
     question = (question or "").strip()
 
     # -------------------------------------------------
-    # 1. SHORT-TERM MEMORY (HARD DOMINANCE)
-    # -------------------------------------------------
-    recent_context = session_memory.get_recent_context(
-        session_id=session_id,
-        k=6
-    )
-
-    if session_memory.chat_can_answer(question, recent_context):
-        decision = Decision.CHAT_ONLY
-        standalone_query = question
-    else:
-        analysis = understand_query(
-            question=question,
-            recent_history=recent_context,
-            user_id=user_id
-        )
-
-        standalone_query = analysis.get("standalone_query") or question
-        decision = (
-            Decision.IGNORE
-            if analysis.get("ignore")
-            else Decision.RETRIEVAL_ONLY
-        )
-
-    # -------------------------------------------------
-    # 2. INITIAL GRAPH STATE (MINIMAL + CLEAN)
+    # 1. MINIMAL INITIAL STATE
     # -------------------------------------------------
     state = {
         "user_id": user_id,
         "session_id": session_id,
         "question": question,
-        "standalone_query": standalone_query,
-        "decision": decision,
 
-        # Graph-managed fields
+        # Graph will fill everything else
+        "decision": None,
+        "standalone_query": question,
+
         "retrieved_chunks": [],
         "candidate_answer": None,
         "final_answer": None,
+        "confidence": None,
         "context_extended": False,
         "method": "",
         "path": ["SUPERVISOR"],
     }
 
-    print(
-        " COORDINATOR → "
-        f"decision={decision} | "
-        f"query='{standalone_query}'"
-    )
+    print(f" SUPERVISOR → question='{question}'")
 
     # -------------------------------------------------
-    # 3. EXECUTE GRAPH
+    # 2. EXECUTE GRAPH (ALL INTELLIGENCE INSIDE)
     # -------------------------------------------------
     final_state = meeting_graph.invoke(state)
 
     # -------------------------------------------------
-    # 4. RETURN RESPONSE ONLY
+    # 3. RETURN USER RESPONSE ONLY
     # -------------------------------------------------
     return {
         "answer": final_state.get("final_answer") or SAFE_ABSTAIN,
         "method": final_state.get("method"),
         "context_extended": final_state.get("context_extended", False),
-        "standalone_query": final_state.get("standalone_query"),
+        "confidence": final_state.get("confidence"),
     }

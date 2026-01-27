@@ -52,7 +52,6 @@ class MeetingState(TypedDict):
     method: str
     context_extended: bool
 
-    # Debug / trace
     path: List[str]
 
 
@@ -76,18 +75,7 @@ from agents.query_understanding_agent import understand_query
 from memory.session_memory import session_memory
 
 def query_understanding_node(state: MeetingState):
-    """
-    Query understanding ONLY.
 
-    Responsibilities:
-    - Rewrite query if needed
-    - Resolve references using chat (semantic, not last-k)
-    - Extract HARD constraints (temporal / domain)
-
-    DOES NOT:
-    - Decide routing
-    - Touch Decision
-    """
 
     state.setdefault("path", [])
     state["path"].append("query")
@@ -144,15 +132,7 @@ def query_understanding_node(state: MeetingState):
 
 
 def coordinator_node(state: MeetingState):
-    """
-    COORDINATOR / ROUTER NODE (FINAL, SAFE)
 
-    Responsibilities:
-    - Route based ONLY on precomputed signals
-    - Does NOT inspect chat
-    - Does NOT inspect retrieval
-    - Does NOT invent decisions
-    """
 
     state["path"].append("coordinator")
 
@@ -263,16 +243,6 @@ from memory.session_memory import session_memory
 
 
 def pure_chat_node(state: MeetingState):
-    """
-    Executes CHAT_ONLY answers using chat memory.
-
-    GUARANTEES:
-    - Uses ONLY chat memory (TEXT)
-    - No FAISS
-    - No retrieval
-    - No new facts
-    - Allows compression / explanation when asked
-    """
 
     state.setdefault("path", [])
     state["path"].append("pure_chat")
@@ -1148,7 +1118,6 @@ def finalize_node(state: MeetingState):
         meeting_index = retrieved[0].get("meeting_index")
 
     if answer != SAFE_ABSTAIN:
-        # ---- Session memory (JSON) ----
         session_memory.add_turn(
             session_id=state["session_id"],
             question=state["question"],

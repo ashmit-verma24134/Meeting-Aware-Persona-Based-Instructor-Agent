@@ -1,28 +1,10 @@
 import re
 from typing import Optional
 
-# -------------------------------------------------
-# GLOBAL SAFE FALLBACK
-# -------------------------------------------------
 SAFE_ABSTAIN = "This was not clearly discussed in the meeting."
 
-
-# -------------------------------------------------
-# CHUNK TRIMMER (🔥 REQUIRED BY RETRIEVAL + QA)
-# -------------------------------------------------
 def trim_chunk_text(text: Optional[str], max_words: int = 120) -> str:
-    """
-    Token-safe chunk trimming.
 
-    PURPOSE:
-    - Reduce token usage
-    - Preserve semantic core
-    - Deterministic (no summarization)
-
-    Used by:
-    - chunk_answer_node
-    - generate_answer_with_llm
-    """
 
     if not text or not isinstance(text, str):
         return ""
@@ -36,10 +18,6 @@ def trim_chunk_text(text: Optional[str], max_words: int = 120) -> str:
 
     return " ".join(words[:max_words]) + "..."
 
-
-# -------------------------------------------------
-# FINAL ANSWER SANITIZER (🔥 LAST LINE OF DEFENSE)
-# -------------------------------------------------
 def clean_answer(text: Optional[str], max_sentences: int = 4) -> str:
     """
     FINAL ANSWER SANITIZER
@@ -52,9 +30,6 @@ def clean_answer(text: Optional[str], max_sentences: int = 4) -> str:
     - Deterministic & production-safe
     """
 
-    # -------------------------------------------------
-    # 0️⃣ Hard safety
-    # -------------------------------------------------
     if not text or not isinstance(text, str):
         return SAFE_ABSTAIN
 
@@ -63,9 +38,6 @@ def clean_answer(text: Optional[str], max_sentences: int = 4) -> str:
     if len(cleaned) < 10:
         return SAFE_ABSTAIN
 
-    # -------------------------------------------------
-    # 1️⃣ Remove narrator / AI boilerplate
-    # -------------------------------------------------
     prefixes = [
         r"based on the transcript",
         r"according to the meeting notes",
@@ -85,14 +57,8 @@ def clean_answer(text: Optional[str], max_sentences: int = 4) -> str:
             flags=re.IGNORECASE
         )
 
-    # -------------------------------------------------
-    # 2️⃣ Remove markdown / formatting noise
-    # -------------------------------------------------
     cleaned = re.sub(r"[#*_>`]", "", cleaned).strip()
 
-    # -------------------------------------------------
-    # 3️⃣ Sentence limiting (ANTI-RAMBLE)
-    # -------------------------------------------------
     sentences = re.split(r'(?<=[.!?])\s+', cleaned)
     sentences = [
         s.strip()
@@ -105,9 +71,6 @@ def clean_answer(text: Optional[str], max_sentences: int = 4) -> str:
 
     cleaned = " ".join(sentences[:max_sentences])
 
-    # -------------------------------------------------
-    # 4️⃣ Generic hallucination guard (STRICT)
-    # -------------------------------------------------
     hallucination_patterns = [
         r"\bin general\b",
         r"\btypically\b",
@@ -126,15 +89,8 @@ def clean_answer(text: Optional[str], max_sentences: int = 4) -> str:
         for pattern in hallucination_patterns
     ):
         return SAFE_ABSTAIN
-
-    # -------------------------------------------------
-    # 5️⃣ Capitalize safely
-    # -------------------------------------------------
     cleaned = cleaned[0].upper() + cleaned[1:]
 
-    # -------------------------------------------------
-    # 6️⃣ Final sanity check
-    # -------------------------------------------------
     if len(cleaned.split()) < 5:
         return SAFE_ABSTAIN
 

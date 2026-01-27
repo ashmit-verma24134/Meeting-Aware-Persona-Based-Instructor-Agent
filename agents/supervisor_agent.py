@@ -4,21 +4,10 @@ SAFE_ABSTAIN = "This was not clearly discussed in the meeting."
 
 
 def supervisor(user_id: str, session_id: str, question: str):
-    """
-    GOOGLE-ALIGNED SUPERVISOR (DUMB ORCHESTRATOR)
 
-    RULES:
-    - NO chat inspection
-    - NO decision logic
-    - NO retrieval logic
-    - Graph is the brain
-    """
 
     question = (question or "").strip()
 
-    # -------------------------------------------------
-    # 1. MINIMAL INITIAL STATE
-    # -------------------------------------------------
     state = {
         "user_id": user_id,
         "session_id": session_id,
@@ -39,14 +28,9 @@ def supervisor(user_id: str, session_id: str, question: str):
 
     print(f" SUPERVISOR → question='{question}'")
 
-    # -------------------------------------------------
-    # 2. EXECUTE GRAPH (ALL INTELLIGENCE INSIDE)
-    # -------------------------------------------------
+
     final_state = meeting_graph.invoke(state)
 
-    # -------------------------------------------------
-    # 3. RETURN USER RESPONSE ONLY
-    # -------------------------------------------------
     return {
         "answer": final_state.get("final_answer") or SAFE_ABSTAIN,
         "method": final_state.get("method"),

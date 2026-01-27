@@ -4,46 +4,25 @@ from typing import List, Dict, Optional
 from dotenv import load_dotenv
 from groq import Groq
 
-# -------------------------------------------------
-# ENV + CLIENT (USED ONLY FOR REFERENCE RESOLUTION)
-# -------------------------------------------------
 load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 SUPERVISOR_MODEL = "llama-3.1-8b-instant"
 
-# -------------------------------------------------
-# SAFE QUERY NORMALIZER (REFERENCE-ONLY)
-# -------------------------------------------------
 def understand_query(
     question: str,
     recent_history: Optional[List[Dict]] = None,
     user_id: Optional[str] = None,
 ) -> Dict:
-    """
-    GOOGLE-ALIGNED QUERY NORMALIZATION
-
-    GUARANTEES:
-    - ONLY resolves references (this / that / it / those / etc.)
-    - NEVER rewrites semantic meaning
-    - NEVER infers intent, scope, routing, or domain
-    - NEVER reframes questions
-    """
 
     q = (question or "").strip()
 
-    # -------------------------------------------------
-    # 0. Empty input guard
-    # -------------------------------------------------
     if not q:
         return {
             "ignore": True,
             "standalone_query": "",
         }
 
-    # -------------------------------------------------
-    # 1. Detect referential language ONLY
-    # -------------------------------------------------
     REFERENTIAL_PATTERN = re.compile(
         r"\b(this|that|it|those|they|them|he|she|him|her|"
         r"above|previous|earlier|mentioned|same|such)\b",
@@ -52,27 +31,18 @@ def understand_query(
 
     is_referential = bool(REFERENTIAL_PATTERN.search(q))
 
-    # -------------------------------------------------
-    # 2. No reference → DO NOT TOUCH QUESTION
-    # -------------------------------------------------
     if not is_referential:
         return {
             "ignore": False,
             "standalone_query": q,
         }
 
-    # -------------------------------------------------
-    # 3. Reference exists but no chat context → unsafe to resolve
-    # -------------------------------------------------
     if not recent_history:
         return {
             "ignore": False,
             "standalone_query": q,
         }
 
-    # -------------------------------------------------
-    # 4. LLM-based REFERENCE RESOLUTION ONLY
-    # -------------------------------------------------
     try:
         context = "\n".join(
             f"User: {t.get('question','')}\nAI: {t.get('answer','')}"
@@ -119,9 +89,7 @@ Resolved standalone question:
     except Exception as e:
         print(f" understand_query failed: {e}")
 
-    # -------------------------------------------------
-    # 5. Absolute safe fallback
-    # -------------------------------------------------
+
     return {
         "ignore": False,
         "standalone_query": q,

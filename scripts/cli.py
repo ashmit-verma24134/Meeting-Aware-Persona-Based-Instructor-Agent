@@ -41,14 +41,11 @@ def main():
         if question.lower() == "exit":
             break
 
-        #  DEBUG MODE: do NOT swallow exceptions
         result = None
         raw_result = supervisor(user_id, session_id, question)
         result = normalize_result(raw_result)
 
-        # -----------------------------
-        # SAFE OUTPUT
-        # -----------------------------
+
         print("\nANSWER:")
         print(result.get("answer", SAFE_ABSTAIN_MSG))
 
@@ -60,9 +57,6 @@ def main():
 
         print("\n" + "-" * 40 + "\n")
 
-    # -----------------------------
-    # SAVE SESSION
-    # -----------------------------
     session_end_time = datetime.now()
 
     conversation = []

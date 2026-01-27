@@ -26,9 +26,7 @@ class ChatVectorStore:
         self.texts: List[str] = []
         self.dim: int | None = None
 
-    # -------------------------------------------------
-    # Add NEW chat turns (incremental)
-    # -------------------------------------------------
+
     def add_texts(self, texts: List[str]) -> None:
         if not texts:
             return
@@ -50,15 +48,10 @@ class ChatVectorStore:
         self.index.add(embeddings)
         self.texts.extend(new_texts)
 
-    # -------------------------------------------------
-    # Safety
-    # -------------------------------------------------
     def is_empty(self) -> bool:
         return self.index is None or self.index.ntotal == 0
 
-    # -------------------------------------------------
-    # Semantic search
-    # -------------------------------------------------
+
     def search(self, query: str, k: int = 3) -> List[Tuple[str, float]]:
         if self.is_empty():
             return []

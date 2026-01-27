@@ -5,7 +5,6 @@ import re
 
 
 def _safe_filename(name: str) -> str:
-    """Remove unsafe characters from filenames."""
     return re.sub(r"[^a-zA-Z0-9_.-]", "_", name)
 
 

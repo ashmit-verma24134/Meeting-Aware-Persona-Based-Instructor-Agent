@@ -13,15 +13,15 @@ import numpy as np
 
 from langgraph.graph import StateGraph, END
 
-# --- ADD THIS AT THE TOP (Global Scope) ---
+
 from groq import Groq
 from scripts.generate_answer import (
     retrieve_chunks, 
     generate_answer_with_llm, 
-    CHUNKS_PATH  # <--- Needed for meeting_summary_node
+    CHUNKS_PATH 
 )
 
-client = Groq() # <--- Initialize this once at the top
+client = Groq() 
 class MeetingState(TypedDict):
     # Core identity
     user_id: str
@@ -92,17 +92,11 @@ def query_understanding_node(state: MeetingState):
     state.setdefault("path", [])
     state["path"].append("query")
 
-    # -------------------------------------------------
-    # 1️⃣ Fetch RELEVANT chat for reference resolution
-    #    (NOT last-k, NOT TTL fragile)
-    # -------------------------------------------------
+
     recent = get_chat_texts(
         session_id=state["session_id"]
     )
 
-    # -------------------------------------------------
-    # 2️⃣ Rewrite / annotate query (NO CONTROL LOGIC)
-    # -------------------------------------------------
     analysis = understand_query(
         state["question"],
         recent_history=recent,
@@ -114,9 +108,6 @@ def query_understanding_node(state: MeetingState):
         "standalone_query", state["question"]
     )
 
-    # -------------------------------------------------
-    # 3️⃣ HARD TEMPORAL CONSTRAINT (DETERMINISTIC)
-    # -------------------------------------------------
     q = state["question"].lower()
 
     TEMPORAL_KEYS = [
@@ -132,9 +123,6 @@ def query_understanding_node(state: MeetingState):
         "latest" if any(k in q for k in TEMPORAL_KEYS) else None
     )
 
-    # -------------------------------------------------
-    # 4️⃣ DOMAIN CONSTRAINT (PASSIVE ONLY)
-    # -------------------------------------------------
     project_type = analysis.get("project_type")
     state["domain_constraint"] = (
         project_type
@@ -142,10 +130,6 @@ def query_understanding_node(state: MeetingState):
         else None
     )
 
-    # -------------------------------------------------
-    # 5️⃣ Reset ONLY downstream answer artifacts
-    #     (DO NOT touch decision)
-    # -------------------------------------------------
     state["candidate_answer"] = None
     state["final_answer"] = None
     state["retrieved_chunks"] = []
@@ -153,10 +137,6 @@ def query_understanding_node(state: MeetingState):
     state["method"] = ""
     state["meeting_indices"] = None
     state["_all_meeting_indices"] = None
-
-    # Leave these untouched:
-    # - state["decision"]
-    # - state["confidence"]
 
     return state
 
@@ -176,16 +156,10 @@ def coordinator_node(state: MeetingState):
 
     state["path"].append("coordinator")
 
-    # -------------------------------------------------
-    # 1️⃣ Ignore noop / empty queries (terminal)
-    # -------------------------------------------------
     if state.get("ignore"):
         state["decision"] = Decision.IGNORE
         return state
 
-    # -------------------------------------------------
-    # 2️⃣ Decision MUST already exist
-    # -------------------------------------------------
     decision = state.get("decision")
 
     if decision == Decision.CHAT_ONLY:
@@ -194,42 +168,23 @@ def coordinator_node(state: MeetingState):
     if decision == Decision.RETRIEVAL_ONLY:
         return state
 
-    # -------------------------------------------------
-    # 3️⃣ Safety fallback (should not happen)
-    # -------------------------------------------------
-    # If no decision was set upstream, default safely
     state["decision"] = Decision.RETRIEVAL_ONLY
     state["method"] = "coordinator_fallback"
     return state
 
 
 def meeting_summary_node(state: MeetingState):
-    """
-    Generates a high-level meeting summary.
-
-    GOOGLE-ALIGNED RULES:
-    - Uses ONLY retrieved_chunks
-    - If multiple meetings exist → select LATEST meeting ONLY
-    - No question inspection
-    - No inference beyond evidence
-    """
 
     state["path"].append("meeting_summary")
 
     retrieved = state.get("retrieved_chunks", [])
 
-    # --------------------------------------------------
-    #  No evidence → cannot summarize
-    # --------------------------------------------------
     if not retrieved:
         state["final_answer"] = SAFE_ABSTAIN
         state["method"] = "summary_no_evidence"
         state["context_extended"] = False
         return state
 
-    # --------------------------------------------------
-    #  FIX: ALWAYS RESOLVE TO LATEST MEETING
-    # --------------------------------------------------
     meeting_ids = [
         c["meeting_index"]
         for c in retrieved
@@ -244,7 +199,6 @@ def meeting_summary_node(state: MeetingState):
 
     latest_meeting = max(meeting_ids)
 
-    # HARD FILTER → LATEST MEETING ONLY
     latest_chunks = [
         c for c in retrieved
         if c.get("meeting_index") == latest_meeting
@@ -257,14 +211,8 @@ def meeting_summary_node(state: MeetingState):
         state["context_extended"] = False
         return state
 
-    # --------------------------------------------------
-    # 2. Build summary context (STRICT)
-    # --------------------------------------------------
     context = "\n\n".join(c["text"] for c in latest_chunks)[:12000]
 
-    # --------------------------------------------------
-    # 3. Generate Summary
-    # --------------------------------------------------
     prompt = f"""
 You are a professional executive assistant summarizing a meeting.
 
@@ -332,9 +280,6 @@ def pure_chat_node(state: MeetingState):
     # HARD ASSERT
     state["decision"] = Decision.CHAT_ONLY
 
-    # -------------------------------------------------
-    # 1️⃣ Retrieve relevant chat context (TEXT ONLY)
-    # -------------------------------------------------
     chat_chunks = session_memory.retrieve_chat_chunks(
         session_id=state["session_id"],
         query=state["question"],
@@ -345,16 +290,13 @@ def pure_chat_node(state: MeetingState):
     print("Retrieved chat chunks:", len(chat_chunks))
 
     if not chat_chunks:
-        print("❌ No chat grounding → abstain")
+        print("No chat grounding → abstain")
         state["final_answer"] = SAFE_ABSTAIN
         state["method"] = "chat_no_memory"
         return state
 
     chat_context = "\n\n".join(chat_chunks)
 
-    # -------------------------------------------------
-    # 2️⃣ Detect user intent (brief / summary / explain)
-    # -------------------------------------------------
     q = state["question"].lower()
 
     BRIEF_KEYS = {
@@ -373,9 +315,6 @@ def pure_chat_node(state: MeetingState):
             "Explain the information clearly in simple terms."
         )
 
-    # -------------------------------------------------
-    # 3️⃣ STRICT but SMART conversational prompt
-    # -------------------------------------------------
     prompt = f"""
 You are continuing an existing conversation.
 
@@ -415,9 +354,6 @@ ANSWER:
         print("[PURE_CHAT_ERROR]", e)
         answer = SAFE_ABSTAIN
 
-    # -------------------------------------------------
-    # 4️⃣ Finalize
-    # -------------------------------------------------
     state["final_answer"] = clean_answer(answer)
     state["method"] = "chat_only"
     state["context_extended"] = False
@@ -432,10 +368,7 @@ ANSWER:
 def retrieve_chunks_node(state: MeetingState):
 
     state["path"].append("retrieve_chunks")
-
-    # -------------------------------------------------
-    # 1. Build retrieval payload (constraints INCLUDED)
-    # -------------------------------------------------
+   
     payload = {
         "standalone_query": state.get(
             "standalone_query",
@@ -480,9 +413,6 @@ def retrieve_chunks_node(state: MeetingState):
         state["meeting_indices"] = []
         return state
 
-    # -------------------------------------------------
-    #  Temporal constraint (STRICT FILTER ONLY)
-    # -------------------------------------------------
     if state.get("temporal_constraint") == "latest":
         latest_meeting = max(c["meeting_index"] for c in clean_chunks)
         clean_chunks = [
@@ -490,9 +420,6 @@ def retrieve_chunks_node(state: MeetingState):
             if c["meeting_index"] == latest_meeting
         ]
 
-    # ------------------------------------------------
-    # 3.  CRITICAL FIX: deterministic ordering
-    # -------------------------------------------------
     clean_chunks = sorted(
         clean_chunks,
         key=lambda c: (c["meeting_index"], c["chunk_index"])
@@ -502,9 +429,6 @@ def retrieve_chunks_node(state: MeetingState):
         c["meeting_index"] for c in clean_chunks
     })
 
-    # -------------------------------------------------
-    # 4. Store evidence
-    # -------------------------------------------------
     state["retrieved_chunks"] = clean_chunks
     state["_all_meeting_indices"] = meeting_ids
     state["meeting_indices"] = meeting_ids  #  FIX
@@ -529,10 +453,6 @@ def infer_intent_node(state: MeetingState):
     state["path"].append("infer_intent")
 
     chunks = state.get("retrieved_chunks", [])
-
-    # -------------------------------------------------
-    # 0. No evidence → safest defaults
-    # -------------------------------------------------
     if not chunks:
         state["question_intent"] = "factual"
         state["time_scope"] = "latest"
@@ -551,16 +471,12 @@ def infer_intent_node(state: MeetingState):
 
     latest_meeting = max(meeting_ids)
 
-    # -------------------------------------------------
-    # 1. Evidence dominance (PRIMARY & REQUIRED)
-    # -------------------------------------------------
+
     latest_count = sum(1 for m in meeting_ids if m == latest_meeting)
     total = len(meeting_ids)
     latest_ratio = latest_count / total
 
-    # -------------------------------------------------
-    # 2. HARD evidence-based intent inference
-    # -------------------------------------------------
+
     if latest_ratio >= 0.65:
         # Strong single-meeting dominance
         state["question_intent"] = "factual"
@@ -573,9 +489,7 @@ def infer_intent_node(state: MeetingState):
         state["time_scope"] = "global"
         return state
 
-    # -------------------------------------------------
-    # 3. Ambiguous zone → ALLOW question as tie-breaker
-    # -------------------------------------------------
+
     question = state.get(
         "standalone_query", state["question"]
     ).lower()
@@ -652,10 +566,6 @@ def post_retrieve_router(state: MeetingState):
 
 
 def action_summary_node(state: MeetingState):
-    """
-    Extracts ONLY action items / next steps
-    from the LATEST meeting.
-    """
 
     state["path"].append("action_summary")
 
@@ -855,14 +765,6 @@ def chat_confidence(
     question: str,
     retrieved_chat_chunks: list[str],
 ) -> float:
-    """
-    Confidence that CHAT ALONE can answer the question.
-
-    RULES:
-    - NO LLM
-    - Lexical overlap only
-    - Strict thresholds
-    """
 
     if not question or not retrieved_chat_chunks:
         return 0.0
@@ -904,14 +806,7 @@ from memory.chat_utils import get_chat_texts
 
 
 def chat_recall_node(state: MeetingState):
-    """
-    CHAT MINI-QA SYSTEM (EMBEDDING-FIRST, PERSISTENT)
 
-    RULES:
-    - Referential follow-ups → CHAT_ONLY (last turn)
-    - High confidence        → CHAT_ONLY
-    - Low confidence         → RETRIEVAL
-    """
 
     CHAT_CONFIDENCE_THRESHOLD = 0.55
 
@@ -920,9 +815,28 @@ def chat_recall_node(state: MeetingState):
 
     query = state.get("standalone_query", state["question"]).lower()
 
-    # -------------------------------------------------
-    #  🔥 REFERENTIAL FOLLOW-UP SHORTCIRCUIT
-    # -------------------------------------------------
+
+    FORCE_RETRIEVAL_KEYS = {
+    "last meeting",
+    "latest meeting",
+    "next steps",
+    "next step",
+    "action items",
+    "action item",
+    "what was decided",
+    "what were decided",
+    "decisions",
+    "follow up",
+    "what to do next"
+}
+
+    if any(k in query for k in FORCE_RETRIEVAL_KEYS):
+        print(" Forced RETRIEVAL (last meeting / actions policy)")
+        state["decision"] = Decision.RETRIEVAL_ONLY
+        state["confidence"] = 0.0
+        state["method"] = "forced_latest_meeting_policy"
+        return state
+
     REFERENTIAL_KEYS = {
         "summarize that",
         "summary of that",
@@ -946,9 +860,7 @@ def chat_recall_node(state: MeetingState):
             state["method"] = "referential_chat"
             return state
 
-    # -------------------------------------------------
-    #  Check chat memory presence
-    # -------------------------------------------------
+
     chat_texts = get_chat_texts(
         session_id=state["session_id"],
         k=20
@@ -965,9 +877,7 @@ def chat_recall_node(state: MeetingState):
         state["method"] = "chat_empty"
         return state
 
-    # -------------------------------------------------
-    #  FAISS store status
-    # -------------------------------------------------
+
     print("\n CHAT VECTOR STORE DEBUG")
     print("Texts in vector store:", len(chat_vector_store.texts))
     print("FAISS empty:", chat_vector_store.is_empty())
@@ -979,9 +889,7 @@ def chat_recall_node(state: MeetingState):
         state["method"] = "chat_vector_empty"
         return state
 
-    # -------------------------------------------------
-    #  Semantic search
-    # -------------------------------------------------
+
     results = chat_vector_store.search(
         query=query,
         k=3
@@ -1000,9 +908,7 @@ def chat_recall_node(state: MeetingState):
 
     retrieved_texts = [t for (t, _) in results]
 
-    # -------------------------------------------------
-    #  Confidence gate (LEXICAL ONLY)
-    # -------------------------------------------------
+
     conf = chat_confidence(
         question=query,
         retrieved_chat_chunks=retrieved_texts
@@ -1013,9 +919,7 @@ def chat_recall_node(state: MeetingState):
 
     state["confidence"] = conf
 
-    # -------------------------------------------------
-    #  FINAL ROUTING
-    # -------------------------------------------------
+
     if conf >= CHAT_CONFIDENCE_THRESHOLD:
         print(" High confidence → CHAT_ONLY")
         state["decision"] = Decision.CHAT_ONLY
@@ -1034,15 +938,7 @@ from scripts.generate_answer import generate_answer_with_llm
 from collections import deque
 
 def chunk_answer_node(state: MeetingState):
-    """
-    FINAL, CORRECT DESIGN (BUG-FIXED)
 
-    - Question → chunks : recall only
-    - LLM generates answer ONCE
-    - Answer → evidence : truth validation
-    - No hallucination
-    - No missed explicit facts
-    """
     print("\n DEBUG: ENTERED chunk_answer_node")
     print("Retrieved chunks:", len(state.get("retrieved_chunks", [])))
 
@@ -1054,26 +950,19 @@ def chunk_answer_node(state: MeetingState):
 
     print(f" INTELLIGENT QA: '{query}'")
 
-    # -------------------------------------------------
-    #  No evidence
-    # -------------------------------------------------
+
     if not retrieved:
         state["candidate_answer"] = SAFE_ABSTAIN
         state["confidence"] = 0.0
         state["method"] = "no_evidence"
         return state
 
-    # -------------------------------------------------
-    # Deterministic ordering
-    # -------------------------------------------------
+
     retrieved = sorted(
         retrieved,
         key=lambda c: (c.get("meeting_index", 0), c.get("chunk_index", 0))
     )
 
-    # -------------------------------------------------
-    #  Embed question ONCE (RECALL ONLY)
-    # -------------------------------------------------
     model = get_entailment_model()
     q_emb = model.encode(query, normalize_embeddings=True)
 
@@ -1092,10 +981,7 @@ def chunk_answer_node(state: MeetingState):
         return state
 
     chunk_embs = model.encode(texts, normalize_embeddings=True)
-
-    # -------------------------------------------------
-    # Question → chunk similarity (RECALL, NOT DECISION)
-    # -------------------------------------------------
+ 
     sims = np.dot(chunk_embs, q_emb)
 
     # Take top-K candidates (prevents missing declarative facts)
@@ -1104,9 +990,6 @@ def chunk_answer_node(state: MeetingState):
 
     candidate_chunks = [aligned_chunks[i] for i in top_indices]
 
-    # -------------------------------------------------
-    # Expand context (prev + self + next, same meeting)
-    # -------------------------------------------------
     expanded_chunks = []
     seen = set()
 
@@ -1122,17 +1005,11 @@ def chunk_answer_node(state: MeetingState):
                     expanded_chunks.append(ch)
                     seen.add(key)
 
-    # -------------------------------------------------
-    # Generate + VERIFY answer ( CRITICAL FIX)
-    # -------------------------------------------------
     answer, confidence = generate_with_confidence(
         question=query,
         retrieved_chunks=expanded_chunks
     )
 
-    # -------------------------------------------------
-    # Final decision
-    # -------------------------------------------------
     if confidence <= 0.0 or not answer:
         state["candidate_answer"] = SAFE_ABSTAIN
         state["confidence"] = 0.0
@@ -1149,14 +1026,7 @@ def chunk_answer_node(state: MeetingState):
 
     
 def verification_node(state: MeetingState):
-    """
-    EPISTEMIC GUARD (Safety Check)
 
-    PURPOSE:
-    - Prevents presenting exploratory ideas as confirmed decisions
-    - Only intervenes when the USER asks for certainty
-    - Option-3 compliant (no chunk inspection)
-    """
 
     state["path"].append("verify")
 
@@ -1164,9 +1034,6 @@ def verification_node(state: MeetingState):
     rewritten_q = state.get("standalone_query", "").lower()
     answer = (state.get("candidate_answer") or "").lower()
 
-    # -------------------------------------------------
-    # 1. USER IS ASKING FOR CERTAINTY?
-    # -------------------------------------------------
     CERTAINTY_KEYS = [
         "final", "finally decided", "confirmed", "approved",
         "mandatory", "must", "signed off", "fixed", "locked"
@@ -1185,9 +1052,7 @@ def verification_node(state: MeetingState):
         return any(k in raw_q for k in NEXT_STEP_KEYS) or \
                any(k in rewritten_q for k in NEXT_STEP_KEYS)
 
-    # -------------------------------------------------
-    # 2. LANGUAGE CLASSIFICATION (ANSWER SIDE)
-    # -------------------------------------------------
+
     EXPLORATORY_PATTERNS = [
         "discussed", "suggested", "explored", "idea",
         "possible", "proposal", "considering", "might",
@@ -1202,9 +1067,6 @@ def verification_node(state: MeetingState):
     has_exploratory = any(p in answer for p in EXPLORATORY_PATTERNS)
     has_confirmation = any(p in answer for p in CONFIRMATION_PATTERNS)
 
-    # -------------------------------------------------
-    # 3. HARD DECISION GUARD
-    # -------------------------------------------------
     # User wants certainty, answer is exploratory → BLOCK
     if asks_for_certainty() and has_exploratory:
         state["final_answer"] = (
@@ -1215,9 +1077,7 @@ def verification_node(state: MeetingState):
         state["context_extended"] = False
         return state
 
-    # -------------------------------------------------
-    # 4. MIXED SIGNAL GUARD (VERY IMPORTANT)
-    # -------------------------------------------------
+
     # Answer contains both exploratory + confirmation → CLARIFY
     if asks_for_certainty() and has_exploratory and has_confirmation:
         state["final_answer"] = (
@@ -1228,16 +1088,11 @@ def verification_node(state: MeetingState):
         state["context_extended"] = False
         return state
 
-    # -------------------------------------------------
-    # 5. NEXT-STEP QUESTIONS ARE ALLOWED
-    # -------------------------------------------------
     # Exploratory answers are fine here
     if asks_for_next_steps():
         return state
 
-    # -------------------------------------------------
-    # 6. HYPOTHETICAL GUARD (ONLY IF USER WANTS FACT)
-    # -------------------------------------------------
+
     HYPOTHETICAL_PATTERNS = [
         "for example", "hypothetically",
         "imagine if", "let's say"
@@ -1252,9 +1107,7 @@ def verification_node(state: MeetingState):
         state["context_extended"] = False
         return state
 
-    # -------------------------------------------------
-    # 7. PASS
-    # -------------------------------------------------
+
     return state
 
 # FINALIZE NODE (FINAL FIXED VERSION)
@@ -1269,18 +1122,13 @@ def finalize_node(state: MeetingState):
     state.setdefault("path", [])
     state["path"].append("finalize")
 
-    # -------------------------------------------------
-    #  Determine final answer
-    # -------------------------------------------------
     if state.get("final_answer"):
         answer = state["final_answer"]
     else:
         raw = state.get("candidate_answer")
         answer = clean_answer(raw) if raw else SAFE_ABSTAIN
 
-    # -------------------------------------------------
-    #  Decide MEMORY SOURCE
-    # -------------------------------------------------
+
     decision = state.get("decision")
 
     #  FINAL RULE:
@@ -1290,9 +1138,6 @@ def finalize_node(state: MeetingState):
     else:
         source = "system"
 
-    # -------------------------------------------------
-    #  Meeting index (metadata only)
-    # -------------------------------------------------
     meeting_index = None
     retrieved = state.get("retrieved_chunks")
     if (
@@ -1302,9 +1147,6 @@ def finalize_node(state: MeetingState):
     ):
         meeting_index = retrieved[0].get("meeting_index")
 
-    # -------------------------------------------------
-    #  Store memory + FAISS (skip abstains)
-    # -------------------------------------------------
     if answer != SAFE_ABSTAIN:
         # ---- Session memory (JSON) ----
         session_memory.add_turn(
@@ -1319,16 +1161,11 @@ def finalize_node(state: MeetingState):
             meeting_indices=state.get("meeting_indices"),
         )
 
-        # ---- Vector memory (FAISS) ----
         chat_text = f"User: {state['question']}\nAI: {answer}"
         chat_vector_store.add_texts([chat_text])
 
-        # 🔍 Optional debug (keep for now)
         print(" CHAT VECTOR STORE SIZE:", len(chat_vector_store.texts))
 
-    # -------------------------------------------------
-    #  Commit
-    # -------------------------------------------------
     state["final_answer"] = answer
     return state
 
@@ -1337,9 +1174,7 @@ def finalize_node(state: MeetingState):
 
 graph = StateGraph(MeetingState)
 
-# -------------------------------------------------
-# 1. ADD NODES
-# -------------------------------------------------
+
 graph.add_node("query", query_understanding_node)
 graph.add_node("chat_recall", chat_recall_node)
 graph.add_node("coordinator", coordinator_node)
@@ -1356,14 +1191,10 @@ graph.add_node("action_summary", action_summary_node)
 graph.add_node("verify", verification_node)
 graph.add_node("finalize", finalize_node)
 
-# -------------------------------------------------
-# 2. ENTRY POINT
-# -------------------------------------------------
+
 graph.set_entry_point("query")
 
-# -------------------------------------------------
-# 3. QUERY → CHAT_RECALL → COORDINATOR
-# -------------------------------------------------
+
 graph.add_edge("query", "chat_recall")
 graph.add_edge("chat_recall", "coordinator")
 
@@ -1377,15 +1208,11 @@ graph.add_conditional_edges(
     }
 )
 
-# -------------------------------------------------
-# 4. RETRIEVAL PIPELINE
-# -------------------------------------------------
+
 graph.add_edge("retrieve", "infer_intent")
 graph.add_edge("infer_intent", "decide_source")
 
-# -------------------------------------------------
-# 5. POST-RETRIEVE ROUTER
-# -------------------------------------------------
+
 graph.add_conditional_edges(
     "decide_source",
     post_retrieve_router,
@@ -1396,9 +1223,7 @@ graph.add_conditional_edges(
     }
 )
 
-# -------------------------------------------------
-# 6. TERMINAL PATHS
-# -------------------------------------------------
+
 graph.add_edge("pure_chat", "finalize")
 graph.add_edge("meeting_summary", "finalize")
 graph.add_edge("action_summary", "finalize")
@@ -1406,9 +1231,6 @@ graph.add_edge("action_summary", "finalize")
 graph.add_edge("chunk_answer", "verify")
 graph.add_edge("verify", "finalize")
 
-# -------------------------------------------------
-# 7. END
-# -------------------------------------------------
 graph.add_edge("finalize", END)
 
 meeting_graph = graph.compile()

@@ -63,9 +63,7 @@ def generate_answer_with_llm(
     if not retrieved_chunks:
         return SAFE_ABSTAIN
 
-    # -----------------------------
-    # Build FULL evidence context (NO TRIMMING)
-    # -----------------------------
+
     context = "\n\n".join(
         f"[Meeting {c.get('meeting_index')} | Chunk {c.get('chunk_index')}]: "
         f"{c.get('text', '')}"
@@ -157,18 +155,12 @@ def retrieve_chunks(
     query_or_payload: Union[str, Dict],
 ) -> Dict[str, List[dict]]:
 
-    # -----------------------------
-    #  0. HARDEN INPUT (MANDATORY)
-    # -----------------------------
     if isinstance(query_or_payload, list):
         query_or_payload = {}
 
     if not isinstance(query_or_payload, (dict, str)):
         query_or_payload = {}
 
-    # -----------------------------
-    # 1. Parse query + constraints
-    # -----------------------------
     if isinstance(query_or_payload, dict):
         query_text = (
             query_or_payload.get("standalone_query")
@@ -181,9 +173,6 @@ def retrieve_chunks(
 
     print(f" SEARCHING (GLOBAL): '{query_text}' | project={project_type}")
 
-    # -----------------------------
-    # 2. Load data
-    # -----------------------------
     if not os.path.exists(CHUNKS_PATH) or not os.path.exists(EMBEDDINGS_PATH):
         return {"chunks": [], "_all_meeting_indices": []}
 
@@ -198,9 +187,6 @@ def retrieve_chunks(
     if not user_chunks:
         return {"chunks": [], "_all_meeting_indices": []}
 
-    # -----------------------------
-    # 2.5 DOMAIN ISOLATION
-    # -----------------------------
     if project_type:
         user_chunks = [
             c for c in user_chunks
@@ -216,9 +202,6 @@ def retrieve_chunks(
         if isinstance(c.get("meeting_index"), int)
     })
 
-    # -----------------------------
-    # 3. Prepare FAISS pool
-    # -----------------------------
     with open(EMBEDDINGS_PATH, "r", encoding="utf-8") as f:
         embeddings_data = json.load(f)
 
@@ -233,9 +216,6 @@ def retrieve_chunks(
     if not vectors:
         return {"chunks": [], "_all_meeting_indices": meeting_ids}
 
-    # -----------------------------
-    # 4. FAISS (PER USER + DOMAIN SAFE)
-    # -----------------------------
     global _MODEL, _FAISS_INDEX, _VECTOR_CHUNKS
 
     if _MODEL is None:
@@ -253,9 +233,6 @@ def retrieve_chunks(
         _FAISS_INDEX[cache_key] = index
         _VECTOR_CHUNKS[cache_key] = vector_chunks
 
-    # -----------------------------
-    # 5. Search
-    # -----------------------------
     q_emb = _MODEL.encode(
         "query: " + query_text,
         normalize_embeddings=True
@@ -267,9 +244,6 @@ def retrieve_chunks(
 
     results = [_VECTOR_CHUNKS[cache_key][i] for i in ids[0]]
 
-    # -----------------------------
-    # 6. NORMALIZE OUTPUT (MANDATORY)
-    # -----------------------------
     if isinstance(results, list):
         chunks = results
     elif isinstance(results, dict):

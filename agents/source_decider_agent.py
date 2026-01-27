@@ -6,19 +6,6 @@ from agents.decision_types import Decision
 
 
 def decide_source_node(state):
-    """
-    SOURCE DECIDER AGENT (GOOGLE-ALIGNED)
-
-    RESPONSIBILITIES:
-    - Enforce evidence discipline AFTER retrieval
-    - Apply dominance-based meeting resolution
-    - NEVER inspect question text directly
-    - NEVER infer meaning or domain
-
-    DESIGN FIX:
-    - FACTUAL questions → NEVER drop evidence
-    - SUMMARY / ACTION → dominance allowed
-    """
 
     state["path"].append("source_decider")
 
@@ -74,7 +61,7 @@ def decide_source_node(state):
 
 
     dominant_meeting = select_dominant_meeting(chunks)
-    print(f"🧪 DEBUG: dominant_meeting = {dominant_meeting}")
+    print(f"DEBUG: dominant_meeting = {dominant_meeting}")
 
     # If dominance unclear → keep all evidence
     if dominant_meeting is None:

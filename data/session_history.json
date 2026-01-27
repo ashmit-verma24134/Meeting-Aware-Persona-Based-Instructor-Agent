@@ -987,5 +987,591 @@
       "method": "chat_only",
       "timestamp": "2026-01-26T14:55:09.751003+00:00"
     }
+  ],
+  "ashmit_auto_session_2026-01-27_01-31-09": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Automate the chunking process.\n2. Use a better model for embedding files.\n3. Document the process systematically.\n4. Store metadata for each user.\n5. Implement a lambda function for session ID.\n6. Integrate a simple web-based meeting agent.\n7. Normalize transcripts.\n8. Check the code for the Gemini model.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-26T20:01:25.276930+00:00"
+    },
+    {
+      "question": "what were two agent thing sir told about?",
+      "standalone_query": "what were two agent thing sir told about?",
+      "answer": "The two agent things mentioned were:\n\n1. Integrate a simple web-based meeting agent. Implement a lambda function for session ID.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-26T20:01:38.059527+00:00"
+    },
+    {
+      "question": "what were two agents?",
+      "standalone_query": "what were two agents?",
+      "answer": "There were two types of agents mentioned: one that tries to find out what the user is asking and another that looks at the meeting recordings to evaluate the response.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-26T20:02:19.657106+00:00"
+    },
+    {
+      "question": "was automating chunking process a task ? this time",
+      "standalone_query": "was automating chunking process a task ? this time",
+      "answer": "Automating the chunking process was a task that the speaker was considering for the future, but had not yet implemented. They mentioned that they were thinking of automating it manually or automatically, but had not yet done so.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-26T20:02:53.224376+00:00"
+    },
+    {
+      "question": "was automating chunking included in next step this time?",
+      "standalone_query": "was automating chunking included in next step this time?",
+      "answer": "Yes, automating the chunking process was included in the next steps this time. It was listed as the first step.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-26T20:03:23.327780+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-27_11-52-18": [
+    {
+      "question": "What were next step decided in last meeting?",
+      "standalone_query": "What were next step decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-27T06:22:48.305815+00:00"
+    },
+    {
+      "question": "what were shape of rooms?",
+      "standalone_query": "what were shape of rooms?",
+      "answer": "The shape of rooms was described as cuboid shape or multiple cuboid shapes to make one room.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T06:23:15.775592+00:00"
+    },
+    {
+      "question": "was  Develop a system for players to talk to NPCs and have conversations a next step ?",
+      "standalone_query": "was  Develop a system for players to talk to NPCs and have conversations a next step ?",
+      "answer": "No, it was not a next step. It was listed as the 9th next step.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T06:23:29.695314+00:00"
+    },
+    {
+      "question": "was  Develop a system for players to talk to NPCs and have conversations decided in last meet ?",
+      "standalone_query": "was  Develop a system for players to talk to NPCs and have conversations decided in last meet ?",
+      "answer": "No, it was not decided in the last meeting. It was listed as the 9th next step.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T06:23:59.596728+00:00"
+    },
+    {
+      "question": "was  Develop a system for players to talk to NPCs and have conversations decided as a step?",
+      "standalone_query": "was  Develop a system for players to talk to NPCs and have conversations decided as a step?",
+      "answer": "No, it was not decided as a step. It was listed as the 9th next step.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T06:24:24.087865+00:00"
+    }
+  ],
+  "utsav_slack_2026-01-27_12-04-57": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-27T06:35:20.663656+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "The next steps decided in the last meeting were to implement several features for NPCs (non-player characters) in the game. These include:\n\n- Creating a mechanism to put an NPC in the game. - Developing a system where NPCs can be controlled by other players. - Creating a database to store metadata for NPCs.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T06:35:22.075099+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "The next steps decided in the last meeting were to implement several features for NPCs in the game. Creating a mechanism to put an NPC in the game. Developing a system where NPCs can be controlled by other players. Creating a database to store metadata for NPCs.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T06:36:46.161885+00:00"
+    },
+    {
+      "question": "what were shape of rooms?",
+      "standalone_query": "what were shape of rooms?",
+      "answer": "The shape of rooms was described as cuboid shape or multiple cuboid shapes to make one room.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T06:37:40.182017+00:00"
+    },
+    {
+      "question": "what were shape of rooms?",
+      "standalone_query": "what were shape of rooms?",
+      "answer": "The shape of rooms was described as cuboid shape or multiple cuboid shapes to make one room.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T06:37:44.153912+00:00"
+    },
+    {
+      "question": "what shape was room of",
+      "standalone_query": "what shape was room of",
+      "answer": "The shape of the room was described as a cuboid shape or multiple cuboid shapes to make one room.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T06:37:49.045020+00:00"
+    },
+    {
+      "question": "what were shape of rooms?",
+      "standalone_query": "what were shape of rooms?",
+      "answer": "The shape of rooms was described as a cuboid shape or multiple cuboid shapes to make one room.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T06:37:53.032473+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "The next steps decided in the last meeting were to implement several features for NPCs in the game. These include:\n\n- Creating a mechanism to put an NPC in the game. - Developing a system where NPCs can be controlled by other players. - Creating a database to store metadata for NPCs.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T06:41:27.734712+00:00"
+    },
+    {
+      "question": "what shape was room of",
+      "standalone_query": "what shape was room of",
+      "answer": "The shape of the room was described as a cuboid shape or multiple cuboid shapes to make one room.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T06:41:53.000676+00:00"
+    },
+    {
+      "question": "what were shape of rooms?",
+      "standalone_query": "what were shape of rooms?",
+      "answer": "The shape of rooms was described as a cuboid shape or multiple cuboid shapes to make one room.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T06:42:33.980481+00:00"
+    }
+  ],
+  "utsav_slack_2026-01-27_12-15-53": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-27T06:46:16.165756+00:00"
+    },
+    {
+      "question": "what were shape of rooms?",
+      "standalone_query": "what were shape of rooms?",
+      "answer": "The shape of rooms was described as cuboid shape or multiple cuboid shapes to make one room.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T06:46:54.587271+00:00"
+    },
+    {
+      "question": "did i need to create a database to store metadata for npc?",
+      "standalone_query": "did i need to create a database to store metadata for npc?",
+      "answer": "According to the next steps decided in the last meeting, yes, you need to create a database to store metadata for NPCs. This is step 3 in the list of tasks.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T06:47:38.407359+00:00"
+    }
+  ],
+  "utsav_slack_2026-01-27_12-19-36": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-27T06:49:58.672125+00:00"
+    }
+  ],
+  "utsav_slack_2026-01-27_12-27-13": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-27T06:57:27.388617+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-27_12-33-09": [
+    {
+      "question": "what was the shape of rooms?",
+      "standalone_query": "what was the shape of rooms?",
+      "answer": "The shape of rooms was described as cuboid.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T07:03:23.996361+00:00"
+    },
+    {
+      "question": "what were the next steps decided in last meeting?",
+      "standalone_query": "what were the next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-27T07:12:17.435125+00:00"
+    }
+  ],
+  "agrim_auto_session_2026-01-27_12-43-06": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Summarize on Slack the two inputs and outputs that we need for the project.\n2. Get a transcript of the meeting and post it on Slack.\n3. Create a GitHub repo for the project, make it private, and add Speaker 1 and Pankaj to it.\n4. Write down the action items and goals from the meeting on Slack.\n5. Create a batch summary for the meetings that are shared, including the current meeting and the previous meeting.\n6. Work on making the batch summary process real-time, starting with the current meeting and aiming to have results for three to four meetings within a week.\n7. Ask the team to supply their tool for the project.\n8. Integrate the tool with the core engine and test the real-time version.\n9. Create a private GitHub repo for the project and add Speaker 1 and Pankaj to it.\n10. Upload the recorded meeting to Slack for Speaker 2 to access.",
+      "source": "chat",
+      "meeting_index": 2,
+      "meeting_indices": [
+        2
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-27T07:13:14.359446+00:00"
+    }
+  ],
+  "agrim_slack_2026-01-27_12-54-09": [
+    {
+      "question": "was creating data which includes the demonstration which are done on the screen a goal of project ?",
+      "standalone_query": "was creating data which includes the demonstration which are done on the screen a goal of project ?",
+      "answer": "Yes, creating data which includes the demonstration that are done on the screen was a goal of the project. This was explicitly stated by Speaker 2 in Meeting 2 | Chunk 2.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T07:24:32.966385+00:00"
+    }
+  ],
+  "agrim_auto_session_2026-01-27_12-56-03": [
+    {
+      "question": "was creating data which includes the demonstration which are done on the screen a goal of project ?",
+      "standalone_query": "was creating data which includes the demonstration which are done on the screen a goal of project ?",
+      "answer": "Yes, creating data which includes the demonstration that are done on the screen was a goal of the project. This was explicitly stated by Speaker 2 in Meeting 2 | Chunk 2.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T07:26:16.756054+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Summarize on Slack the two inputs and outputs that we need for the project.\n2. Get a transcript of the meeting and post it on Slack.\n3. Create a GitHub repo for the project, make it private, and add Speaker 1 and Pankaj to it.\n4. Write down the action items and goals from the meeting on Slack.\n5. Create a batch summary for the meetings that are shared, including the current meeting and the previous meeting.\n6. Work on making the batch summary process real-time, starting with the current meeting and aiming to have it ready in a week.\n7. Supply the tool for the real-time version of the project.\n8. Integrate the real-time version of the project.\n9. Create a summary of today's meeting and post it on Slack.\n10. Upload the recorded meeting to Slack for Speaker 2 to access.",
+      "source": "chat",
+      "meeting_index": 2,
+      "meeting_indices": [
+        2
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-27T07:26:27.955778+00:00"
+    }
+  ],
+  "agrim_slack_2026-01-27_13-05-32": [
+    {
+      "question": "was creating data which includes the demonstration which are done on the screen a goal of project ?",
+      "standalone_query": "was creating data which includes the demonstration which are done on the screen a goal of project ?",
+      "answer": "Yes, creating data which includes the demonstration that are done on the screen was a goal of the project. This was explicitly stated by Speaker 2 in Meeting 2 | Chunk 2.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T07:36:12.171210+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Summarize on Slack the two inputs and outputs that we need for the project.\n2. Get a transcript of the meeting and post it on Slack.\n3. Create a GitHub repo for the project, make it private, and add Speaker 1 and Pankaj to it.\n4. Write down the action items and goals from the meeting on Slack.\n5. Create a batch summary for the meetings that are shared, including the current meeting and the previous meeting.\n6. Work on making the batch summary process real-time, starting with the current meeting and aiming to have results for three to four meetings within a week.\n7. Ask the team to supply their tool for the project.\n8. Integrate the tool with the core engine and test the real-time version.\n9. Create a private GitHub repo for the project and add Speaker 1 and Pankaj to it.\n10. Upload the recorded meeting to Slack for Speaker 2 to access.",
+      "source": "chat",
+      "meeting_index": 2,
+      "meeting_indices": [
+        2
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-27T07:36:29.065885+00:00"
+    }
+  ],
+  "utsav_slack_2026-01-27_13-07-40": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T07:37:53.056419+00:00"
+    },
+    {
+      "question": "explain that in brief",
+      "standalone_query": "explain that in brief",
+      "answer": "Jericho is a game development framework for creating interactive stories and games. It offers a simple scripting language and tools for game environments, characters, and interactions.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T07:38:38.968763+00:00"
+    }
+  ],
+  "utsav_slack_2026-01-27_13-15-42": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T07:46:08.906374+00:00"
+    },
+    {
+      "question": "explain that in brief",
+      "standalone_query": "explain that in brief",
+      "answer": "Jericho is a game development framework for creating interactive stories and games. It offers a simple scripting language and tools for game environments, characters, and interactions.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T07:46:12.570925+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-27T07:46:24.322268+00:00"
+    },
+    {
+      "question": "is jericho a game development server?",
+      "standalone_query": "is jericho a game development server?",
+      "answer": "No, Jericho is not a game development server. It's a game development framework that allows users to create interactive stories and games.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T07:46:57.213361+00:00"
+    },
+    {
+      "question": "ok so its a game development server",
+      "standalone_query": "ok so its a game development server",
+      "answer": "No, Jericho is not a game development server. It's a game development framework that allows users to create interactive stories and games.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T07:47:21.510189+00:00"
+    },
+    {
+      "question": "ok so its a game development framework",
+      "standalone_query": "ok so its a game development framework",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T07:47:34.031051+00:00"
+    }
+  ],
+  "utsav_slack_2026-01-27_13-18-04": [
+    {
+      "question": "what was the shape of rooms?",
+      "standalone_query": "what was the shape of rooms?",
+      "answer": "The shape of rooms was described as cuboid.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T07:48:28.088819+00:00"
+    }
+  ],
+  "agrim_auto_session_2026-01-27_13-32-06": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Summarize on Slack the two inputs and outputs that we need for the project.\n2. Get a transcript of the meeting and post it on Slack.\n3. Create a GitHub repo for the project, make it private, and add Speaker 1 and Pankaj to it.\n4. Write down the action items and goals from the meeting on Slack.\n5. Create a batch summary for the meetings that are shared, including the current meeting and the previous meeting.\n6. Work on making the batch summary process real-time, starting with the current meeting and aiming to have results for three to four meetings within a week.\n7. Ask the team to supply their tool for the project.\n8. Integrate the tool with the core engine and test the real-time version.\n9. Create a private GitHub repo for the project and add Speaker 1 and Pankaj to it.\n10. Upload the recorded meeting to Slack for Speaker 2 to access.",
+      "source": "chat",
+      "meeting_index": 2,
+      "meeting_indices": [
+        2
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-27T08:02:16.893133+00:00"
+    },
+    {
+      "question": "was creating data which includes the demonstration which are done on the screen a goal of project ?",
+      "standalone_query": "was creating data which includes the demonstration which are done on the screen a goal of project ?",
+      "answer": "Yes, creating data which includes the demonstration that are done on the screen was a goal of the project. This was explicitly stated by Speaker 2 in Meeting 2 | Chunk 2.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T08:02:27.999604+00:00"
+    }
   ]
 }

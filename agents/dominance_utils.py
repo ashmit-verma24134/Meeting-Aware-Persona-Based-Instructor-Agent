@@ -3,26 +3,6 @@ from typing import List, Dict, Optional
 
 
 def select_dominant_meeting(chunks: List[Dict]) -> Optional[int]:
-    """
-    Determines whether retrieved evidence is dominated by a single meeting.
-
-    GOOGLE-ALIGNED RULES:
-    - Uses ONLY retrieved evidence
-    - Does NOT inspect the user question
-    - Does NOT infer intent or scope
-    - Does NOT perform routing
-
-    DOMINANCE LOGIC:
-    - Group chunks by meeting_index
-    - Compute dominance ratio
-    - If one meeting contributes >= 40% of chunks → dominant
-    - Otherwise → evidence is mixed → return None
-
-    Returns:
-    - meeting_index (int) if dominant
-    - None if no dominant meeting exists
-    """
-
     if not isinstance(chunks, list) or not chunks:
         return None
 
@@ -47,7 +27,6 @@ def select_dominant_meeting(chunks: List[Dict]) -> Optional[int]:
 
     dominance_ratio = dominant_count / total
 
-    # 🔥 Dominance threshold (Google-aligned)
     if dominance_ratio >= 0.40:
         return dominant_meeting
 

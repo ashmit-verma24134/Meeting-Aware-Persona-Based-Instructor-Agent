@@ -31,9 +31,7 @@ def chunk_text(text: str, chunk_size: int, overlap: int):  #chunking text
 
     return chunks
 
-# -----------------------------
-# FILENAME → METADATA
-# -----------------------------
+
 def infer_metadata_from_filename(filename: str):
 
     name = filename.replace(".txt", "").replace("C_", "")
@@ -54,9 +52,6 @@ def infer_metadata_from_filename(filename: str):
 
     return user_id, meeting_name, meeting_type, meeting_index
 
-# -----------------------------
-# PROJECT TYPE INFERENCE (MANDATORY)
-# -----------------------------
 def infer_project_type(meeting_name: str, text: str) -> str:
     """
     Conservative domain isolation.
@@ -84,9 +79,7 @@ def infer_project_type(meeting_name: str, text: str) -> str:
 
     return "meeting_qa"
 
-# -----------------------------
-# SAFE JSON EXTRACTION
-# -----------------------------
+
 def safe_json_from_text(text: str) -> dict:
     try:
         match = re.search(r"\{.*?\}", text, re.DOTALL)
@@ -100,9 +93,7 @@ def safe_json_from_text(text: str) -> dict:
             "summary": ""
         }
 
-# -----------------------------
-# STRUCTURED METADATA EXTRACTION
-# -----------------------------
+
 def extract_meeting_metadata(sample_text: str) -> dict:
     prompt = f"""
 Return ONLY valid JSON.
@@ -132,9 +123,7 @@ Transcript:
             "summary": ""
         }
 
-# -----------------------------
-# SUMMARY FALLBACK (GUARANTEED)
-# -----------------------------
+
 def extract_summary_only(sample_text: str) -> str:
     prompt = f"""
 Summarize this meeting in 2–3 sentences.
@@ -154,9 +143,7 @@ Transcript:
     except Exception:
         return ""
 
-# -----------------------------
-# MAIN PIPELINE
-# -----------------------------
+
 def main():
     all_chunks = []
     meeting_metadata = {}
@@ -236,8 +223,6 @@ def main():
     print(f" Generated {len(all_chunks)} chunks")
     print(f" Generated metadata for {len(meeting_metadata)} meetings")
 
-# -----------------------------
-# ENTRY POINT
-# -----------------------------
+
 if __name__ == "__main__":
     main()

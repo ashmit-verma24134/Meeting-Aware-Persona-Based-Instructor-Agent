@@ -1,0 +1,23 @@
+{
+  "user_id": "utsav",
+  "meeting_name": "slack_session",
+  "session_start_time": "2026-01-27T12:15:53.573207",
+  "session_end_time": "2026-01-27T12:18:31.738203",
+  "conversation": [
+    {
+      "question": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "timestamp": "2026-01-27T06:46:16.165756+00:00"
+    },
+    {
+      "question": "what were shape of rooms?",
+      "answer": "The shape of rooms was described as cuboid shape or multiple cuboid shapes to make one room.",
+      "timestamp": "2026-01-27T06:46:54.587271+00:00"
+    },
+    {
+      "question": "did i need to create a database to store metadata for npc?",
+      "answer": "According to the next steps decided in the last meeting, yes, you need to create a database to store metadata for NPCs. This is step 3 in the list of tasks.",
+      "timestamp": "2026-01-27T06:47:38.407359+00:00"
+    }
+  ]
+}

@@ -19,10 +19,6 @@ class SessionMemory:
         self.max_turns = max_turns_per_session
         self.sessions: Dict[str, List[Dict]] = self._load_from_disk()
 
-    # -------------------------------------------------
-    # Disk I/O
-    # -------------------------------------------------
-
     def _load_from_disk(self) -> Dict[str, List[Dict]]:
         if not os.path.exists(self.storage_path):
             return {}
@@ -42,9 +38,7 @@ class SessionMemory:
         with open(self.storage_path, "w", encoding="utf-8") as f:
             json.dump(self.sessions, f, indent=2)
 
-    # -------------------------------------------------
-    # Write API
-    # -------------------------------------------------
+
 
     def add_turn(
         self,
@@ -98,9 +92,7 @@ class SessionMemory:
 
         self._save_to_disk()
 
-    # -------------------------------------------------
-    # Read APIs
-    # -------------------------------------------------
+
 
     def _is_fresh(self, ts: str) -> bool:
         try:
@@ -123,9 +115,7 @@ class SessionMemory:
         ]
         return fresh[-k:]
 
-    # -------------------------------------------------
-    # Chat-only helpers
-    # -------------------------------------------------
+
 
     def retrieve_chat_chunks(
         self,
@@ -159,17 +149,11 @@ class SessionMemory:
         scored.sort(key=lambda x: x[0], reverse=True)
         return [text for _, text in scored[:k]]
 
-    # -------------------------------------------------
-    # Maintenance
-    # -------------------------------------------------
+
 
     def clear_session(self, session_id: str):
         if session_id in self.sessions:
             self.sessions[session_id] = []
             self._save_to_disk()
 
-
-# -------------------------------------------------
-# Global singleton
-# -------------------------------------------------
 session_memory = SessionMemory()

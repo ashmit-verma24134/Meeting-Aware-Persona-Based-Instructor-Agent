@@ -4,17 +4,11 @@ from memory.session_memory import session_memory
 
 def get_chat_texts(session_id: str, k: int = 20) -> List[str]:
     """
-    Returns last k CHAT-only turns as plain text.
+    Returns the last k conversation turns as plain text,
+    in chronological order, for LLM context.
 
-    PURPOSE:
-    - Used ONLY for chat embeddings (chat_recall_node)
-    - NO transcript data
-    - NO summaries
-    - GOOGLE-aligned short-term memory
-
-    FORMAT:
-    User: ...
-    AI: ...
+    Includes BOTH chat + system answers, because once shown
+    to the user, they are conversational ground truth.
     """
 
     turns = session_memory.get_recent_context(
@@ -25,13 +19,12 @@ def get_chat_texts(session_id: str, k: int = 20) -> List[str]:
     texts: List[str] = []
 
     for t in turns:
-        if t.get("source") == "chat":
-            q = t.get("question", "").strip()
-            a = t.get("answer", "").strip()
+        q = (t.get("question") or "").strip()
+        a = (t.get("answer") or "").strip()
 
-            if q or a:
-                texts.append(
-                    f"User: {q}\nAI: {a}"
-                )
+        if q:
+            texts.append(f"User: {q}")
+        if a:
+            texts.append(f"AI: {a}")
 
     return texts

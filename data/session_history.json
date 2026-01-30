@@ -1573,5 +1573,720 @@
       "method": "answer_entailment_verified",
       "timestamp": "2026-01-27T08:02:27.999604+00:00"
     }
+  ],
+  "utsav_slack_2026-01-27_13-59-51": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T08:30:13.462444+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the LLM.\n7. Explore workarounds for the limitations of Form 7 and Jericho.\n8. Implement a system for NPCs to make decisions based on their environment.\n9. Develop a way for NPCs to call external code to make decisions.\n10. Investigate the possibility of using Python code in Inform7 rules.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-27T08:30:34.373248+00:00"
+    },
+    {
+      "question": "what was the shape of rooms?",
+      "standalone_query": "what was the shape of rooms?",
+      "answer": "The shape of rooms was described as cuboid.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T08:31:13.440201+00:00"
+    },
+    {
+      "question": "was creating a database to store metadata for npcs a step for next meet?",
+      "standalone_query": "was creating a database to store metadata for npcs a step for next meet?",
+      "answer": "Yes, creating a database to store metadata for NPCs was one of the next steps decided in the last meeting, specifically step 3.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T08:32:22.888851+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-27_14-52-31": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T09:22:49.005009+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the LLM.\n7. Explore workarounds for the limitations of Form 7 and Jericho.\n8. Implement a system for NPCs to make decisions based on their environment.\n9. Develop a way for NPCs to call external code to make decisions.\n10. Investigate the possibility of using Python code in Inform7 rules.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-27T09:23:09.285332+00:00"
+    },
+    {
+      "question": "what was the shape of rooms?",
+      "standalone_query": "what was the shape of rooms?",
+      "answer": "The shape of rooms was described as cuboid.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T09:23:48.867974+00:00"
+    },
+    {
+      "question": "was creating a database to store metadata for npcs a step for next meet?",
+      "standalone_query": "was creating a database to store metadata for npcs a step for next meet?",
+      "answer": "Yes, creating a database to store metadata for NPCs was one of the next steps decided in the last meeting, specifically step 3.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T09:24:32.436352+00:00"
+    }
+  ],
+  "utsav_slack_2026-01-27_14-55-37": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T09:25:58.342212+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the LLM.\n7. Explore workarounds for the limitations of Form 7 and Jericho.\n8. Implement a system for NPCs to make decisions based on their environment.\n9. Develop a way for NPCs to call external code to make decisions.\n10. Investigate the possibility of using Python code in Inform7 rules.",
+      "source": "chat",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-27T09:26:21.331444+00:00"
+    },
+    {
+      "question": "what was the shape of rooms?",
+      "standalone_query": "what was the shape of rooms?",
+      "answer": "The shape of rooms was described as cuboid.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T09:26:58.400554+00:00"
+    },
+    {
+      "question": "was creating a database to store metadata for npcs a step for next meet?",
+      "standalone_query": "was creating a database to store metadata for npcs a step for next meet?",
+      "answer": "Yes, creating a database to store metadata for NPCs was one of the next steps decided in the last meeting, specifically step 3.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_only",
+      "timestamp": "2026-01-27T09:28:18.505240+00:00"
+    }
+  ],
+  "utsav_slack_2026-01-27_15-37-06": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "chat",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-27T10:07:21.204405+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-30_13-21-27": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-30T07:51:41.578923+00:00"
+    },
+    {
+      "question": "what is the explanation of vision glass?",
+      "standalone_query": "what is the explanation of vision glass?",
+      "answer": "The vision glass is a device that determines the range of visibility for an object, allowing it to be seen within a certain radius. It has a limited field of view, such as 60 degrees, and can only see objects within a certain distance, like 5 meters.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-30T07:52:24.867595+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "system",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-30T07:52:53.035677+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-30_13-31-01": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-30T08:01:15.376599+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "system",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-30T08:01:21.083529+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-30_13-33-26": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-30T08:03:40.166555+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for players to interact with NPCs in the game.\n6. Investigate how to integrate Inform7 code with Python code.\n7. Explore the possibility of using a wrapper to call Python code from Inform7.\n8. Create a system for NPCs to make decisions based on their environment.\n9. Develop a way for NPCs to communicate with each other.\n10. Investigate how to implement a multi-user system for the game.",
+      "source": "system",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-30T08:03:47.495238+00:00"
+    },
+    {
+      "question": "was writing a wrapper to integrate jericho with inform7 game a next step decided in last meet?",
+      "standalone_query": "was writing a wrapper to integrate jericho with inform7 game a next step decided in last meet?",
+      "answer": "Explore the possibility of using a wrapper to call Python code from Inform7.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-01-30T08:03:51.454872+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-30_13-35-21": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-30T08:05:34.915448+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "system",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-30T08:05:43.614639+00:00"
+    },
+    {
+      "question": "was writing a wrapper to integrate jericho with inform7 game a next step decided in last meet?",
+      "standalone_query": "was writing a wrapper to integrate jericho with inform7 game a next step decided in last meet?",
+      "answer": "YES\n\nThis was clearly decided as the 6th next step in the meeting: \"6. Write a wrapper to integrate Jericho with the Inform7 game.\"",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-01-30T08:05:48.805782+00:00"
+    },
+    {
+      "question": "is jericho a gamedevleopment framnwork or software?",
+      "standalone_query": "is jericho a gamedevleopment framnwork or software?",
+      "answer": "YES\n\nJericho is described as a \"game development framework\" in the initial response.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-01-30T08:06:29.557103+00:00"
+    },
+    {
+      "question": "what hacks did u do with infernomnwork or softwa",
+      "standalone_query": "what hacks did u do with infernomnwork or softwa",
+      "answer": "NO\n\nThis was not clearly discussed in the meeting.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-01-30T08:08:46.313794+00:00"
+    },
+    {
+      "question": "what hacks did u do with inferno?",
+      "standalone_query": "what hacks did u do with inferno?",
+      "answer": "NO\n\nThis was not clearly discussed in the meeting.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-01-30T08:08:55.460235+00:00"
+    },
+    {
+      "question": "in jericho each node represents what?",
+      "standalone_query": "in jericho each node represents what?",
+      "answer": "YES\n\nIn the initial response, Jericho is described as a game development framework that allows users to create interactive stories and games, and it provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions. This implies that each node in Jericho represents a component or element of the game, such as a character or environment.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-01-30T08:09:16.051818+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-30_13-44-21": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-30T08:14:34.661970+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "system",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-30T08:14:45.786195+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-30_14-05-51": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-30T08:36:15.667595+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "system",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-30T08:36:22.820751+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-30_14-10-03": [
+    {
+      "question": "what is jericho?\\",
+      "standalone_query": "what is jericho?\\",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-30T08:40:43.619634+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for players to interact with NPCs in the game.\n6. Investigate how to integrate Inform7 code with Python code.\n7. Explore the possibility of using a wrapper to call Python code from Inform7.\n8. Create a system for NPCs to make decisions based on their environment.\n9. Develop a way for NPCs to communicate with each other.\n10. Investigate how to implement a multi-user system for the game.",
+      "source": "system",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-30T08:42:30.335009+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-30_14-16-37": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-30T08:46:51.383278+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for players to interact with NPCs in the game.\n6. Investigate how to integrate Inform7 code with Python code.\n7. Explore the possibility of using a wrapper to call Python code from Inform7.\n8. Create a system for NPCs to make decisions based on their environment.\n9. Develop a way for NPCs to communicate with each other.\n10. Investigate how to implement a multi-user system for the game.",
+      "source": "system",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-30T08:47:04.700040+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-30_14-25-50": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-30T08:56:06.337623+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "system",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-30T08:56:14.296925+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-30_14-30-31": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-30T09:00:44.328618+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "system",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-30T09:00:51.921181+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-30_14-35-41": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-30T09:05:54.804915+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for players to interact with NPCs in the game.\n6. Investigate how to integrate Inform7 code with Python code.\n7. Explore the possibility of using a wrapper to call Python code from Inform7.\n8. Create a system for NPCs to make decisions based on their environment.\n9. Develop a way for NPCs to communicate with each other.\n10. Investigate how to implement a multi-user system for the game.",
+      "source": "system",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-30T09:06:02.352249+00:00"
+    },
+    {
+      "question": "was creating a database  next step ?",
+      "standalone_query": "was creating a database  next step ?",
+      "answer": "Yes, creating a database to store metadata for NPCs was one of the next steps decided in the last meeting.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-01-30T09:06:09.381474+00:00"
+    },
+    {
+      "question": "was creating a database to store metadat for npcs  next step ?",
+      "standalone_query": "was creating a database to store metadat for npcs  next step ?",
+      "answer": "Yes, creating a database to store metadata for NPCs was one of the next steps decided in the last meeting.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-01-30T09:06:20.338129+00:00"
+    },
+    {
+      "question": "what were each node representing?",
+      "standalone_query": "what were each node representing?",
+      "answer": "In Jericho, each node represents a room.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-30T09:07:04.713285+00:00"
+    },
+    {
+      "question": "is jericho a game development framework or coding software?",
+      "standalone_query": "is jericho a game development framework or coding software?",
+      "answer": "Based on the chat, Jericho is described as a \"game development framework\" by the AI in the first message.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-01-30T09:09:04.505578+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-01-30_14-40-43": [
+    {
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-30T09:10:58.976136+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "standalone_query": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for players to interact with NPCs in the game.\n6. Investigate how to integrate Inform7 code with Python code.\n7. Explore the possibility of using a wrapper to call Python code from Inform7.\n8. Create a system for NPCs to make decisions based on their environment.\n9. Develop a way for NPCs to communicate with each other.\n10. Investigate how to implement a multi-user system for the game.",
+      "source": "system",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-01-30T09:11:06.316544+00:00"
+    },
+    {
+      "question": "was creating a database  next step ?",
+      "standalone_query": "was creating a database  next step ?",
+      "answer": "Yes, creating a database to store metadata for NPCs was one of the next steps decided in the last meeting.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-01-30T09:11:13.956904+00:00"
+    },
+    {
+      "question": "what were each node representing?",
+      "standalone_query": "what were each node representing?",
+      "answer": "In Jericho, each node represents a room.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-30T09:12:00.980464+00:00"
+    },
+    {
+      "question": "how much free credits user had?",
+      "standalone_query": "how much free credits user had?",
+      "answer": "The user had 300 free credits.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-01-30T09:12:45.033283+00:00"
+    }
   ]
 }

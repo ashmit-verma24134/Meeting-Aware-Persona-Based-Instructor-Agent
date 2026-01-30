@@ -1,0 +1,28 @@
+{
+  "user_id": "utsav",
+  "meeting_name": "slack_session",
+  "session_start_time": "2026-01-27T13:59:51.033740",
+  "session_end_time": "2026-01-27T14:02:35.275122",
+  "conversation": [
+    {
+      "question": "what is jericho?",
+      "answer": "Jericho is a game development framework that allows users to create interactive stories and games. It provides a simple scripting language and a set of tools to create and manage game environments, characters, and interactions.",
+      "timestamp": "2026-01-27T08:30:13.462444+00:00"
+    },
+    {
+      "question": "what were next steps decided in last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the LLM.\n7. Explore workarounds for the limitations of Form 7 and Jericho.\n8. Implement a system for NPCs to make decisions based on their environment.\n9. Develop a way for NPCs to call external code to make decisions.\n10. Investigate the possibility of using Python code in Inform7 rules.",
+      "timestamp": "2026-01-27T08:30:34.373248+00:00"
+    },
+    {
+      "question": "what was the shape of rooms?",
+      "answer": "The shape of rooms was described as cuboid.",
+      "timestamp": "2026-01-27T08:31:13.440201+00:00"
+    },
+    {
+      "question": "was creating a database to store metadata for npcs a step for next meet?",
+      "answer": "Yes, creating a database to store metadata for NPCs was one of the next steps decided in the last meeting, specifically step 3.",
+      "timestamp": "2026-01-27T08:32:22.888851+00:00"
+    }
+  ]
+}

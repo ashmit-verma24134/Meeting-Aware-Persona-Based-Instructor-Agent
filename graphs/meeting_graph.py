@@ -2,11 +2,9 @@ from typing import TypedDict, List, Optional
 import json
 from agents.text_utils import clean_answer
 from agents.source_decider_agent import decide_source_node
-from agents.decision_types import Decision
 from agents.text_utils import trim_chunk_text
 from agents.decision_types import Decision
 from memory.chat_utils import get_chat_texts
-from memory.chat_vector_store import ChatVectorStore
 
 
 import numpy as np
@@ -21,7 +19,7 @@ from scripts.generate_answer import (
     CHUNKS_PATH 
 )
 
-client = Groq() 
+
 class MeetingState(TypedDict):
     # Core identity
     user_id: str
@@ -70,27 +68,29 @@ def get_entailment_model():
 
 
 
-# QUERY UNDERSTANDING NODE
+# QUERY UNDERSTANDING NODE (UPDATED — CHAT AS CONTEXT)
+
 from agents.query_understanding_agent import understand_query
-from memory.session_memory import session_memory
+
 
 def query_understanding_node(state: MeetingState):
-
 
     state.setdefault("path", [])
     state["path"].append("query")
 
-
-    recent = get_chat_texts(
-        session_id=state["session_id"]
+    # Provide full recent chat context for reasoning (NO retrieval)
+    recent_chat = get_chat_texts(
+        session_id=state["session_id"],
+        k=20
     )
 
     analysis = understand_query(
         state["question"],
-        recent_history=recent,
+        recent_history=recent_chat,
         user_id=state["user_id"]
     )
 
+    # Basic flags
     state["ignore"] = bool(analysis.get("ignore", False))
     state["standalone_query"] = analysis.get(
         "standalone_query", state["question"]
@@ -98,6 +98,7 @@ def query_understanding_node(state: MeetingState):
 
     q = state["question"].lower()
 
+    # Temporal intent detection (lightweight, lexical)
     TEMPORAL_KEYS = [
         "last meeting",
         "latest meeting",
@@ -111,6 +112,7 @@ def query_understanding_node(state: MeetingState):
         "latest" if any(k in q for k in TEMPORAL_KEYS) else None
     )
 
+    # Domain constraint (project isolation)
     project_type = analysis.get("project_type")
     state["domain_constraint"] = (
         project_type
@@ -118,39 +120,23 @@ def query_understanding_node(state: MeetingState):
         else None
     )
 
+    # Reset downstream state (important for multi-turn safety)
     state["candidate_answer"] = None
     state["final_answer"] = None
     state["retrieved_chunks"] = []
-    state["context_extended"] = False
-    state["method"] = ""
     state["meeting_indices"] = None
     state["_all_meeting_indices"] = None
+    state["context_extended"] = False
+    state["method"] = ""
+    state["confidence"] = None
+    state["decision"] = None
 
     return state
 
 
 
 
-def coordinator_node(state: MeetingState):
 
-
-    state["path"].append("coordinator")
-
-    if state.get("ignore"):
-        state["decision"] = Decision.IGNORE
-        return state
-
-    decision = state.get("decision")
-
-    if decision == Decision.CHAT_ONLY:
-        return state
-
-    if decision == Decision.RETRIEVAL_ONLY:
-        return state
-
-    state["decision"] = Decision.RETRIEVAL_ONLY
-    state["method"] = "coordinator_fallback"
-    return state
 
 
 def meeting_summary_node(state: MeetingState):
@@ -237,102 +223,6 @@ SUMMARY:
 
 
 
-from agents.text_utils import clean_answer, SAFE_ABSTAIN
-from agents.decision_types import Decision
-from memory.session_memory import session_memory
-
-
-def pure_chat_node(state: MeetingState):
-
-    state.setdefault("path", [])
-    state["path"].append("pure_chat")
-
-    # HARD ASSERT
-    state["decision"] = Decision.CHAT_ONLY
-
-    chat_chunks = session_memory.retrieve_chat_chunks(
-        session_id=state["session_id"],
-        query=state["question"],
-        k=4
-    )
-
-    print("\n PURE CHAT DEBUG")
-    print("Retrieved chat chunks:", len(chat_chunks))
-
-    if not chat_chunks:
-        print("No chat grounding → abstain")
-        state["final_answer"] = SAFE_ABSTAIN
-        state["method"] = "chat_no_memory"
-        return state
-
-    chat_context = "\n\n".join(chat_chunks)
-
-    q = state["question"].lower()
-
-    BRIEF_KEYS = {
-        "brief", "summarize", "summary",
-        "short", "in brief", "shortly"
-    }
-
-    wants_brief = any(k in q for k in BRIEF_KEYS)
-
-    if wants_brief:
-        task_instruction = (
-            "Summarize the information in 1–2 concise lines."
-        )
-    else:
-        task_instruction = (
-            "Explain the information clearly in simple terms."
-        )
-
-    prompt = f"""
-You are continuing an existing conversation.
-
-STRICT RULES:
-- Use ONLY the CHAT CONTEXT below.
-- Do NOT add new facts or assumptions.
-- Do NOT introduce new decisions.
-- Do NOT reference meetings, transcripts, files, or retrieval.
-- You MAY compress, summarize, or explain existing information.
-- If the answer is not fully present in chat,
-  reply EXACTLY with: "{SAFE_ABSTAIN}"
-
-TASK:
-{task_instruction}
-
-CHAT CONTEXT:
-{chat_context}
-
-USER QUESTION:
-"{state['question']}"
-
-ANSWER:
-""".strip()
-
-    try:
-        response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.0,
-            max_tokens=120,
-        )
-        answer = response.choices[0].message.content.strip()
-        if not answer:
-            answer = SAFE_ABSTAIN
-
-    except Exception as e:
-        print("[PURE_CHAT_ERROR]", e)
-        answer = SAFE_ABSTAIN
-
-    state["final_answer"] = clean_answer(answer)
-    state["method"] = "chat_only"
-    state["context_extended"] = False
-
-    # SAFETY CLEANUP
-    state["retrieved_chunks"] = []
-    state["meeting_indices"] = None
-
-    return state
 
 
 def retrieve_chunks_node(state: MeetingState):
@@ -638,16 +528,24 @@ def generate_with_confidence(
     question: str,
     retrieved_chunks: list,
 ):
+    print("\n========== generate_with_confidence ==========")
+    print("QUESTION:", question)
+    print("NUM CHUNKS:", len(retrieved_chunks))
+
     if not retrieved_chunks:
+        print(" No retrieved chunks → ABSTAIN")
         return SAFE_ABSTAIN, 0.0
 
-    # Generate answer from evidence
+    # Generate answer strictly from evidence
     answer = generate_answer_with_llm(
         question=question,
         retrieved_chunks=retrieved_chunks
     )
 
+    print("LLM RAW ANSWER:", repr(answer))
+
     if not answer or answer.strip() == SAFE_ABSTAIN:
+        print(" LLM abstained → ABSTAIN")
         return SAFE_ABSTAIN, 0.0
 
     # Build raw evidence text
@@ -657,10 +555,38 @@ def generate_with_confidence(
         if isinstance(c.get("text"), str)
     )
 
+    print("EVIDENCE TEXT LENGTH:", len(raw_evidence_text))
+    print("EVIDENCE PREVIEW (first 400 chars):")
+    print(raw_evidence_text[:400])
+
     if not raw_evidence_text.strip():
+        print("Empty evidence text → ABSTAIN")
         return SAFE_ABSTAIN, 0.0
 
-    # Extract meaningful answer words
+    q_lower = question.lower()
+
+
+    if (
+        q_lower.startswith("what is")
+        or q_lower.startswith("what does")
+        or q_lower.startswith("define")
+    ):
+        tokens = re.findall(r"\b\w+\b", q_lower)
+        print("Definition-style question detected")
+        print("Question tokens:", tokens)
+
+        if tokens:
+            entity = tokens[-1]
+            print("Extracted entity:", entity)
+            print("Entity present in evidence?:", entity in raw_evidence_text)
+
+            if entity in raw_evidence_text:
+                print("✅ Definition grounding PASSED")
+                return answer, 0.3
+            else:
+                print("Definition grounding FAILED")
+
+
     def extract_keywords(text):
         return {
             w for w in re.findall(r"\b\w+\b", text.lower())
@@ -668,238 +594,27 @@ def generate_with_confidence(
         }
 
     answer_words = extract_keywords(answer)
+    print("Answer keywords:", answer_words)
 
     lexical_overlap = sum(
         1 for w in answer_words
         if w in raw_evidence_text
     )
 
-    #  PRIMARY ACCEPTANCE RULE
-    if lexical_overlap >= 2:
-        return answer, 0.25   # confidence is symbolic, not probabilistic
+    print("Lexical overlap count:", lexical_overlap)
 
-    # Debug only (safe)
-    print("\n--- DEBUG generate_with_confidence ---")
-    print("QUESTION:", question)
+    if lexical_overlap >= 1:
+        print("✅ Lexical grounding PASSED")
+        return answer, 0.25
+
+
+    print("Grounding FAILED — rejecting answer")
     print("ANSWER:", answer)
     print("ANSWER WORDS:", answer_words)
-    print("LEXICAL OVERLAP:", lexical_overlap)
-    print("------------------------------------\n")
+    print("============================================\n")
 
     return SAFE_ABSTAIN, 0.0
 
-
-    # Fallback: semantic entailment (existing logic)
-    def split_sentences(text):
-        return [
-            s.strip()
-            for s in re.split(r'(?<=[.!?])\s+', text)
-            if len(s.split()) >= 4
-        ]
-
-    evidence_sentences = []
-    for c in retrieved_chunks:
-        if isinstance(c.get("text"), str):
-            evidence_sentences.extend(split_sentences(c["text"]))
-
-    if not evidence_sentences:
-        return SAFE_ABSTAIN, 0.0
-
-    model = get_entailment_model()
-
-    answer_emb = model.encode(answer, normalize_embeddings=True)
-    evidence_embs = model.encode(
-        evidence_sentences,
-        normalize_embeddings=True
-    )
-
-    sims = np.dot(evidence_embs, answer_emb)
-
-    confidence = float(
-        0.7 * np.max(sims) + 0.3 * np.mean(sims)
-    )
-    confidence = max(0.0, min(1.0, confidence))
-
-    if confidence < 0.4:
-        return SAFE_ABSTAIN, 0.0
-
-    return answer, confidence
-
-
-from memory.chat_utils import get_chat_texts
-from memory.chat_vector_store import ChatVectorStore
-import re
-
-
-def chat_confidence(
-    question: str,
-    retrieved_chat_chunks: list[str],
-) -> float:
-
-    if not question or not retrieved_chat_chunks:
-        return 0.0
-
-    question = question.lower().strip()
-    chat_text = " ".join(retrieved_chat_chunks).lower()
-
-    def keywords(text: str):
-        return {
-            w for w in re.findall(r"\b[a-z]{4,}\b", text)
-        }
-
-    q_words = keywords(question)
-    c_words = keywords(chat_text)
-
-    if not q_words or not c_words:
-        return 0.0
-
-    overlap = q_words & c_words
-    overlap_count = len(overlap)
-    density = overlap_count / max(len(q_words), 1)
-
-    # STRICT GATES
-    if overlap_count >= 3 and density >= 0.4:
-        return 0.6
-
-    if overlap_count >= 2 and density >= 0.25:
-        return 0.45
-
-    if overlap_count == 1:
-        return 0.25
-
-    return 0.0
-
-
-from agents.decision_types import Decision
-from memory.chat_vector_store import chat_vector_store
-from memory.chat_utils import get_chat_texts
-
-
-def chat_recall_node(state: MeetingState):
-
-
-    CHAT_CONFIDENCE_THRESHOLD = 0.55
-
-    state.setdefault("path", [])
-    state["path"].append("chat_recall")
-
-    query = state.get("standalone_query", state["question"]).lower()
-
-
-    FORCE_RETRIEVAL_KEYS = {
-    "last meeting",
-    "latest meeting",
-    "next steps",
-    "next step",
-    "action items",
-    "action item",
-    "what was decided",
-    "what were decided",
-    "decisions",
-    "follow up",
-    "what to do next"
-}
-
-    if any(k in query for k in FORCE_RETRIEVAL_KEYS):
-        print(" Forced RETRIEVAL (last meeting / actions policy)")
-        state["decision"] = Decision.RETRIEVAL_ONLY
-        state["confidence"] = 0.0
-        state["method"] = "forced_latest_meeting_policy"
-        return state
-
-    REFERENTIAL_KEYS = {
-        "summarize that",
-        "summary of that",
-        "explain that",
-        "explain this",
-        "in brief",
-        "briefly",
-        "short me",
-        "summarize this"
-    }
-
-    if any(k in query for k in REFERENTIAL_KEYS):
-        last_turn = get_chat_texts(
-            session_id=state["session_id"],
-            k=1
-        )
-        if last_turn:
-            print(" Referential follow-up → CHAT_ONLY (last turn)")
-            state["decision"] = Decision.CHAT_ONLY
-            state["confidence"] = 0.9
-            state["method"] = "referential_chat"
-            return state
-
-
-    chat_texts = get_chat_texts(
-        session_id=state["session_id"],
-        k=20
-    )
-
-    print("\n CHAT RECALL DEBUG")
-    print("Query:", query)
-    print("Chat texts count:", len(chat_texts))
-
-    if not chat_texts:
-        print(" No chat texts → RETRIEVAL")
-        state["decision"] = Decision.RETRIEVAL_ONLY
-        state["confidence"] = 0.0
-        state["method"] = "chat_empty"
-        return state
-
-
-    print("\n CHAT VECTOR STORE DEBUG")
-    print("Texts in vector store:", len(chat_vector_store.texts))
-    print("FAISS empty:", chat_vector_store.is_empty())
-
-    if chat_vector_store.is_empty():
-        print(" FAISS empty → RETRIEVAL")
-        state["decision"] = Decision.RETRIEVAL_ONLY
-        state["confidence"] = 0.0
-        state["method"] = "chat_vector_empty"
-        return state
-
-
-    results = chat_vector_store.search(
-        query=query,
-        k=3
-    )
-
-    print("\n CHAT FAISS RESULTS")
-    for text, score in results:
-        print(f"score={score:.3f} | {text[:120]}")
-
-    if not results:
-        print(" No semantic hit → RETRIEVAL")
-        state["decision"] = Decision.RETRIEVAL_ONLY
-        state["confidence"] = 0.0
-        state["method"] = "chat_no_match"
-        return state
-
-    retrieved_texts = [t for (t, _) in results]
-
-
-    conf = chat_confidence(
-        question=query,
-        retrieved_chat_chunks=retrieved_texts
-    )
-
-    print("\n CHAT CONFIDENCE DEBUG")
-    print("confidence:", conf)
-
-    state["confidence"] = conf
-
-
-    if conf >= CHAT_CONFIDENCE_THRESHOLD:
-        print(" High confidence → CHAT_ONLY")
-        state["decision"] = Decision.CHAT_ONLY
-        state["method"] = "chat_high_confidence"
-    else:
-        print(" Low confidence → RETRIEVAL")
-        state["decision"] = Decision.RETRIEVAL_ONLY
-        state["method"] = "chat_confidence_low"
-
-    return state
 
 
 
@@ -1080,33 +795,207 @@ def verification_node(state: MeetingState):
 
     return state
 
-# FINALIZE NODE (FINAL FIXED VERSION)
+from agents.text_utils import clean_answer, SAFE_ABSTAIN
+from agents.decision_types import Decision
+from memory.chat_utils import get_chat_texts
+from groq import Groq
+
+client = Groq()
+
+
+def chat_answer_node(state: MeetingState):
+    """
+    CHAT ANSWER NODE (CHAT-FIRST, LLM-DECIDES)
+
+    CONTRACT:
+    - Pass full chat context to LLM
+    - LLM decides if it can answer from chat alone
+    - If YES → answer from chat (normal, helpful answer)
+    - If NO → fallback to retrieval
+    """
+
+    state.setdefault("path", [])
+    state["path"].append("chat_answer")
+
+    chat_lines = get_chat_texts(
+        session_id=state["session_id"],
+        k=20
+    )
+
+    print("\n CHAT ANSWER DEBUG")
+    print("Chat lines:", len(chat_lines))
+
+    # No chat → retrieval
+    if not chat_lines:
+        state["decision"] = Decision.RETRIEVAL_ONLY
+        state["method"] = "chat_no_context"
+        return state
+
+    chat_context = "\n".join(chat_lines)
+
+    # =================================================
+    # 1️Can chat answer this question?
+    # =================================================
+    sufficiency_prompt = f"""
+You are given a chat history and a user question.
+
+Decide whether the question can be answered
+using the chat conversation alone.
+
+Rules:
+- Use semantic understanding
+- You may rely on earlier answers or summaries
+- If chat is sufficient, reply YES
+- If transcript knowledge is needed, reply NO
+
+Reply with exactly one word:
+YES or NO
+
+CHAT:
+{chat_context}
+
+QUESTION:
+{state["question"]}
+""".strip()
+
+    try:
+        verdict_resp = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": sufficiency_prompt}],
+            temperature=0.0,
+            max_tokens=5,
+        )
+
+        verdict = verdict_resp.choices[0].message.content.strip().upper()
+        verdict = verdict.split()[0]
+
+        print("CHAT SUFFICIENCY:", verdict)
+
+    except Exception as e:
+        print("[CHAT SUFFICIENCY ERROR]", e)
+        verdict = "NO"
+
+    # Not sufficient → retrieval
+    if verdict != "YES":
+        state["decision"] = Decision.RETRIEVAL_ONLY
+        state["method"] = "chat_insufficient"
+        return state
+
+
+    answer_prompt = f"""
+    Answer the user's question directly.
+
+    RULES:
+    - Treat the chat as factual conversation history
+    - Use ONLY information explicitly present in the chat
+    - Do NOT mention the chat, AI, assistant, or messages
+    - Do NOT say phrases like "based on the chat" or "the AI said"
+    - Explain ONLY if the explanation already exists in the chat
+    - If the question cannot be answered from the chat, reply EXACTLY:
+    "{SAFE_ABSTAIN}"
+
+    CHAT CONTEXT:
+    {chat_context}
+
+    USER QUESTION:
+    {state["question"]}
+
+    FINAL ANSWER:
+    """.strip()
+
+
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": answer_prompt}],
+            temperature=0.2,
+            max_tokens=200,
+        )
+
+        answer = clean_answer(
+            response.choices[0].message.content.strip()
+        )
+
+        print("CHAT ANSWER:", repr(answer))
+
+    except Exception as e:
+        print("[CHAT ANSWER ERROR]", e)
+        answer = SAFE_ABSTAIN
+
+    # If LLM still can’t answer → fallback
+    if not answer or answer == SAFE_ABSTAIN:
+        state["decision"] = Decision.RETRIEVAL_ONLY
+        state["method"] = "chat_answer_failed"
+        return state
+
+
+    state["final_answer"] = answer
+    state["decision"] = Decision.CHAT_ONLY
+    state["method"] = "chat_context_answer"
+    state["context_extended"] = False
+
+    # Cleanup
+    state["retrieved_chunks"] = []
+    state["meeting_indices"] = None
+
+    print("Chat answer accepted (chat-first)")
+
+    return state
+
+
+
+
+
 
 from agents.text_utils import clean_answer, SAFE_ABSTAIN
 from agents.decision_types import Decision
 from memory.session_memory import session_memory
-from memory.chat_vector_store import chat_vector_store
 
 
 def finalize_node(state: MeetingState):
     state.setdefault("path", [])
     state["path"].append("finalize")
 
-    if state.get("final_answer"):
-        answer = state["final_answer"]
+    decision = state.get("decision")
+    method = state.get("method", "")
+
+
+    if decision == Decision.CHAT_ONLY:
+        answer = state.get("final_answer") or SAFE_ABSTAIN
+
+        if answer != SAFE_ABSTAIN:
+            session_memory.add_turn(
+                session_id=state["session_id"],
+                question=state["question"],
+                answer=answer,
+                source="chat",
+                meeting_index=None,  # chat has NO meeting index
+                method=method,
+                standalone_query=state.get("standalone_query"),
+                time_scope=None,
+                meeting_indices=None,
+            )
+
+        state["final_answer"] = answer
+        return state
+
+
+    existing_final = state.get("final_answer")
+    if existing_final == SAFE_ABSTAIN:
+        existing_final = None
+
+    if existing_final:
+        answer = existing_final
+
+    elif method == "answer_entailment_verified":
+        answer = state.get("candidate_answer") or SAFE_ABSTAIN
+
     else:
         raw = state.get("candidate_answer")
         answer = clean_answer(raw) if raw else SAFE_ABSTAIN
 
+    source = "system"
 
-    decision = state.get("decision")
-
-    #  FINAL RULE:
-    # Any user-visible answer is conversational memory
-    if decision in (Decision.CHAT_ONLY, Decision.RETRIEVAL_ONLY):
-        source = "chat"
-    else:
-        source = "system"
 
     meeting_index = None
     retrieved = state.get("retrieved_chunks")
@@ -1117,6 +1006,9 @@ def finalize_node(state: MeetingState):
     ):
         meeting_index = retrieved[0].get("meeting_index")
 
+    # --------------------
+    # Persist conversation
+    # --------------------
     if answer != SAFE_ABSTAIN:
         session_memory.add_turn(
             session_id=state["session_id"],
@@ -1124,16 +1016,11 @@ def finalize_node(state: MeetingState):
             answer=answer,
             source=source,
             meeting_index=meeting_index,
-            method=state.get("method"),
+            method=method,
             standalone_query=state.get("standalone_query"),
             time_scope=state.get("time_scope"),
             meeting_indices=state.get("meeting_indices"),
         )
-
-        chat_text = f"User: {state['question']}\nAI: {answer}"
-        chat_vector_store.add_texts([chat_text])
-
-        print(" CHAT VECTOR STORE SIZE:", len(chat_vector_store.texts))
 
     state["final_answer"] = answer
     return state
@@ -1141,16 +1028,18 @@ def finalize_node(state: MeetingState):
 
 
 
+
 graph = StateGraph(MeetingState)
 
-
+# --------------------
+# Nodes
+# --------------------
 graph.add_node("query", query_understanding_node)
-graph.add_node("chat_recall", chat_recall_node)
-graph.add_node("coordinator", coordinator_node)
 
-graph.add_node("pure_chat", pure_chat_node)
+# REPLACE pure_chat WITH chat_answer
+graph.add_node("chat_answer", chat_answer_node)
+
 graph.add_node("retrieve", retrieve_chunks_node)
-
 graph.add_node("infer_intent", infer_intent_node)
 graph.add_node("decide_source", decide_source_node)
 
@@ -1164,23 +1053,25 @@ graph.add_node("finalize", finalize_node)
 graph.set_entry_point("query")
 
 
-graph.add_edge("query", "chat_recall")
-graph.add_edge("chat_recall", "coordinator")
+graph.add_edge("query", "chat_answer")
 
 graph.add_conditional_edges(
-    "coordinator",
-    lambda s: s["decision"],
+    "chat_answer",
+    lambda s: (
+        "finalize"
+        if s.get("decision") == Decision.CHAT_ONLY
+        else "retrieve"
+    ),
     {
-        Decision.CHAT_ONLY: "pure_chat",
-        Decision.RETRIEVAL_ONLY: "retrieve",
-        Decision.IGNORE: "finalize",
+        "finalize": "finalize",
+        "retrieve": "retrieve",
     }
 )
 
 
+
 graph.add_edge("retrieve", "infer_intent")
 graph.add_edge("infer_intent", "decide_source")
-
 
 graph.add_conditional_edges(
     "decide_source",
@@ -1193,7 +1084,6 @@ graph.add_conditional_edges(
 )
 
 
-graph.add_edge("pure_chat", "finalize")
 graph.add_edge("meeting_summary", "finalize")
 graph.add_edge("action_summary", "finalize")
 

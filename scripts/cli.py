@@ -7,9 +7,7 @@ SAFE_ABSTAIN_MSG = "This was not clearly discussed in the meeting."
 
 
 def normalize_result(result):
-    """
-    Ensures CLI ALWAYS works with a dict.
-    """
+
     if isinstance(result, dict):
         return result
 

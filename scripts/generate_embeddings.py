@@ -58,7 +58,7 @@ def main():
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
         json.dump(chunk_embeddings, f, indent=2)
 
-    print(f"✅ Saved {len(chunk_embeddings)} embeddings to {OUTPUT_PATH}")
+    print(f"Saved {len(chunk_embeddings)} embeddings to {OUTPUT_PATH}")
 
 
 if __name__ == "__main__":

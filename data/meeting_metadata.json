@@ -4,238 +4,69 @@
     "meeting_index": 1,
     "meeting_name": "live_meeting",
     "meeting_type": "live_meeting",
-    "project_type": "system_design",
-    "topics": [
-      "Meeting recording and transcription",
-      "iCAP and its capabilities",
-      "Sharing data and classroom setup",
-      "Video processing and frame detection",
-      "Change detection and object detection",
-      "Text extraction and model fine-tuning"
-    ],
-    "agents": [
-      "Speaker 1",
-      "Speaker 2"
-    ],
-    "summary": "The meeting discussed the challenges of meeting recording and transcription, particularly with iCAP and its limitations. The team decided to share data and set up a classroom for collaboration. They also discussed video processing, change detection, and object detection, as well as text extraction and model fine-tuning."
+    "project_type": "system_design"
   },
   "agrim::meeting_2": {
     "user_id": "agrim",
     "meeting_index": 2,
     "meeting_name": "live_meeting",
     "meeting_type": "live_meeting",
-    "project_type": "meeting_qa",
-    "topics": [
-      "Google meeting",
-      "Deepgram",
-      "Cpredict",
-      "ICpredict",
-      "Gemini",
-      "batch summary",
-      "real-time",
-      "key frames",
-      "chapters",
-      "summary",
-      "speaker notes",
-      "meeting stage",
-      "speaker identification",
-      "AI evaluator",
-      "batch version",
-      "real-time version",
-      "core engine",
-      "generic engine",
-      "chain detection",
-      "keyframe detection",
-      "demo detection",
-      "augmentation"
-    ],
-    "agents": [
-      "Speaker 1",
-      "Speaker 2",
-      "Akshit",
-      "Usman",
-      "Pankaj"
-    ],
-    "summary": "The meeting discussed the integration of a tool for real-time and batch summary of meetings. The tool uses Deepgram, Cpredict, and Gemini for transcription and keyframe detection. The batch summary process generates a summary for multiple meetings, and the real-time version is expected to be more complex. The team plans to release the batch version tomorrow and work on the real-time version afterwards."
+    "project_type": "meeting_qa"
   },
   "ashmit::meeting_2": {
     "user_id": "ashmit",
     "meeting_index": 2,
     "meeting_name": "live_meeting",
     "meeting_type": "live_meeting",
-    "project_type": "meeting_qa",
-    "topics": [
-      "Multimodal transcription",
-      "Language detection",
-      "Translation",
-      "Chatbot development",
-      "Meeting recordings",
-      "Past data",
-      "Email replies",
-      "Internet access",
-      "Project requirements"
-    ],
-    "agents": [
-      "Speaker 1",
-      "Speaker 2"
-    ],
-    "summary": "The project involves developing a chatbot that can take inputs from meeting transcripts, past data, and email replies. The chatbot should be able to respond to user queries based on the meeting recordings and past responses. It should also have the ability to access the internet to provide better responses. The project requires the development of a multimodal transcription system, language detection, and translation. The chatbot should be able to handle multiple meetings and users, and should be able to identify the user and the meeting being referred to."
+    "project_type": "meeting_qa"
   },
   "ashmit::meeting_3": {
     "user_id": "ashmit",
     "meeting_index": 3,
     "meeting_name": "live_meeting",
     "meeting_type": "live_meeting",
-    "project_type": "system_design",
-    "topics": [
-      "manual chunking of transcripts",
-      "embedding transcripts in a file",
-      "FIOS data structure",
-      "cosine intervals",
-      "LLM explanation",
-      "baseline",
-      "chunking transcripts",
-      "automating chunking",
-      "system for answering follow-up questions",
-      "deciding whether to get a new job",
-      "user-specific conversation",
-      "storing chat in a file",
-      "chunk automation",
-      "deploying and extending the system"
-    ],
-    "agents": [
-      "Speaker 1",
-      "Speaker 2"
-    ],
-    "summary": "The conversation revolves around implementing a system for manually and automatically chunking transcripts, embedding them in a file, and using a FIOS data structure to find similarities between query and transcript chunks. The goal is to create a system that can answer follow-up questions and decide whether to get a new job based on the conversation. The system will be stored in a file and will be able to handle user-specific conversations."
+    "project_type": "system_design"
   },
   "ashmit::meeting_1": {
     "user_id": "ashmit",
     "meeting_index": 1,
     "meeting_name": "ppt_eval",
     "meeting_type": "live_meeting",
-    "project_type": "medical",
-    "topics": [],
-    "agents": [],
-    "summary": "Here is a 2-3 sentence summary of the technical discussion:\n\nThe LanGraph state machine ensures deterministic state-driven behavior in the system by enforcing transitions and rules, such as required and optional symptoms, to achieve a predictable outcome in the simulation. This is achieved through a scoped state approach, where each user session maintains its own isolated patient state, and the LanGraph control flow is not a prompt, but rather a rubric-based diagnosis evaluation. The system also includes error handling to determine when a diagnosis is incorrect and displays a \"verdict is incorrect\" message, allowing for evaluation and improvement of the system's performance."
+    "project_type": "medical"
+  },
+  "project::meeting_0": {
+    "user_id": "project",
+    "meeting_index": 0,
+    "meeting_name": "project",
+    "meeting_type": "live_meeting",
+    "project_type": "medical"
   },
   "sarthak::meeting_1": {
     "user_id": "sarthak",
     "meeting_index": 1,
     "meeting_name": "ppt_eval",
     "meeting_type": "live_meeting",
-    "project_type": "medical",
-    "topics": [
-      "AI chatbot application",
-      "LangChain",
-      "LangGraph",
-      "Grok",
-      "FastAPI",
-      "Vercel",
-      "Render",
-      "Python",
-      "HTML",
-      "CSS",
-      "JavaScript",
-      "LLM",
-      "API key",
-      "session ID",
-      "agent",
-      "patient memory",
-      "intent classification",
-      "temperature",
-      "deterministic output",
-      "randomness",
-      "response generation",
-      "control flow",
-      "graph structure"
-    ],
-    "agents": [
-      "Evaluator",
-      "Speaker 1",
-      "Speaker 2"
-    ],
-    "summary": "The presentation discussed an AI chatbot application built using LangChain, LangGraph, and Grok. The application uses FastAPI as a bridge between the frontend and backend, and Vercel and Render for deployment. The chatbot is trained using an LLM accessed via API key, and the temperature is set to zero for deterministic output. The agent object is created using a create_agent function, which invokes the LangGraph, and the LangGraph maintains the control flow and classifies intent for response generation. The application demonstrates the chatbot's functionality, including intent classification, response generation, and conversation flow."
+    "project_type": "medical"
   },
   "utsav::meeting_1": {
     "user_id": "utsav",
     "meeting_index": 1,
     "meeting_name": "live_meeting",
     "meeting_type": "live_meeting",
-    "project_type": "system_design",
-    "topics": [],
-    "agents": [],
-    "summary": "Here is a 2-3 sentence summary of the meeting, focusing on technical or evaluative discussion:\n\nThe team discussed the implementation of a vision system, where objects within a 5-meter radius are visible to agents, and objects behind walls are not visible. They also discussed integrating this system with the Jericho framework, which requires defining objects and their coordinates in each room to enable vision functionality. The goal is to first configure Jericho to work with the system without added complexity, and then extend it later."
+    "project_type": "system_design"
   },
   "utsav::meeting_2": {
     "user_id": "utsav",
     "meeting_index": 2,
     "meeting_name": "live_meeting",
     "meeting_type": "live_meeting",
-    "project_type": "system_design",
-    "topics": [
-      "Generative Agents",
-      "Text-based games",
-      "Adventure games",
-      "Zork",
-      "LLM",
-      "Environment",
-      "Jericho",
-      "Python",
-      "Multi-agent system",
-      "Message queue",
-      "Message bus",
-      "Agents interacting",
-      "Talking agents",
-      "2D world",
-      "Cuboid shapes",
-      "Rooms",
-      "Core engine",
-      "UI",
-      "Avatar",
-      "Video generation",
-      "VO3 video generator",
-      "Google",
-      "Video credits",
-      "Account creation",
-      "Billing",
-      "Credits",
-      "Project goals",
-      "Game environment",
-      "Non-player character",
-      "Speech",
-      "Transcript",
-      "Animation",
-      "Mini story",
-      "Video stitching",
-      "Continual videos"
-    ],
-    "agents": [
-      "Speaker 1",
-      "Speaker 2"
-    ],
-    "summary": "The project involves building a multi-agent system using LLMs to play text-based games. The system will have a 2D world with rooms and agents that interact with each other and talk. The project also involves video generation using the VO3 video generator and stitching videos together to create a mini story. The team will use Python and the Jericho environment to build the system."
+    "project_type": "system_design"
   },
   "utsav::meeting_3": {
     "user_id": "utsav",
     "meeting_index": 3,
     "meeting_name": "live_meeting",
     "meeting_type": "live_meeting",
-    "project_type": "system_design",
-    "topics": [
-      "Jericho",
-      "agent",
-      "NPC",
-      "LLM",
-      "Python",
-      "Gemini",
-      "game development",
-      "natural language processing"
-    ],
-    "agents": [
-      "Speaker 1",
-      "Speaker 2"
-    ],
-    "summary": "The conversation revolves around the development of a game using the Jericho framework, where an agent interacts with the environment and other entities. The goal is to create a narrative from the interactions and observations of the agent and NPC. The conversation also touches on the use of LLM and Python for processing and generating text."
+    "project_type": "system_design"
   }
 }

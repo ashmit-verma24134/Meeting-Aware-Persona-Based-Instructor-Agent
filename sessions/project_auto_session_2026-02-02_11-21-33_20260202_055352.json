@@ -1,0 +1,23 @@
+{
+  "user_id": "project",
+  "meeting_name": "auto_session",
+  "session_start_time": "2026-02-02T11:21:33.680218",
+  "session_end_time": "2026-02-02T11:23:52.079826",
+  "conversation": [
+    {
+      "question": "What are the required and optional symptoms for Flu as discussed in the meeting?",
+      "answer": "The required symptoms for Flu are Fever and Cough. The optional symptoms for Flu include Fatigue, Body Pain, and Headache.",
+      "timestamp": "2026-02-02T05:51:58.945282+00:00"
+    },
+    {
+      "question": "What is the minimum number of questions required to diagnose Flu?",
+      "answer": "The minimum number of questions required to diagnose Flu is 3.",
+      "timestamp": "2026-02-02T05:52:37.221813+00:00"
+    },
+    {
+      "question": "Is body pain a symtom of flu?",
+      "answer": "Yes, Body Pain is a symptom of flu.",
+      "timestamp": "2026-02-02T05:53:25.499990+00:00"
+    }
+  ]
+}

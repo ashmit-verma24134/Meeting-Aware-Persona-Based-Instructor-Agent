@@ -2288,5 +2288,59 @@
       "method": "answer_entailment_verified",
       "timestamp": "2026-01-30T09:12:45.033283+00:00"
     }
+  ],
+  "project_auto_session_2026-02-02_11-19-50": [
+    {
+      "question": "What are the required and optional symptoms for Flu as discussed in the meeting?",
+      "standalone_query": "What are the required and optional symptoms for Flu as discussed in the meeting?",
+      "answer": "The required symptoms for Flu are Fever and Cough. The optional symptoms for Flu include Fatigue, Body Pain, and Headache.",
+      "source": "system",
+      "meeting_index": 0,
+      "meeting_indices": [
+        0
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-02-02T05:50:14.361203+00:00"
+    }
+  ],
+  "project_auto_session_2026-02-02_11-21-33": [
+    {
+      "question": "What are the required and optional symptoms for Flu as discussed in the meeting?",
+      "standalone_query": "What are the required and optional symptoms for Flu as discussed in the meeting?",
+      "answer": "The required symptoms for Flu are Fever and Cough. The optional symptoms for Flu include Fatigue, Body Pain, and Headache.",
+      "source": "system",
+      "meeting_index": 0,
+      "meeting_indices": [
+        0
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-02-02T05:51:58.945282+00:00"
+    },
+    {
+      "question": "What is the minimum number of questions required to diagnose Flu?",
+      "standalone_query": "What is the minimum number of questions required to diagnose Flu?",
+      "answer": "The minimum number of questions required to diagnose Flu is 3.",
+      "source": "system",
+      "meeting_index": 0,
+      "meeting_indices": [
+        0
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-02-02T05:52:37.221813+00:00"
+    },
+    {
+      "question": "Is body pain a symtom of flu?",
+      "standalone_query": "Is body pain a symtom of flu?",
+      "answer": "Yes, Body Pain is a symptom of flu.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-02-02T05:53:25.499990+00:00"
+    }
   ]
 }

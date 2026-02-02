@@ -14,6 +14,9 @@ def main():
     embeddings = [item["embedding"] for item in data]
     embeddings_np = np.array(embeddings, dtype="float32")
 
+    # SAFETY: normalize again for cosine similarity
+    faiss.normalize_L2(embeddings_np)
+
     # Extract REAL chunk_ids
     ids = np.array(
         [item["chunk_id"] for item in data],
@@ -34,7 +37,7 @@ def main():
 
     # Save index
     faiss.write_index(index, INDEX_PATH)
-    print(f"✅ FAISS index saved to {INDEX_PATH}")
+    print(f"FAISS index saved to {INDEX_PATH}")
 
 if __name__ == "__main__":
     main()

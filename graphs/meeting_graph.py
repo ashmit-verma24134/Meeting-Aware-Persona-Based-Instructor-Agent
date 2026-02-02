@@ -581,7 +581,7 @@ def generate_with_confidence(
             print("Entity present in evidence?:", entity in raw_evidence_text)
 
             if entity in raw_evidence_text:
-                print("✅ Definition grounding PASSED")
+                print("Definition grounding PASSED")
                 return answer, 0.3
             else:
                 print("Definition grounding FAILED")
@@ -604,14 +604,8 @@ def generate_with_confidence(
     print("Lexical overlap count:", lexical_overlap)
 
     if lexical_overlap >= 1:
-        print("✅ Lexical grounding PASSED")
         return answer, 0.25
 
-
-    print("Grounding FAILED — rejecting answer")
-    print("ANSWER:", answer)
-    print("ANSWER WORDS:", answer_words)
-    print("============================================\n")
 
     return SAFE_ABSTAIN, 0.0
 
@@ -619,14 +613,12 @@ def generate_with_confidence(
 
 
 from scripts.generate_answer import generate_answer_with_llm
-
 from collections import deque
 
 def chunk_answer_node(state: MeetingState):
 
     print("\n DEBUG: ENTERED chunk_answer_node")
     print("Retrieved chunks:", len(state.get("retrieved_chunks", [])))
-
 
     state["path"].append("chunk_answer")
 
@@ -635,13 +627,11 @@ def chunk_answer_node(state: MeetingState):
 
     print(f" INTELLIGENT QA: '{query}'")
 
-
     if not retrieved:
         state["candidate_answer"] = SAFE_ABSTAIN
         state["confidence"] = 0.0
         state["method"] = "no_evidence"
         return state
-
 
     retrieved = sorted(
         retrieved,
@@ -666,14 +656,11 @@ def chunk_answer_node(state: MeetingState):
         return state
 
     chunk_embs = model.encode(texts, normalize_embeddings=True)
- 
     sims = np.dot(chunk_embs, q_emb)
 
-    # Take top-K candidates (prevents missing declarative facts)
+    # Take top-K semantic candidates
     TOP_K = min(5, len(sims))
     top_indices = np.argsort(sims)[-TOP_K:][::-1]
-
-    candidate_chunks = [aligned_chunks[i] for i in top_indices]
 
     expanded_chunks = []
     seen = set()
@@ -689,6 +676,10 @@ def chunk_answer_node(state: MeetingState):
                 if key not in seen and ch.get("meeting_index") == meeting:
                     expanded_chunks.append(ch)
                     seen.add(key)
+
+    # 🔒 HARD CAP — THIS IS THE FIX
+    MAX_CONTEXT_CHUNKS = 4
+    expanded_chunks = expanded_chunks[:MAX_CONTEXT_CHUNKS]
 
     answer, confidence = generate_with_confidence(
         question=query,
@@ -706,6 +697,7 @@ def chunk_answer_node(state: MeetingState):
     state["method"] = "answer_entailment_verified"
 
     return state
+
 
 
 

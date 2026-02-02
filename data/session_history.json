@@ -2405,5 +2405,35 @@
       "method": "chat_context_answer",
       "timestamp": "2026-02-02T06:25:24.639904+00:00"
     }
+  ],
+  "project_slack_2026-02-02_11-58-28": [
+    {
+      "question": "what were symptoms of flu?",
+      "standalone_query": "what were symptoms of flu?",
+      "answer": "The symptoms of flu, as defined in the code, include \"cough\", \"fever\", and \"fatigue\" as required symptoms, and \"headache\", \"light_sensitivity\", \"nausea\", \"vomiting\", and \"stiff_neck\" as optional symptoms.",
+      "source": "system",
+      "meeting_index": 0,
+      "meeting_indices": [
+        0
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-02-02T06:29:06.743623+00:00"
+    }
+  ],
+  "project_slack_2026-02-02_12-01-24": [
+    {
+      "question": "What were symptoms for flu?",
+      "standalone_query": "What were symptoms for flu?",
+      "answer": "The symptoms for flu, as per the code on the screen, include \"cough\", \"fever\", and \"fatigue\" as required symptoms, and \"headache\", \"light_sensitivity\", \"nausea\", \"vomiting\", and \"stiff_neck\" as optional symptoms.",
+      "source": "system",
+      "meeting_index": 0,
+      "meeting_indices": [
+        0
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-02-02T06:32:00.683852+00:00"
+    }
   ]
 }

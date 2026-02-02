@@ -61,21 +61,52 @@ async def slack_events(request: Request):
     return {"ok": True}
 
 def process_event(event: dict):
+    print("\n=== EVENT RECEIVED ===")
+    print(event)
     event_id = event.get("event_ts")
     if not event_id or event_id in PROCESSED_EVENTS:
         return
 
     PROCESSED_EVENTS.add(event_id)
 
-    if event.get("type") != "message":
+    event_type = event.get("type")
+
+    if event_type not in ["message", "app_mention"]:
         return
+
 
     slack_user_id = event.get("user")
     channel_id = event.get("channel")
     text = (event.get("text") or "").strip()
 
-    if not slack_user_id or not channel_id or not text:
+    # If channel mention, remove bot mention
+    if event.get("type") == "app_mention":
+        import re
+        text = re.sub(r"<@[^>]+>", "", text).strip()
+
+
+
+    if not slack_user_id or not channel_id:
         return
+
+    # Ignore normal channel messages unless user already has a session
+    if event_type == "message" and event.get("channel_type") == "channel":
+        # allow if this message mentions the bot
+        if "<@" in event.get("text", ""):
+            pass
+        elif slack_user_id not in SLACK_SESSIONS:
+            return
+
+
+    print("PASSING TO HANDLER:", {
+    "event_type": event_type,
+    "user": slack_user_id,
+    "channel": channel_id,
+    "text": text,
+    "has_session": slack_user_id in SLACK_SESSIONS
+    })
+
+
 
     handle_user_message(slack_user_id, channel_id, text)
 
@@ -116,7 +147,8 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
         user_id = session["user_id"]
         session_id = session["session_id"]
 
-        if text.lower() == "exit":
+        if text.lower().strip() == "exit":
+
             finalize_session(slack_user_id, channel_id)
             return
 

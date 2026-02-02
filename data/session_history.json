@@ -2342,5 +2342,68 @@
       "method": "chat_context_answer",
       "timestamp": "2026-02-02T05:53:25.499990+00:00"
     }
+  ],
+  "project_slack_2026-02-02_11-50-32": [
+    {
+      "question": "what were symptoms for flu?",
+      "standalone_query": "what were symptoms for flu?",
+      "answer": "The symptoms for flu, as per the code on the screen, include \"cough\", \"fever\", and \"fatigue\" as required symptoms, and \"headache\", \"light_sensitivity\", \"nausea\", \"vomiting\", and \"stiff_neck\" as optional symptoms.",
+      "source": "system",
+      "meeting_index": 0,
+      "meeting_indices": [
+        0
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-02-02T06:21:08.596754+00:00"
+    },
+    {
+      "question": "What is the minimum number of questions required to diagnose Flu?",
+      "standalone_query": "What is the minimum number of questions required to diagnose Flu?",
+      "answer": "The minimum number of questions required to diagnose Flu is 3.",
+      "source": "system",
+      "meeting_index": 0,
+      "meeting_indices": [
+        0
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-02-02T06:24:11.124974+00:00"
+    },
+    {
+      "question": "Which symptoms are mandatory before Flu diagnosis?",
+      "standalone_query": "Which symptoms are mandatory before Flu diagnosis?",
+      "answer": "Cough, fever, and fatigue.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-02-02T06:24:22.701269+00:00"
+    },
+    {
+      "question": "How does the model decide when diagnosis is allowed?",
+      "standalone_query": "How does the model decide when diagnosis is allowed?",
+      "answer": "The model decides when diagnosis is allowed after sufficient evidence and validated deterministically. This principle is explicitly stated on the slide, aligning with Ashmit Verma's discussion about \"required system symptoms\" and \"optional symptoms that increase the patient memory\" in the diagnostic process.",
+      "source": "system",
+      "meeting_index": 0,
+      "meeting_indices": [
+        0
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-02-02T06:25:04.556341+00:00"
+    },
+    {
+      "question": "Was cough a symptom of flu?",
+      "standalone_query": "Was cough a symptom of flu?",
+      "answer": "Yes, cough is a symptom of flu.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-02-02T06:25:24.639904+00:00"
+    }
   ]
 }

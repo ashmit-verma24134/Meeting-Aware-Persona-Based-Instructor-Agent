@@ -2343,10 +2343,10 @@
       "timestamp": "2026-02-02T05:53:25.499990+00:00"
     }
   ],
-  "project_slack_2026-02-02_11-50-32": [
+  "project_auto_session_2026-02-02_11-50-12": [
     {
-      "question": "what were symptoms for flu?",
-      "standalone_query": "what were symptoms for flu?",
+      "question": "What were symptoms for flu?",
+      "standalone_query": "What were symptoms for flu?",
       "answer": "The symptoms for flu, as per the code on the screen, include \"cough\", \"fever\", and \"fatigue\" as required symptoms, and \"headache\", \"light_sensitivity\", \"nausea\", \"vomiting\", and \"stiff_neck\" as optional symptoms.",
       "source": "system",
       "meeting_index": 0,
@@ -2355,7 +2355,7 @@
       ],
       "time_scope": "latest",
       "method": "answer_entailment_verified",
-      "timestamp": "2026-02-02T06:21:08.596754+00:00"
+      "timestamp": "2026-02-02T06:20:42.971496+00:00"
     },
     {
       "question": "What is the minimum number of questions required to diagnose Flu?",
@@ -2368,7 +2368,18 @@
       ],
       "time_scope": "latest",
       "method": "answer_entailment_verified",
-      "timestamp": "2026-02-02T06:24:11.124974+00:00"
+      "timestamp": "2026-02-02T06:24:28.052938+00:00"
+    },
+    {
+      "question": "What is the minimum number of questions required to diagnose Flu?",
+      "standalone_query": "What is the minimum number of questions required to diagnose Flu?",
+      "answer": "The minimum number of questions required to diagnose Flu is 3.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-02-02T07:15:40.623202+00:00"
     },
     {
       "question": "Which symptoms are mandatory before Flu diagnosis?",
@@ -2379,12 +2390,12 @@
       "meeting_indices": null,
       "time_scope": null,
       "method": "chat_context_answer",
-      "timestamp": "2026-02-02T06:24:22.701269+00:00"
+      "timestamp": "2026-02-02T07:16:24.138003+00:00"
     },
     {
-      "question": "How does the model decide when diagnosis is allowed?",
-      "standalone_query": "How does the model decide when diagnosis is allowed?",
-      "answer": "The model decides when diagnosis is allowed after sufficient evidence and validated deterministically. This principle is explicitly stated on the slide, aligning with Ashmit Verma's discussion about \"required system symptoms\" and \"optional symptoms that increase the patient memory\" in the diagnostic process.",
+      "question": "what technology did the student used to develop the chatbot?",
+      "standalone_query": "what technology did the student used to develop the chatbot?",
+      "answer": "The student, Ashmit Verma, used LangGraph, LangChain, Flask, and Vanilla Web to develop the chatbot, specifically the \"Agentic Patient Simulator.\"",
       "source": "system",
       "meeting_index": 0,
       "meeting_indices": [
@@ -2392,48 +2403,154 @@
       ],
       "time_scope": "latest",
       "method": "answer_entailment_verified",
-      "timestamp": "2026-02-02T06:25:04.556341+00:00"
+      "timestamp": "2026-02-02T07:17:13.886554+00:00"
+    }
+  ],
+  "utsav_auto_session_2026-02-02_12-54-57": [
+    {
+      "question": "what were the next steps decided in the last meeting?",
+      "standalone_query": "what were the next steps decided in the last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for NPCs to move around in the game and interact with the environment.\n6. Write a wrapper to integrate Jericho with the Inform7 game.\n7. Explore ways to make NPCs more interactive and dynamic.\n8. Investigate how to call Python code from Inform7 rules.\n9. Develop a system for players to talk to NPCs and have conversations.\n10. Create a multi-user system where players can interact with each other through NPCs.",
+      "source": "system",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-02-02T07:25:13.957718+00:00"
     },
     {
-      "question": "Was cough a symptom of flu?",
-      "standalone_query": "Was cough a symptom of flu?",
-      "answer": "Yes, cough is a symptom of flu.",
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a system that represents a world with nodes, where each node represents a room. It is used to track movements and items within the game environment.",
+      "source": "system",
+      "meeting_index": 1,
+      "meeting_indices": [
+        1,
+        2,
+        3
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-02-02T07:25:40.273948+00:00"
+    }
+  ],
+  "project_slack_2026-02-02_12-58-25": [
+    {
+      "question": "What does the student show on screen?",
+      "standalone_query": "What does the student show on screen?",
+      "answer": "The student shows a comprehensive table detailing diagnostic criteria for various diseases, including FLU, Migraine, and Food Poisoning. The table outlines \"Diseases,\" \"Required Symptoms,\" \"Optional Symptoms,\" and \"Min. Questions Needed\" for diagnosis.",
+      "source": "system",
+      "meeting_index": 0,
+      "meeting_indices": [
+        0
+      ],
+      "time_scope": "latest",
+      "method": "answer_entailment_verified",
+      "timestamp": "2026-02-02T07:29:43.151381+00:00"
+    },
+    {
+      "question": "What does the student showed in his demo?",
+      "standalone_query": "What does the student showed in his demo?",
+      "answer": "The student showed a comprehensive table detailing diagnostic criteria for various diseases.",
       "source": "chat",
       "meeting_index": null,
       "meeting_indices": null,
       "time_scope": null,
       "method": "chat_context_answer",
-      "timestamp": "2026-02-02T06:25:24.639904+00:00"
+      "timestamp": "2026-02-02T07:30:09.185500+00:00"
+    },
+    {
+      "question": "The student demonstrated the system for patient chat bot what was shown in the project?",
+      "standalone_query": "The student demonstrated the system for patient chat bot what was shown in the project?",
+      "answer": "A comprehensive table detailing diagnostic criteria for various diseases.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-02-02T07:31:01.087885+00:00"
+    },
+    {
+      "question": "What is the whole project about?",
+      "standalone_query": "What is the whole project about?",
+      "answer": "The whole project is about developing a system for a patient chatbot, specifically focusing on displaying diagnostic criteria for various diseases.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-02-02T07:31:26.853172+00:00"
+    },
+    {
+      "question": "Describe the demo that student gave?",
+      "standalone_query": "Describe the demo that student gave?",
+      "answer": "The student showed a comprehensive table detailing diagnostic criteria for various diseases.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-02-02T07:31:47.193042+00:00"
     }
   ],
-  "project_slack_2026-02-02_11-58-28": [
+  "utsav_slack_2026-02-05_14-22-26": [
     {
-      "question": "what were symptoms of flu?",
-      "standalone_query": "what were symptoms of flu?",
-      "answer": "The symptoms of flu, as defined in the code, include \"cough\", \"fever\", and \"fatigue\" as required symptoms, and \"headache\", \"light_sensitivity\", \"nausea\", \"vomiting\", and \"stiff_neck\" as optional symptoms.",
+      "question": "what is jericho?",
+      "standalone_query": "what is jericho?",
+      "answer": "Jericho is a system that represents a world with nodes, where each node represents a room. It is used to track movements and items within the game environment.",
       "source": "system",
-      "meeting_index": 0,
+      "meeting_index": 1,
       "meeting_indices": [
-        0
+        1,
+        2,
+        3
       ],
       "time_scope": "latest",
       "method": "answer_entailment_verified",
-      "timestamp": "2026-02-02T06:29:06.743623+00:00"
+      "timestamp": "2026-02-05T08:52:56.790786+00:00"
+    },
+    {
+      "question": "how is jericho",
+      "standalone_query": "how is jericho",
+      "answer": "It is used to track movements and items within the game environment.",
+      "source": "chat",
+      "meeting_index": null,
+      "meeting_indices": null,
+      "time_scope": null,
+      "method": "chat_context_answer",
+      "timestamp": "2026-02-05T08:53:39.468861+00:00"
+    },
+    {
+      "question": "What is the next steps of last meeting?",
+      "standalone_query": "What is the next steps of last meeting?",
+      "answer": "1. Create a mechanism to put an NPC in one of their games.\n2. Develop a system where NPCs can be controlled by other players.\n3. Create a database to store metadata for NPCs.\n4. Implement a system for NPCs to respond to player actions.\n5. Develop a way for players to interact with NPCs in the game.\n6. Create a system for NPCs to move around in the game.\n7. Implement a way for NPCs to make decisions based on their environment.\n8. Develop a way for NPCs to call external code to make decisions.\n9. Investigate the possibility of using Python code in Inform7 rules.\n10. Create a workaround for the limitation that Inform7 rules cannot call code.",
+      "source": "system",
+      "meeting_index": 3,
+      "meeting_indices": [
+        3
+      ],
+      "time_scope": "latest",
+      "method": "action_summary_latest",
+      "timestamp": "2026-02-05T08:56:05.544001+00:00"
     }
   ],
-  "project_slack_2026-02-02_12-01-24": [
+  "utsav_slack_2026-02-05_22-44-52": [
     {
-      "question": "What were symptoms for flu?",
-      "standalone_query": "What were symptoms for flu?",
-      "answer": "The symptoms for flu, as per the code on the screen, include \"cough\", \"fever\", and \"fatigue\" as required symptoms, and \"headache\", \"light_sensitivity\", \"nausea\", \"vomiting\", and \"stiff_neck\" as optional symptoms.",
+      "question": "What is the guard view feature?",
+      "standalone_query": "What is the guard view feature?",
+      "answer": "The guard view feature allows the user to retract everything that is there in the whole room.",
       "source": "system",
-      "meeting_index": 0,
+      "meeting_index": 1,
       "meeting_indices": [
-        0
+        1,
+        2,
+        3
       ],
       "time_scope": "latest",
       "method": "answer_entailment_verified",
-      "timestamp": "2026-02-02T06:32:00.683852+00:00"
+      "timestamp": "2026-02-05T17:17:08.821836+00:00"
     }
   ]
 }

@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from agents.supervisor_agent import supervisor
 from memory.session_persistence import save_session
 from memory.session_memory import session_memory
+from fastapi import BackgroundTasks
 
 load_dotenv()
 
@@ -33,7 +34,7 @@ STAGE_AWAITING_USER_ID = "AWAITING_USER_ID"
 STAGE_ACTIVE = "ACTIVE"
 
 @app.post("/slack/events")
-async def slack_events(request: Request):
+async def slack_events(request: Request, background_tasks: BackgroundTasks):
     body = await request.body()
 
     if not signature_verifier.is_valid_request(body, request.headers):
@@ -41,7 +42,6 @@ async def slack_events(request: Request):
 
     payload = await request.json()
 
-    # Slack URL verification
     if payload.get("type") == "url_verification":
         return {"challenge": payload["challenge"]}
 
@@ -52,13 +52,11 @@ async def slack_events(request: Request):
     if not event or event.get("bot_id"):
         return {"ok": True}
 
-    # ACK immediately, process async
-    threading.Thread(
-        target=process_event,
-        args=(event,)
-    ).start()
-
+    background_tasks.add_task(process_event, event)
     return {"ok": True}
+
+
+
 
 def process_event(event: dict):
     print("\n=== EVENT RECEIVED ===")
@@ -68,6 +66,9 @@ def process_event(event: dict):
         return
 
     PROCESSED_EVENTS.add(event_id)
+    if len(PROCESSED_EVENTS) > 10_000:
+        PROCESSED_EVENTS.clear()
+
 
     event_type = event.get("type")
 

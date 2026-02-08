@@ -825,9 +825,6 @@ def chat_answer_node(state: MeetingState):
 
     chat_context = "\n".join(chat_lines)
 
-    # =================================================
-    # 1️Can chat answer this question?
-    # =================================================
     sufficiency_prompt = f"""
 You are given a chat history and a user question.
 

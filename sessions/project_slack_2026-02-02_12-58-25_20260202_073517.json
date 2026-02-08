@@ -1,0 +1,33 @@
+{
+  "user_id": "project",
+  "meeting_name": "slack_session",
+  "session_start_time": "2026-02-02T12:58:25.763923",
+  "session_end_time": "2026-02-02T13:05:17.044095",
+  "conversation": [
+    {
+      "question": "What does the student show on screen?",
+      "answer": "The student shows a comprehensive table detailing diagnostic criteria for various diseases, including FLU, Migraine, and Food Poisoning. The table outlines \"Diseases,\" \"Required Symptoms,\" \"Optional Symptoms,\" and \"Min. Questions Needed\" for diagnosis.",
+      "timestamp": "2026-02-02T07:29:43.151381+00:00"
+    },
+    {
+      "question": "What does the student showed in his demo?",
+      "answer": "The student showed a comprehensive table detailing diagnostic criteria for various diseases.",
+      "timestamp": "2026-02-02T07:30:09.185500+00:00"
+    },
+    {
+      "question": "The student demonstrated the system for patient chat bot what was shown in the project?",
+      "answer": "A comprehensive table detailing diagnostic criteria for various diseases.",
+      "timestamp": "2026-02-02T07:31:01.087885+00:00"
+    },
+    {
+      "question": "What is the whole project about?",
+      "answer": "The whole project is about developing a system for a patient chatbot, specifically focusing on displaying diagnostic criteria for various diseases.",
+      "timestamp": "2026-02-02T07:31:26.853172+00:00"
+    },
+    {
+      "question": "Describe the demo that student gave?",
+      "answer": "The student showed a comprehensive table detailing diagnostic criteria for various diseases.",
+      "timestamp": "2026-02-02T07:31:47.193042+00:00"
+    }
+  ]
+}

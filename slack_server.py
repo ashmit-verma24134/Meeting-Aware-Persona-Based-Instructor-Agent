@@ -5,6 +5,8 @@ from fastapi import FastAPI, Request
 from slack_sdk import WebClient
 from slack_sdk.signature import SignatureVerifier
 from dotenv import load_dotenv
+import json
+from fastapi import Request, BackgroundTasks
 
 from agents.supervisor_agent import supervisor
 from memory.session_persistence import save_session
@@ -33,17 +35,19 @@ PROCESSED_EVENTS = set() # event_ts dedup
 STAGE_AWAITING_USER_ID = "AWAITING_USER_ID"
 STAGE_ACTIVE = "ACTIVE"
 
+
+
 @app.post("/slack/events")
 async def slack_events(request: Request, background_tasks: BackgroundTasks):
-    # 🔹 FIRST: read JSON payload
-    payload = await request.json()
+    # 🔹 Read raw body ONCE
+    body = await request.body()
+    payload = json.loads(body)
 
-    # 🔹 1) Slack URL verification (NO signature check here)
+    # 🔹 1) Slack URL verification (NO signature check)
     if payload.get("type") == "url_verification":
         return {"challenge": payload["challenge"]}
 
-    # 🔹 2) Now verify Slack signature for real events
-    body = await request.body()
+    # 🔹 2) Verify signature for real events
     if not signature_verifier.is_valid_request(body, request.headers):
         return {"error": "invalid signature"}
 
@@ -55,9 +59,9 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
     if not event or event.get("bot_id"):
         return {"ok": True}
 
-    # 🔹 4) Process event asynchronously
     background_tasks.add_task(process_event, event)
     return {"ok": True}
+
 
 
 

@@ -35,16 +35,19 @@ STAGE_ACTIVE = "ACTIVE"
 
 @app.post("/slack/events")
 async def slack_events(request: Request, background_tasks: BackgroundTasks):
-    body = await request.body()
-
-    if not signature_verifier.is_valid_request(body, request.headers):
-        return {"error": "invalid signature"}
-
+    # 🔹 FIRST: read JSON payload
     payload = await request.json()
 
+    # 🔹 1) Slack URL verification (NO signature check here)
     if payload.get("type") == "url_verification":
         return {"challenge": payload["challenge"]}
 
+    # 🔹 2) Now verify Slack signature for real events
+    body = await request.body()
+    if not signature_verifier.is_valid_request(body, request.headers):
+        return {"error": "invalid signature"}
+
+    # 🔹 3) Ignore non-event callbacks
     if payload.get("type") != "event_callback":
         return {"ok": True}
 
@@ -52,8 +55,10 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
     if not event or event.get("bot_id"):
         return {"ok": True}
 
+    # 🔹 4) Process event asynchronously
     background_tasks.add_task(process_event, event)
     return {"ok": True}
+
 
 
 

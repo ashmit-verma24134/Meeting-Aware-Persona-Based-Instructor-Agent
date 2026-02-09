@@ -153,22 +153,23 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
                 question=text
             )
 
-            answer = result.get("answer")
+            answer = result.get("answer") if isinstance(result, dict) else None
 
             if not answer or answer.strip() == SAFE_ABSTAIN:
                 send_message(
                     channel_id,
-                    "Sorry 😅 I checked the meeting transcript, but this wasn’t clearly discussed."
+                    "Sorry 😅 I checked the meeting transcript, but I couldn’t find a clear answer."
                 )
                 return
 
             send_message(channel_id, answer)
 
-        except Exception:
+        except Exception as e:
             send_message(
                 channel_id,
                 "⚠️ Something went wrong while processing your question. Please try again."
             )
+
 
 # ───────────────────────────────────────
 # SESSION FINALIZE

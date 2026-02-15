@@ -4,20 +4,16 @@ from agents.text_utils import clean_answer
 from agents.source_decider_agent import decide_source_node
 from agents.text_utils import trim_chunk_text
 from agents.decision_types import Decision
-from memory.chat_utils import get_chat_texts
-
-
+from services.supabase_service import SupabaseService
 import numpy as np
-
 from langgraph.graph import StateGraph, END
-
-
 from groq import Groq
-from scripts.generate_answer import (
-    retrieve_chunks, 
-    generate_answer_with_llm, 
-    CHUNKS_PATH 
-)
+from scripts.generate_answer import generate_answer_with_llm
+from sentence_transformers import SentenceTransformer
+SAFE_ABSTAIN = "This was not clearly discussed in the meeting."
+
+
+client = Groq()
 
 
 class MeetingState(TypedDict):
@@ -37,8 +33,8 @@ class MeetingState(TypedDict):
 
     # Evidence tracking
     retrieved_chunks: List[dict]
-    meeting_indices: Optional[List[int]]
-    _all_meeting_indices: Optional[List[int]]
+    meeting_indices: Optional[List[str]]
+    _all_meeting_indices: Optional[List[str]]
 
     # Reasoning outputs (post-retrieval only)
     question_intent: Optional[str]          # factual | meta
@@ -54,7 +50,6 @@ class MeetingState(TypedDict):
 
 
 
-from sentence_transformers import SentenceTransformer
 
 _ENTAILMENT_MODEL = None
 
@@ -78,27 +73,70 @@ def query_understanding_node(state: MeetingState):
     state.setdefault("path", [])
     state["path"].append("query")
 
-    # Provide full recent chat context for reasoning (NO retrieval)
-    recent_chat = get_chat_texts(
-        session_id=state["session_id"],
-        k=20
-    )
+    supabase = get_supabase_client()
 
-    analysis = understand_query(
-        state["question"],
-        recent_history=recent_chat,
-        user_id=state["user_id"]
-    )
+    # -----------------------------------
+    # Fetch recent chat safely
+    # -----------------------------------
+    try:
+        recent_chat_raw = supabase.get_recent_chat_turns(
+            session_id=state["session_id"],
+            limit=100
+        )
+    except Exception as e:
+        print("Chat fetch failed:", e)
+        recent_chat_raw = []
 
-    # Basic flags
+    # -----------------------------------
+    # SANITIZE CHAT FORMAT
+    # -----------------------------------
+    recent_chat = []
+
+    for item in recent_chat_raw:
+        if isinstance(item, dict):
+            recent_chat.append({
+                "question": item.get("question", ""),
+                "answer": item.get("answer", "")
+            })
+        elif isinstance(item, str):
+            # fallback format
+            recent_chat.append({
+                "question": "",
+                "answer": item
+            })
+
+    # -----------------------------------
+    # Call understand_query safely
+    # -----------------------------------
+    try:
+        analysis = understand_query(
+            state["question"],
+            recent_history=recent_chat,
+            user_id=state["user_id"]
+        )
+    except Exception as e:
+        print("understand_query failed:", e)
+        analysis = {}
+
+    # If understand_query returns invalid type
+    if not isinstance(analysis, dict):
+        analysis = {}
+
+    # -----------------------------------
+    # Extract analysis safely
+    # -----------------------------------
     state["ignore"] = bool(analysis.get("ignore", False))
+
     state["standalone_query"] = analysis.get(
-        "standalone_query", state["question"]
+        "standalone_query",
+        state["question"]
     )
 
+    # -----------------------------------
+    # Temporal detection
+    # -----------------------------------
     q = state["question"].lower()
 
-    # Temporal intent detection (lightweight, lexical)
     TEMPORAL_KEYS = [
         "last meeting",
         "latest meeting",
@@ -112,15 +150,20 @@ def query_understanding_node(state: MeetingState):
         "latest" if any(k in q for k in TEMPORAL_KEYS) else None
     )
 
-    # Domain constraint (project isolation)
+    # -----------------------------------
+    # Domain constraint
+    # -----------------------------------
     project_type = analysis.get("project_type")
-    state["domain_constraint"] = (
-        project_type
-        if analysis.get("force_single_project") and project_type
-        else None
-    )
+    force_single_project = analysis.get("force_single_project", False)
 
-    # Reset downstream state (important for multi-turn safety)
+    if force_single_project and project_type:
+        state["domain_constraint"] = project_type
+    else:
+        state["domain_constraint"] = None
+
+    # -----------------------------------
+    # Reset downstream state
+    # -----------------------------------
     state["candidate_answer"] = None
     state["final_answer"] = None
     state["retrieved_chunks"] = []
@@ -132,10 +175,6 @@ def query_understanding_node(state: MeetingState):
     state["decision"] = None
 
     return state
-
-
-
-
 
 
 
@@ -151,33 +190,41 @@ def meeting_summary_node(state: MeetingState):
         state["context_extended"] = False
         return state
 
-    meeting_ids = [
-        c["meeting_index"]
-        for c in retrieved
-        if isinstance(c.get("meeting_index"), int)
-    ]
+    # -----------------------------
+    # Get first meeting (similarity-sorted already)
+    # -----------------------------
+    first_meeting_id = retrieved[0].get("meeting_id")
 
-    if not meeting_ids:
+    if not first_meeting_id:
         state["final_answer"] = SAFE_ABSTAIN
-        state["method"] = "summary_no_meeting_index"
+        state["method"] = "summary_no_meeting_id"
         state["context_extended"] = False
         return state
 
-    latest_meeting = max(meeting_ids)
-
-    latest_chunks = [
+    # -----------------------------
+    # Keep only chunks from that meeting
+    # -----------------------------
+    meeting_chunks = [
         c for c in retrieved
-        if c.get("meeting_index") == latest_meeting
+        if c.get("meeting_id") == first_meeting_id
         and isinstance(c.get("text"), str)
     ]
 
-    if not latest_chunks:
+    if not meeting_chunks:
         state["final_answer"] = SAFE_ABSTAIN
-        state["method"] = "summary_latest_empty"
+        state["method"] = "summary_empty_meeting"
         state["context_extended"] = False
         return state
 
-    context = "\n\n".join(c["text"] for c in latest_chunks)[:12000]
+    # Sort by chunk_index for proper transcript order
+    meeting_chunks = sorted(
+        meeting_chunks,
+        key=lambda c: c.get("chunk_index", 0)
+    )
+
+    context = "\n\n".join(
+        c["text"] for c in meeting_chunks
+    )[:12000]
 
     prompt = f"""
 You are a professional executive assistant summarizing a meeting.
@@ -210,7 +257,7 @@ SUMMARY:
         )
 
         state["final_answer"] = response.choices[0].message.content.strip()
-        state["method"] = "meeting_summary_latest"
+        state["method"] = "meeting_summary_uuid_safe"
 
     except Exception as e:
         print(f"Summary Error: {e}")
@@ -222,50 +269,95 @@ SUMMARY:
 
 
 
+# ==============================
+# GLOBAL VECTOR MODEL + SUPABASE
+# ==============================
+
+_VECTOR_MODEL = None
+_SUPABASE_CLIENT = None
+
+
+def get_vector_model():
+    global _VECTOR_MODEL
+    if _VECTOR_MODEL is None:
+        print("Loading vector model...")
+        _VECTOR_MODEL = SentenceTransformer(
+            "BAAI/bge-base-en-v1.5"
+        )
+        print("Vector model loaded.")
+    return _VECTOR_MODEL
+
+
+def get_supabase_client():
+    global _SUPABASE_CLIENT
+    if _SUPABASE_CLIENT is None:
+        _SUPABASE_CLIENT = SupabaseService()
+    return _SUPABASE_CLIENT
+
 
 
 
 def retrieve_chunks_node(state: MeetingState):
 
     state["path"].append("retrieve_chunks")
-   
-    payload = {
-        "standalone_query": state.get(
-            "standalone_query",
-            state["question"]
-        )
-    }
 
-    if state.get("domain_constraint"):
-        payload["project_type"] = state["domain_constraint"]
+    query_text = state.get(
+        "standalone_query",
+        state["question"]
+    )
 
-    result = retrieve_chunks(state["user_id"], payload)
+    model = get_vector_model()
+    supabase = get_supabase_client()
 
-    # FIX: retrieve_chunks returns LIST, not dict
-    if isinstance(result, list):
-        chunks = result
-    elif isinstance(result, dict):
-        chunks = result.get("chunks", [])
-    else:
-        chunks = []
-
-
-    if not chunks:
+    # -----------------------------------
+    # Generate embedding safely
+    # -----------------------------------
+    try:
+        query_embedding = model.encode(
+            query_text,
+            normalize_embeddings=True
+        ).tolist()
+    except Exception:
         state["retrieved_chunks"] = []
         state["_all_meeting_indices"] = []
         state["meeting_indices"] = []
         return state
 
-    if not isinstance(chunks, list):
-        chunks = []
+    # -----------------------------------
+    # Supabase RPC call (safe)
+    # -----------------------------------
+    try:
+        results = supabase.match_chunks_by_user(
+            query_embedding=query_embedding,
+            user_id=state["user_id"],
+            match_count=50
+        )
+    except Exception:
+        results = []
 
-    clean_chunks = [
-        c for c in chunks
-        if isinstance(c, dict)
-        and isinstance(c.get("meeting_index"), int)
-        and isinstance(c.get("chunk_index"), int)
-        and isinstance(c.get("text"), str)
-    ]
+    if not results:
+        state["retrieved_chunks"] = []
+        state["_all_meeting_indices"] = []
+        state["meeting_indices"] = []
+        return state
+
+    # -----------------------------------
+    # Convert Supabase rows → clean format
+    # -----------------------------------
+    clean_chunks = []
+
+    for row in results:
+        if (
+            isinstance(row.get("meeting_id"), str)
+            and isinstance(row.get("chunk_index"), int)
+            and isinstance(row.get("chunk_text"), str)
+        ):
+            clean_chunks.append({
+                "meeting_id": row["meeting_id"],
+                "chunk_index": row["chunk_index"],
+                "text": row["chunk_text"],
+                "similarity": float(row.get("similarity", 0.0)),
+            })
 
     if not clean_chunks:
         state["retrieved_chunks"] = []
@@ -273,101 +365,116 @@ def retrieve_chunks_node(state: MeetingState):
         state["meeting_indices"] = []
         return state
 
-    if state.get("temporal_constraint") == "latest":
-        latest_meeting = max(c["meeting_index"] for c in clean_chunks)
-        clean_chunks = [
-            c for c in clean_chunks
-            if c["meeting_index"] == latest_meeting
-        ]
-
+    # -----------------------------------
+    # Sort by similarity FIRST
+    # -----------------------------------
     clean_chunks = sorted(
         clean_chunks,
-        key=lambda c: (c["meeting_index"], c["chunk_index"])
+        key=lambda c: c["similarity"],
+        reverse=True
     )
 
-    meeting_ids = sorted({
-        c["meeting_index"] for c in clean_chunks
-    })
+    # -----------------------------------
+    # Temporal filtering
+    # -----------------------------------
+    if state.get("temporal_constraint") == "latest":
+        first_meeting = clean_chunks[0]["meeting_id"]
+
+        clean_chunks = [
+            c for c in clean_chunks
+            if c["meeting_id"] == first_meeting
+        ]
+
+    # -----------------------------------
+    # Sort by transcript order
+    # -----------------------------------
+    clean_chunks = sorted(
+        clean_chunks,
+        key=lambda c: (c["meeting_id"], c["chunk_index"])
+    )
+
+    # -----------------------------------
+    # Collect meeting IDs safely
+    # -----------------------------------
+    meeting_ids = []
+    for c in clean_chunks:
+        mid = c["meeting_id"]
+        if mid not in meeting_ids:
+            meeting_ids.append(mid)
 
     state["retrieved_chunks"] = clean_chunks
     state["_all_meeting_indices"] = meeting_ids
-    state["meeting_indices"] = meeting_ids  #  FIX
-
-    print(
-        f" RETRIEVED {len(clean_chunks)} chunks | "
-        f"meetings={meeting_ids}"
-    )
+    state["meeting_indices"] = meeting_ids
 
     return state
+
 
 
 def infer_intent_node(state: MeetingState):
     """
-    Infer intent & time scope FROM EVIDENCE ONLY.
-    Question text is used ONLY as a last-resort tie-breaker
-    and MUST NOT introduce new intent.
-
-    Option-3 compliant.
+    Clean intent inference.
+    - Meta ONLY if explicitly meta.
+    - Never infer meta based on number of meetings.
+    - Safe for numeric / factual queries.
     """
 
+    state.setdefault("path", [])
     state["path"].append("infer_intent")
 
+    question = state.get("standalone_query", state["question"]).lower()
     chunks = state.get("retrieved_chunks", [])
+
+    # ---------------------------------
+    # Default fallback
+    # ---------------------------------
+    state["question_intent"] = "factual"
+    state["time_scope"] = "latest"
+
     if not chunks:
-        state["question_intent"] = "factual"
-        state["time_scope"] = "latest"
         return state
 
     meeting_ids = [
-        c.get("meeting_index")
+        c.get("meeting_id")
         for c in chunks
-        if isinstance(c.get("meeting_index"), int)
+        if isinstance(c.get("meeting_id"), str)
     ]
 
     if not meeting_ids:
-        state["question_intent"] = "factual"
-        state["time_scope"] = "latest"
         return state
 
-    latest_meeting = max(meeting_ids)
+    unique_meetings = list(dict.fromkeys(meeting_ids))
 
-
-    latest_count = sum(1 for m in meeting_ids if m == latest_meeting)
-    total = len(meeting_ids)
-    latest_ratio = latest_count / total
-
-
-    if latest_ratio >= 0.65:
-        # Strong single-meeting dominance
-        state["question_intent"] = "factual"
-        state["time_scope"] = "latest"
-        return state
-
-    if latest_ratio <= 0.40:
-        # Clearly spread across meetings
-        state["question_intent"] = "meta"
-        state["time_scope"] = "global"
-        return state
-
-
-    question = state.get(
-        "standalone_query", state["question"]
-    ).lower()
 
     META_HINTS = [
-        "overall", "architecture", "design",
-        "system", "approach", "workflow",
-        "how does the project", "high level"
+        "overall",
+        "architecture",
+        "design",
+        "workflow",
+        "approach",
+        "system",
+        "how does the system",
+        "how did the system",
+        "high level",
+        "in general",
+        "big picture",
     ]
 
-    if any(h in question for h in META_HINTS):
+    if any(hint in question for hint in META_HINTS):
         state["question_intent"] = "meta"
         state["time_scope"] = "global"
-    else:
-        state["question_intent"] = "factual"
+        return state
+
+
+    state["question_intent"] = "factual"
+
+    if len(unique_meetings) == 1:
         state["time_scope"] = "latest"
+    else:
+        state["time_scope"] = "mixed"
 
     return state
+
+
 
 
 
@@ -438,10 +545,11 @@ def action_summary_node(state: MeetingState):
 
     # Ensure single meeting (latest already filtered upstream)
     meeting_ids = {
-        c["meeting_index"]
+        c["meeting_id"]
         for c in retrieved
-        if isinstance(c.get("meeting_index"), int)
+        if isinstance(c.get("meeting_id"), str)
     }
+
 
     if len(meeting_ids) != 1:
         state["final_answer"] = SAFE_ABSTAIN
@@ -532,11 +640,12 @@ def generate_with_confidence(
     print("QUESTION:", question)
     print("NUM CHUNKS:", len(retrieved_chunks))
 
+    # No evidence
     if not retrieved_chunks:
-        print(" No retrieved chunks → ABSTAIN")
+        print("No retrieved chunks → ABSTAIN")
         return SAFE_ABSTAIN, 0.0
 
-    # Generate answer strictly from evidence
+    # Generate answer strictly from provided chunks
     answer = generate_answer_with_llm(
         question=question,
         retrieved_chunks=retrieved_chunks
@@ -544,70 +653,42 @@ def generate_with_confidence(
 
     print("LLM RAW ANSWER:", repr(answer))
 
+    # LLM abstained
     if not answer or answer.strip() == SAFE_ABSTAIN:
-        print(" LLM abstained → ABSTAIN")
+        print("LLM abstained → ABSTAIN")
         return SAFE_ABSTAIN, 0.0
 
-    # Build raw evidence text
+    # Light safety check: ensure some overlap with evidence
     raw_evidence_text = " ".join(
         c.get("text", "").lower()
         for c in retrieved_chunks
         if isinstance(c.get("text"), str)
     )
 
-    print("EVIDENCE TEXT LENGTH:", len(raw_evidence_text))
-    print("EVIDENCE PREVIEW (first 400 chars):")
-    print(raw_evidence_text[:400])
-
     if not raw_evidence_text.strip():
         print("Empty evidence text → ABSTAIN")
         return SAFE_ABSTAIN, 0.0
 
-    q_lower = question.lower()
+    # Very light grounding check (not aggressive)
+    answer_tokens = [
+        w for w in re.findall(r"\b\w+\b", answer.lower())
+        if len(w) > 4
+    ]
 
-
-    if (
-        q_lower.startswith("what is")
-        or q_lower.startswith("what does")
-        or q_lower.startswith("define")
-    ):
-        tokens = re.findall(r"\b\w+\b", q_lower)
-        print("Definition-style question detected")
-        print("Question tokens:", tokens)
-
-        if tokens:
-            entity = tokens[-1]
-            print("Extracted entity:", entity)
-            print("Entity present in evidence?:", entity in raw_evidence_text)
-
-            if entity in raw_evidence_text:
-                print("Definition grounding PASSED")
-                return answer, 0.3
-            else:
-                print("Definition grounding FAILED")
-
-
-    def extract_keywords(text):
-        return {
-            w for w in re.findall(r"\b\w+\b", text.lower())
-            if len(w) > 4
-        }
-
-    answer_words = extract_keywords(answer)
-    print("Answer keywords:", answer_words)
-
-    lexical_overlap = sum(
-        1 for w in answer_words
+    overlap = sum(
+        1 for w in answer_tokens
         if w in raw_evidence_text
     )
 
-    print("Lexical overlap count:", lexical_overlap)
+    print("Light lexical overlap:", overlap)
 
-    if lexical_overlap >= 1:
-        return answer, 0.25
+    if overlap >= 1:
+        return answer, 0.6
 
+    # If LLM answered but overlap is weak,
+    # still allow but with lower confidence.
+    return answer, 0.4
 
-    return SAFE_ABSTAIN, 0.0
 
 
 
@@ -617,7 +698,7 @@ from collections import deque
 
 def chunk_answer_node(state: MeetingState):
 
-    print("\n DEBUG: ENTERED chunk_answer_node")
+    print("\nDEBUG: ENTERED chunk_answer_node")
     print("Retrieved chunks:", len(state.get("retrieved_chunks", [])))
 
     state["path"].append("chunk_answer")
@@ -625,65 +706,34 @@ def chunk_answer_node(state: MeetingState):
     query = state.get("standalone_query", state["question"])
     retrieved = state.get("retrieved_chunks", [])
 
-    print(f" INTELLIGENT QA: '{query}'")
-
     if not retrieved:
         state["candidate_answer"] = SAFE_ABSTAIN
         state["confidence"] = 0.0
         state["method"] = "no_evidence"
         return state
 
-    retrieved = sorted(
+    # ---------------------------------------------------
+    #GLOBAL TOP-K (NO MEETING DOMINANCE)
+    # ---------------------------------------------------
+
+    # Sort all retrieved chunks by similarity
+    sorted_chunks = sorted(
         retrieved,
-        key=lambda c: (c.get("meeting_index", 0), c.get("chunk_index", 0))
+        key=lambda c: c.get("similarity", 0.0),
+        reverse=True
     )
 
-    model = get_entailment_model()
-    q_emb = model.encode(query, normalize_embeddings=True)
+    MAX_CONTEXT_CHUNKS = 12
+    selected_chunks = sorted_chunks[:MAX_CONTEXT_CHUNKS]
 
-    texts = []
-    aligned_chunks = []
+    print(f"\nChunks passed to LLM: {len(selected_chunks)}")
 
-    for c in retrieved:
-        if isinstance(c.get("text"), str):
-            texts.append(c["text"])   # NO TRIM FOR EMBEDDING
-            aligned_chunks.append(c)
-
-    if not texts:
-        state["candidate_answer"] = SAFE_ABSTAIN
-        state["confidence"] = 0.0
-        state["method"] = "no_text_chunks"
-        return state
-
-    chunk_embs = model.encode(texts, normalize_embeddings=True)
-    sims = np.dot(chunk_embs, q_emb)
-
-    # Take top-K semantic candidates
-    TOP_K = min(5, len(sims))
-    top_indices = np.argsort(sims)[-TOP_K:][::-1]
-
-    expanded_chunks = []
-    seen = set()
-
-    for idx in top_indices:
-        base = aligned_chunks[idx]
-        meeting = base.get("meeting_index")
-
-        for j in (idx - 1, idx, idx + 1):
-            if 0 <= j < len(aligned_chunks):
-                ch = aligned_chunks[j]
-                key = (ch.get("meeting_index"), ch.get("chunk_index"))
-                if key not in seen and ch.get("meeting_index") == meeting:
-                    expanded_chunks.append(ch)
-                    seen.add(key)
-
-    # 🔒 HARD CAP — THIS IS THE FIX
-    MAX_CONTEXT_CHUNKS = 4
-    expanded_chunks = expanded_chunks[:MAX_CONTEXT_CHUNKS]
-
+    # ---------------------------------------------------
+    # Generate answer
+    # ---------------------------------------------------
     answer, confidence = generate_with_confidence(
         question=query,
-        retrieved_chunks=expanded_chunks
+        retrieved_chunks=selected_chunks
     )
 
     if confidence <= 0.0 or not answer:
@@ -697,7 +747,6 @@ def chunk_answer_node(state: MeetingState):
     state["method"] = "answer_entailment_verified"
 
     return state
-
 
 
 
@@ -787,147 +836,174 @@ def verification_node(state: MeetingState):
 
     return state
 
-from agents.text_utils import clean_answer, SAFE_ABSTAIN
-from agents.decision_types import Decision
-from memory.chat_utils import get_chat_texts
-from groq import Groq
-
-client = Groq()
-
-
 def chat_answer_node(state: MeetingState):
     """
-    CHAT ANSWER NODE (CHAT-FIRST, LLM-DECIDES)
+    CHAT-FIRST NODE (Production Hardened)
 
-    CONTRACT:
-    - Pass full chat context to LLM
-    - LLM decides if it can answer from chat alone
-    - If YES → answer from chat (normal, helpful answer)
-    - If NO → fallback to retrieval
+    Behaviour:
+    - If chat is sufficient → ALWAYS answer from chat
+    - No fallback after YES
+    - Yes/No answers must include explanation
+    - Semantic comparison (case/wording safe)
     """
 
     state.setdefault("path", [])
     state["path"].append("chat_answer")
 
-    chat_lines = get_chat_texts(
-        session_id=state["session_id"],
-        k=20
-    )
+    supabase = get_supabase_client()
 
-    print("\n CHAT ANSWER DEBUG")
+    print("\n================= CHAT NODE START =================")
+
+    # --------------------------------------------------
+    # Fetch chat history
+    # --------------------------------------------------
+    try:
+        chat_lines = supabase.get_recent_chat_turns(
+            session_id=state["session_id"],
+            limit=50
+        )
+    except Exception as e:
+        print("Chat fetch failed:", e)
+        chat_lines = []
+
+    print("Session:", state["session_id"])
+    print("Question:", state["question"])
     print("Chat lines:", len(chat_lines))
 
-    # No chat → retrieval
     if not chat_lines:
+        print(" No chat history → Retrieval")
         state["decision"] = Decision.RETRIEVAL_ONLY
         state["method"] = "chat_no_context"
         return state
 
-    chat_context = "\n".join(chat_lines)
+    # --------------------------------------------------
+    # Build structured chat context
+    # --------------------------------------------------
+    chat_context_parts = []
+
+    for c in chat_lines:
+        if isinstance(c, dict):
+            q = c.get("question", "")
+            a = c.get("answer", "")
+            chat_context_parts.append(f"User: {q}\nAI: {a}")
+        elif isinstance(c, str):
+            chat_context_parts.append(c)
+
+    chat_context = "\n\n".join(chat_context_parts).strip()
+
+    print("\n========== CHAT CONTEXT SENT TO SUFFICIENCY ==========")
+    print(chat_context)
+    print("======================================================\n")
+
+
+    if not chat_context:
+        print(" Empty chat context → Retrieval")
+        state["decision"] = Decision.RETRIEVAL_ONLY
+        state["method"] = "chat_empty_context"
+        return state
+
+    # --------------------------------------------------
+    # Semantic Sufficiency Check (Anti-Sabji Mode)
+    # --------------------------------------------------
+    assistant_only = "\n\n".join(
+        part for part in chat_context_parts
+        if part.startswith("AI:")
+    )
 
     sufficiency_prompt = f"""
-You are given a chat history and a user question.
+You are checking whether the QUESTION can be answered
+using information already provided in earlier ASSISTANT responses.
 
-Decide whether the question can be answered
-using the chat conversation alone.
+IF you can answer Reply with YES 
+IF you can not answer(means answer is not in context) reply with NO
 
-Rules:
-- Use semantic understanding
-- You may rely on earlier answers or summaries
-- If chat is sufficient, reply YES
-- If transcript knowledge is needed, reply NO
-
-Reply with exactly one word:
-YES or NO
-
-CHAT:
-{chat_context}
+ASSISTANT MESSAGES:
+{assistant_only}
 
 QUESTION:
 {state["question"]}
 """.strip()
+
 
     try:
         verdict_resp = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[{"role": "user", "content": sufficiency_prompt}],
             temperature=0.0,
-            max_tokens=5,
+            max_tokens=3,
         )
 
-        verdict = verdict_resp.choices[0].message.content.strip().upper()
-        verdict = verdict.split()[0]
+        raw_verdict = verdict_resp.choices[0].message.content.strip()
+        verdict = raw_verdict.upper().split()[0]
 
-        print("CHAT SUFFICIENCY:", verdict)
+        print("Sufficiency RAW:", raw_verdict)
+        print("Sufficiency PARSED:", verdict)
 
     except Exception as e:
-        print("[CHAT SUFFICIENCY ERROR]", e)
+        print("Sufficiency error:", e)
         verdict = "NO"
 
-    # Not sufficient → retrieval
     if verdict != "YES":
+        print(" Retrieval path")
         state["decision"] = Decision.RETRIEVAL_ONLY
         state["method"] = "chat_insufficient"
         return state
 
+    print("Chat sufficient → Generating answer")
 
+    # --------------------------------------------------
+    # Answer Generation (Explained Yes/No Mode)
+    # --------------------------------------------------
     answer_prompt = f"""
-    Answer the user's question directly.
+Answer the QUESTION using ONLY the CHAT below.
 
-    RULES:
-    - Treat the chat as factual conversation history
-    - Use ONLY information explicitly present in the chat
-    - Do NOT mention the chat, AI, assistant, or messages
-    - Do NOT say phrases like "based on the chat" or "the AI said"
-    - Explain ONLY if the explanation already exists in the chat
-    - If the question cannot be answered from the chat, reply EXACTLY:
-    "{SAFE_ABSTAIN}"
+Rules:
+- If answer is yes/no, start with:
+  "Yes," or "No,"
+- Always explain briefly in one clear sentence.
+- Do NOT just say Yes or No alone.
+- Be concise.
+- Do NOT mention chat history.
 
-    CHAT CONTEXT:
-    {chat_context}
+CHAT:
+{chat_context}
 
-    USER QUESTION:
-    {state["question"]}
+QUESTION:
+{state["question"]}
 
-    FINAL ANSWER:
-    """.strip()
-
+FINAL ANSWER:
+""".strip()
 
     try:
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[{"role": "user", "content": answer_prompt}],
-            temperature=0.2,
+            temperature=0.0,
             max_tokens=200,
         )
 
-        answer = clean_answer(
-            response.choices[0].message.content.strip()
-        )
+        answer = response.choices[0].message.content.strip()
 
-        print("CHAT ANSWER:", repr(answer))
+        print("Chat Answer RAW:", repr(answer))
 
     except Exception as e:
-        print("[CHAT ANSWER ERROR]", e)
+        print("Answer generation error:", e)
         answer = SAFE_ABSTAIN
 
-    # If LLM still can’t answer → fallback
-    if not answer or answer == SAFE_ABSTAIN:
-        state["decision"] = Decision.RETRIEVAL_ONLY
-        state["method"] = "chat_answer_failed"
-        return state
+    if not answer:
+        answer = SAFE_ABSTAIN
 
-
+    # --------------------------------------------------
+    # Finalize (No fallback allowed)
+    # --------------------------------------------------
     state["final_answer"] = answer
     state["decision"] = Decision.CHAT_ONLY
-    state["method"] = "chat_context_answer"
+    state["method"] = "chat_context_answer_final"
     state["context_extended"] = False
-
-    # Cleanup
     state["retrieved_chunks"] = []
     state["meeting_indices"] = None
 
-    print("Chat answer accepted (chat-first)")
+    print("================= CHAT NODE END =================\n")
 
     return state
 
@@ -938,81 +1014,88 @@ QUESTION:
 
 from agents.text_utils import clean_answer, SAFE_ABSTAIN
 from agents.decision_types import Decision
-from memory.session_memory import session_memory
+from services.supabase_service import get_supabase_client
+
+
+from services.supabase_service import get_supabase_client
 
 
 def finalize_node(state: MeetingState):
     state.setdefault("path", [])
     state["path"].append("finalize")
 
+    supabase = get_supabase_client()
+
     decision = state.get("decision")
     method = state.get("method", "")
 
-
+    # -----------------------------------
+    # CHAT-ONLY ANSWER
+    # -----------------------------------
     if decision == Decision.CHAT_ONLY:
         answer = state.get("final_answer") or SAFE_ABSTAIN
 
         if answer != SAFE_ABSTAIN:
-            session_memory.add_turn(
+            supabase.save_chat_turn(
                 session_id=state["session_id"],
+                user_id=state["user_id"],
                 question=state["question"],
                 answer=answer,
                 source="chat",
-                meeting_index=None,  # chat has NO meeting index
+                meeting_id=None,
                 method=method,
-                standalone_query=state.get("standalone_query"),
                 time_scope=None,
-                meeting_indices=None,
             )
 
         state["final_answer"] = answer
         return state
 
-
+    # -----------------------------------
+    # RETRIEVAL / SYSTEM ANSWER
+    # -----------------------------------
     existing_final = state.get("final_answer")
     if existing_final == SAFE_ABSTAIN:
         existing_final = None
 
     if existing_final:
         answer = existing_final
-
     elif method == "answer_entailment_verified":
         answer = state.get("candidate_answer") or SAFE_ABSTAIN
-
     else:
         raw = state.get("candidate_answer")
         answer = clean_answer(raw) if raw else SAFE_ABSTAIN
 
     source = "system"
 
-
-    meeting_index = None
+    # Extract meeting_id (UUID-safe)
+    meeting_id = None
     retrieved = state.get("retrieved_chunks")
+
     if (
         isinstance(retrieved, list)
         and retrieved
         and isinstance(retrieved[0], dict)
     ):
-        meeting_index = retrieved[0].get("meeting_index")
+        meeting_id = retrieved[0].get("meeting_id")
 
-    # --------------------
-    # Persist conversation
-    # --------------------
+    # -----------------------------------
+    # Save to Supabase
+    # -----------------------------------
     if answer != SAFE_ABSTAIN:
-        session_memory.add_turn(
+        supabase.save_chat_turn(
             session_id=state["session_id"],
+            user_id=state["user_id"],
             question=state["question"],
             answer=answer,
             source=source,
-            meeting_index=meeting_index,
+            meeting_id=meeting_id,
             method=method,
-            standalone_query=state.get("standalone_query"),
             time_scope=state.get("time_scope"),
-            meeting_indices=state.get("meeting_indices"),
         )
 
     state["final_answer"] = answer
     return state
+
 
 
 

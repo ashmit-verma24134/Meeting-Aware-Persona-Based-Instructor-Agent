@@ -4,7 +4,9 @@ from agents.decision_types import Decision
 
 def decide_source_node(state):
 
+    state.setdefault("path", [])
     state["path"].append("source_decider")
+
     print("\n DEBUG decide_source_node: ENTER")
 
     chunks = state.get("retrieved_chunks")
@@ -14,7 +16,7 @@ def decide_source_node(state):
         f"{len(chunks) if isinstance(chunks, list) else 'INVALID'}"
     )
 
-    #  HARD RULE: transcript evidence overrides chat
+
     if not isinstance(chunks, list) or not chunks:
         print(" DEBUG: NO_EVIDENCE (empty or invalid chunks)")
         state["decision"] = Decision.NO_EVIDENCE
@@ -22,52 +24,53 @@ def decide_source_node(state):
         state["meeting_indices"] = []
         return state
 
-    # Force retrieval mode once evidence exists
+    # Once transcript evidence exists → retrieval mode
     state["decision"] = Decision.RETRIEVAL_ONLY
 
+
     meeting_ids = [
-        c.get("meeting_index")
+        c.get("meeting_id")
         for c in chunks
-        if isinstance(c, dict) and isinstance(c.get("meeting_index"), int)
+        if isinstance(c, dict) and isinstance(c.get("meeting_id"), str)
     ]
 
     print(f" DEBUG: meeting_ids distribution = {meeting_ids}")
 
     if not meeting_ids:
-        print(" DEBUG: NO_EVIDENCE (no valid meeting_index)")
+        print(" DEBUG: NO_EVIDENCE (no valid meeting_id)")
         state["decision"] = Decision.NO_EVIDENCE
         state["retrieved_chunks"] = []
         state["meeting_indices"] = []
         return state
 
     question_intent = state.get("question_intent", "factual")
-
-    #  FACTUAL QUESTIONS → keep all evidence
+  
     if question_intent == "factual":
         print(
-            f" DEBUG: factual intent → "
-            f"passing ALL {len(chunks)} chunks forward"
+            f" DEBUG: factual intent → KEEPING ALL "
+            f"{len(chunks)} chunks"
         )
+
         state["retrieved_chunks"] = chunks
-        state["meeting_indices"] = sorted(set(meeting_ids))
+        state["meeting_indices"] = list(dict.fromkeys(meeting_ids))  # preserve order
         return state
 
-    #  META / DISCUSSION → find dominant meeting
+
     dominant_meeting = select_dominant_meeting(chunks)
     print(f" DEBUG: dominant_meeting = {dominant_meeting}")
 
+    # If dominance unclear → keep everything
     if dominant_meeting is None:
-        print(
-            " DEBUG: dominance UNCLEAR → "
-            "passing ALL chunks forward"
-        )
+        print(" DEBUG: dominance unclear → KEEPING ALL chunks")
+
         state["retrieved_chunks"] = chunks
-        state["meeting_indices"] = sorted(set(meeting_ids))
+        state["meeting_indices"] = list(dict.fromkeys(meeting_ids))
         return state
+
 
     filtered_chunks = [
         c for c in chunks
-        if c.get("meeting_index") == dominant_meeting
+        if c.get("meeting_id") == dominant_meeting
     ]
 
     print(
@@ -76,7 +79,8 @@ def decide_source_node(state):
     )
 
     if not filtered_chunks:
-        print(" DEBUG: NO_DOMINANT_EVIDENCE")
+        print(" DEBUG: NO_DOMINANT_EVIDENCE after filtering")
+
         state["decision"] = Decision.NO_DOMINANT_EVIDENCE
         state["retrieved_chunks"] = []
         state["meeting_indices"] = []
@@ -87,7 +91,7 @@ def decide_source_node(state):
 
     print(
         f" DEBUG decide_source_node: EXIT with "
-        f"{len(filtered_chunks)} chunks from meeting {dominant_meeting}"
+        f"{len(filtered_chunks)} chunks"
     )
 
     return state

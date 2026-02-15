@@ -1,6 +1,7 @@
 import os
 import json
 import threading
+import re
 from datetime import datetime
 from threading import Lock
 
@@ -10,8 +11,7 @@ from slack_sdk.signature import SignatureVerifier
 from dotenv import load_dotenv
 
 from agents.supervisor_agent import supervisor
-from memory.session_persistence import save_session
-from memory.session_memory import session_memory
+
 
 # ───────────────────────────────────────
 # ENV + SLACK SETUP
@@ -30,18 +30,20 @@ signature_verifier = SignatureVerifier(SLACK_SIGNING_SECRET)
 
 app = FastAPI()
 
+
 # ───────────────────────────────────────
 # CONSTANTS / STATE
 # ───────────────────────────────────────
 
 SAFE_ABSTAIN = "This was not clearly discussed in the meeting."
 
-SLACK_SESSIONS = {}          # slack_user_id → session
+SLACK_SESSIONS = {}          # slack_user_id → session info
 PROCESSED_EVENTS = set()
 EVENT_LOCK = Lock()
 
 STAGE_AWAITING_USER_ID = "AWAITING_USER_ID"
 STAGE_ACTIVE = "ACTIVE"
+
 
 # ───────────────────────────────────────
 # SLACK EVENTS ENDPOINT
@@ -52,13 +54,17 @@ async def slack_events(request: Request):
     body = await request.body()
     payload = json.loads(body)
 
+    # Slack URL verification
     if payload.get("type") == "url_verification":
         return {"challenge": payload["challenge"]}
 
+    # Verify signature
     if not signature_verifier.is_valid_request(body, request.headers):
         return {"error": "invalid signature"}
 
     event = payload.get("event", {})
+
+    # Process async (avoid 3 sec Slack timeout)
     threading.Thread(
         target=process_event,
         args=(event,),
@@ -67,12 +73,17 @@ async def slack_events(request: Request):
 
     return {"ok": True}
 
+
 # ───────────────────────────────────────
 # EVENT PROCESSOR
 # ───────────────────────────────────────
 
 def process_event(event: dict):
-    if not event or event.get("bot_id"):
+    if not event:
+        return
+
+    # Ignore bot messages
+    if event.get("bot_id") or event.get("subtype") == "bot_message":
         return
 
     event_id = event.get("event_ts")
@@ -94,18 +105,20 @@ def process_event(event: dict):
     channel_id = event.get("channel")
     text = (event.get("text") or "").strip()
 
+    # Remove bot mention formatting
     if event_type == "app_mention":
-        import re
         text = re.sub(r"<@[^>]+>", "", text).strip()
 
     if not slack_user_id or not channel_id:
         return
 
+    # In public channels: only respond if mentioned OR session exists
     if event_type == "message" and event.get("channel_type") == "channel":
         if "<@" not in event.get("text", "") and slack_user_id not in SLACK_SESSIONS:
             return
 
     handle_user_message(slack_user_id, channel_id, text)
+
 
 # ───────────────────────────────────────
 # USER HANDLER
@@ -114,11 +127,13 @@ def process_event(event: dict):
 def handle_user_message(slack_user_id: str, channel_id: str, text: str):
     session = SLACK_SESSIONS.get(slack_user_id)
 
+    # First interaction → ask for user_id
     if session is None:
         SLACK_SESSIONS[slack_user_id] = {"stage": STAGE_AWAITING_USER_ID}
         send_message(channel_id, "Hello 👋\nPlease enter your *user_id* to begin.")
         return
 
+    # Awaiting user_id
     if session["stage"] == STAGE_AWAITING_USER_ID:
         user_id = text.strip()
         start = datetime.now()
@@ -133,18 +148,21 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
 
         send_message(
             channel_id,
-            f"Session started for *{user_id}*\n"
+            f"Session started for *{user_id}* ✅\n"
             f"Ask your questions.\n"
-            f"Type *exit* to save and end."
+            f"Type *exit* to end."
         )
         return
 
+    # Active session
     if session["stage"] == STAGE_ACTIVE:
+
         if text.lower().strip() == "exit":
-            finalize_session(slack_user_id, channel_id)
+            del SLACK_SESSIONS[slack_user_id]
+            send_message(channel_id, "Session ended ✅")
             return
 
-        send_message(channel_id, "⏳ Let me check the meeting notes…")
+        send_message(channel_id, "⏳ Checking meeting notes...")
 
         try:
             result = supervisor(
@@ -158,43 +176,24 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
             if not answer or answer.strip() == SAFE_ABSTAIN:
                 send_message(
                     channel_id,
-                    "Sorry 😅 I checked the meeting transcript, but I couldn’t find a clear answer."
+                    "Sorry 😅 I couldn’t find a clear answer in the meeting transcript."
                 )
                 return
 
-            send_message(channel_id, answer)
-
-        except Exception as e:
-            send_message(
-                channel_id,
-                "⚠️ Something went wrong while processing your question. Please try again."
+            # Terminal-style formatting
+            formatted = (
+                f"{session['user_id']}@meeting-bot:~$ {text}\n\n"
+                f"{answer}"
             )
 
+            send_message(channel_id, formatted)
 
-# ───────────────────────────────────────
-# SESSION FINALIZE
-# ───────────────────────────────────────
+        except Exception:
+            send_message(
+                channel_id,
+                "⚠️ Something went wrong while processing your question."
+            )
 
-def finalize_session(slack_user_id: str, channel_id: str):
-    session = SLACK_SESSIONS.get(slack_user_id)
-    if not session:
-        return
-
-    history = session_memory.get_recent_context(session["session_id"], k=10_000)
-
-    save_session(
-        session["session_id"],
-        {
-            "user_id": session["user_id"],
-            "meeting_name": "slack_session",
-            "session_start_time": session["session_start"].isoformat(),
-            "session_end_time": datetime.now().isoformat(),
-            "conversation": history
-        }
-    )
-
-    del SLACK_SESSIONS[slack_user_id]
-    send_message(channel_id, "Session ended and saved successfully ✅")
 
 # ───────────────────────────────────────
 # SLACK SEND

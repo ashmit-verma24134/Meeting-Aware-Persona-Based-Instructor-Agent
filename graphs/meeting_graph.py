@@ -636,7 +636,7 @@ def generate_with_confidence(
     question: str,
     retrieved_chunks: list,
 ):
-    print("\n========== generate_with_confidence ==========")
+   
     print("QUESTION:", question)
     print("NUM CHUNKS:", len(retrieved_chunks))
 
@@ -852,7 +852,7 @@ def chat_answer_node(state: MeetingState):
 
     supabase = get_supabase_client()
 
-    print("\n================= CHAT NODE START =================")
+    print("\nCHAT NODE STARTS ")
 
     # --------------------------------------------------
     # Fetch chat history
@@ -891,9 +891,10 @@ def chat_answer_node(state: MeetingState):
 
     chat_context = "\n\n".join(chat_context_parts).strip()
 
-    print("\n========== CHAT CONTEXT SENT TO SUFFICIENCY ==========")
+    print("\n...CHAT CONTEXT SENT TO SUFFICIENCY... ")
     print(chat_context)
-    print("======================================================\n")
+    print("\n..........................\n")
+
 
 
     if not chat_context:

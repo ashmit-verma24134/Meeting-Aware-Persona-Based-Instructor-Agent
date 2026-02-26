@@ -7,11 +7,9 @@ from scripts.embedding_utils import build_embedding_text
 
 load_dotenv()
 
-TRANSCRIPTS_DIR = "data/transcripts/cleaned"
 MODEL_NAME = "BAAI/bge-base-en-v1.5"
 CHUNK_SIZE = 350
 OVERLAP = 50
-
 
 # ===================================================
 # GLOBAL MODEL (Load once, reuse forever)
@@ -46,35 +44,16 @@ def chunk_text(text: str, chunk_size: int, overlap: int):
 
 
 # ===================================================
-# USERNAME EXTRACTOR
-# C_utsav_live_meeting_1.txt → utsav
+# CORE INGEST LOGIC (Multi-Meeting Safe)
 # ===================================================
 
-def extract_username(filename: str):
-    name = filename.replace(".txt", "")
-    parts = name.split("_")
-
-    if len(parts) < 2:
-        raise ValueError(f"Invalid filename format: {filename}")
-
-    return parts[1]
-
-
-# ===================================================
-# CORE INGEST LOGIC (Single File)
-# ===================================================
-
-def ingest_single_file(file_path: str):
+def ingest_single_file(file_path: str, username: str, run_id: str):
 
     if not os.path.exists(file_path):
         print("File not found:", file_path)
         return
 
-    filename = os.path.basename(file_path)
-    meeting_name = filename.replace(".txt", "")
-    username = extract_username(filename)
-
-    print(f"\nProcessing: {filename}")
+    print(f"\nProcessing run_id: {run_id}")
 
     with open(file_path, "r", encoding="utf-8") as f:
         text = f.read().strip()
@@ -96,15 +75,21 @@ def ingest_single_file(file_path: str):
 
     user_uuid = user["id"]
 
-    # ================= MEETING =================
+    # ================= MEETING (BY RUN_ID) =================
 
-    meeting = supabase.get_meeting_by_name(meeting_name)
+    meeting = supabase.get_meeting_by_run_id(run_id)
 
-    if meeting and meeting["user_id"] == user_uuid:
+    if meeting:
         meeting_id = meeting["id"]
-        print("Meeting exists. Reusing.")
+        print("Meeting already exists. Reusing.")
     else:
-        meeting = supabase.create_meeting(meeting_name, user_uuid)
+        meeting = supabase.create_meeting({
+            "meeting_name": f"meeting_{run_id}",
+            "user_id": user_uuid,
+            "channel_id": username,
+            "run_id": run_id,
+            "status": "ingested"
+        })
         meeting_id = meeting["id"]
         print("Meeting created.")
 
@@ -154,30 +139,3 @@ def ingest_single_file(file_path: str):
         print("Chunks inserted.")
 
     print("Single file ingestion completed.")
-
-
-# ===================================================
-# OPTIONAL: FOLDER MODE (CLI)
-# ===================================================
-
-def main():
-
-    if not os.path.exists(TRANSCRIPTS_DIR):
-        print(f"Transcript folder not found: {TRANSCRIPTS_DIR}")
-        return
-
-    files = [f for f in os.listdir(TRANSCRIPTS_DIR) if f.endswith(".txt")]
-
-    if not files:
-        print("No transcript files found.")
-        return
-
-    for filename in files:
-        file_path = os.path.join(TRANSCRIPTS_DIR, filename)
-        ingest_single_file(file_path)
-
-    print("\nFolder ingestion completed successfully.")
-
-
-if __name__ == "__main__":
-    main()

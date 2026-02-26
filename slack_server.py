@@ -16,9 +16,6 @@ from graphs.meeting_graph import meeting_graph
 from services.hf_api_service import HFAPIService
 
 
-from scripts.ingest_to_supabase import ingest_single_file
-
-
 # ───────────────────────────────────────
 # ENV + SLACK SETUP
 # ───────────────────────────────────────
@@ -61,19 +58,36 @@ async def slack_events(request: Request):
 
     content_type = request.headers.get("content-type", "")
 
-    # ======================================================
-    # 1️⃣ HANDLE SLASH COMMANDS
-    # ======================================================
+    # ===============================
+    # 1️⃣ EVENTS API (JSON)
+    # ===============================
+    if "application/json" in content_type:
+
+        body = await request.json()
+
+        # Slack URL verification
+        if body.get("type") == "url_verification":
+            return {"challenge": body.get("challenge")}
+
+        # Handle events
+        if body.get("type") == "event_callback":
+            event = body.get("event")
+            process_event(event)
+
+        return {"status": "ok"}
+
+    # ===============================
+    # 2️⃣ SLASH COMMANDS
+    # ===============================
     if "application/x-www-form-urlencoded" in content_type:
 
         form = await request.form()
+
         command = form.get("command")
         text = form.get("text")
         channel_id = form.get("channel_id")
 
-        # ----------------------------------
-        # /new_meeting
-        # ----------------------------------
+        # ---------- /new_meeting ----------
         if command == "/new_meeting":
 
             if not text:
@@ -81,74 +95,97 @@ async def slack_events(request: Request):
 
             video_url = text.strip()
 
-            # 🔥 Start background thread
             threading.Thread(
                 target=start_meeting_background,
                 args=(channel_id, video_url),
                 daemon=True
             ).start()
 
-            # ⚡ Immediate response (avoid Slack timeout)
             return {
                 "response_type": "in_channel",
-                "text": "🚀 Starting meeting pipeline... please wait."
+                "text": "🚀 Starting meeting pipeline..."
             }
 
-        # ----------------------------------
-        # /state
-        # ----------------------------------
- # ----------------------------------
-# /state
-# ----------------------------------
-        if command == "/state":
+        # ---------- /ingest ----------
+# ---------- /ingest ----------
+        if command == "/ingest":
 
-            run_id = text.strip() if text else None
+            text = (form.get("text") or "").strip()
 
-            # If run_id provided manually
-            if run_id:
-                threading.Thread(
-                    target=check_status_background,
-                    args=(channel_id, run_id),
-                    daemon=True
-                ).start()
-
+            if not text:
                 return {
                     "response_type": "in_channel",
-                    "text": f"🔎 Checking status for `{run_id}`..."
+                    "text": "❌ Please provide a run_id.\nUsage: `/ingest <run_id>`"
                 }
 
-            # Otherwise use stored one (if exists)
-            session = SLACK_SESSIONS.get(channel_id)
+            # 🔥 REMOVE BACKTICKS + SPACES
+            run_id = text.replace("`", "").strip()
 
-            if not session or "current_run_id" not in session:
-                return {
-                    "response_type": "in_channel",
-                    "text": "❌ No meeting running in this channel."
-                }
-
-            run_id = session["current_run_id"]
+            print("CLEAN INGEST RUN ID:", run_id)
 
             threading.Thread(
-                target=check_status_background,
+                target=ingest_background,
                 args=(channel_id, run_id),
                 daemon=True
             ).start()
 
             return {
                 "response_type": "in_channel",
+                "text": f"📥 Starting ingestion for `{run_id}`..."
+            }
+        # ---------- /state ----------
+        if command == "/state":
+
+            supabase = get_supabase_client()
+
+            meeting = supabase.get_latest_meeting_by_channel(channel_id)
+
+            if not meeting:
+                return {
+                    "response_type": "in_channel",
+                    "text": "❌ No meeting found in this channel."
+                }
+
+            run_id = text.replace("`", "").strip()
+
+            print("STATE RUN ID:", run_id)
+
+            # 🔥 Run status check in background thread
+            threading.Thread(
+                target=check_status_background,
+                args=(channel_id, run_id),
+                daemon=True
+            ).start()
+
+            # 🔥 Immediate response (must be under 3 seconds)
+            return {
+                "response_type": "in_channel",
                 "text": f"🔎 Checking status for `{run_id}`..."
             }
-
 # ───────────────────────────────────────
 # EVENT PROCESSOR
 # ───────────────────────────────────────
 def check_status_background(channel_id, run_id):
     try:
-        status = hf_service.check_status(run_id)
+        supabase = get_supabase_client()
+
+        state = hf_service.check_status(run_id)
+        status = state.get("status", "unknown")
+
+        if status == "completed":
+            supabase.update_meeting_status(run_id, "completed")
+
+            slack_client.chat_postMessage(
+                channel=channel_id,
+                text=f"✅ Meeting `{run_id}` completed.\nYou can now run `/ingest`."
+            )
+            return
+
+        logs = state.get("logs", "")
 
         slack_client.chat_postMessage(
             channel=channel_id,
-            text=f"📊 Status for `{run_id}`: {status}"
+            text=f"📊 Status for `{run_id}`: {status}\n\nLast Logs:\n{logs[-1000:]}"
         )
 
     except Exception as e:
@@ -157,6 +194,87 @@ def check_status_background(channel_id, run_id):
             text=f"❌ Failed to check status:\n{str(e)}"
         )
 
+def ingest_background(channel_id, run_id):
+    try:
+        supabase = get_supabase_client()
+
+        # 1️⃣ Fetch HF result
+        result = hf_service.fetch_result(run_id)
+
+        if result["state"] != "completed":
+            slack_client.chat_postMessage(
+                channel=channel_id,
+                text="⏳ Pipeline not finished yet."
+            )
+            return
+
+        data = result["data"]
+
+        # 🔥 SAFELY EXTRACT KEYFRAMES
+        if "keyframes" in data:
+            keyframes = data["keyframes"]
+        elif "output" in data and "keyframes" in data["output"]:
+            keyframes = data["output"]["keyframes"]
+        else:
+            slack_client.chat_postMessage(
+                channel=channel_id,
+                text=f"❌ Unexpected HF format.\nKeys: {list(data.keys())}"
+            )
+            return
+
+        if not keyframes:
+            slack_client.chat_postMessage(
+                channel=channel_id,
+                text="❌ Keyframes list is empty."
+            )
+            return
+
+        # 2️⃣ Extract ONLY combined_summary
+        lines = []
+
+        for frame in keyframes:
+            summary = frame.get("combined_summary")
+            timestamp = frame.get("timestamp")
+
+            if summary:
+                lines.append(f"[{timestamp}] {summary}")
+
+        if not lines:
+            slack_client.chat_postMessage(
+                channel=channel_id,
+                text="❌ No combined summaries found."
+            )
+            return
+
+        full_text = "\n\n".join(lines)
+
+        # 3️⃣ Save transcript file
+        meeting_name = f"meeting_{run_id}"
+        file_path = f"{meeting_name}.txt"
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(full_text)
+
+        # 4️⃣ 🔥 Ingest into Supabase (CORRECT CALL)
+        ingest_single_file(
+            file_path=file_path,
+            username=channel_id,   # Slack channel = user
+            run_id=run_id          # Unique meeting id
+        )
+
+        # 5️⃣ Update meeting status
+        supabase.update_meeting_status(run_id, "ingested")
+
+        slack_client.chat_postMessage(
+            channel=channel_id,
+            text=f"✅ Ingestion complete for `{run_id}`."
+        )
+
+    except Exception as e:
+        slack_client.chat_postMessage(
+            channel=channel_id,
+            text=f"❌ Ingestion failed:\n{str(e)}"
+        )
         
 def process_event(event: dict):
     if not event:
@@ -213,24 +331,35 @@ def process_event(event: dict):
         return
 
     # In public channels → only respond if bot is mentioned
+# In public channels, respond only if bot is mentioned
     if event.get("channel_type") == "channel":
-        if event_type != "app_mention":
+        if "<@" not in (event.get("text") or ""):
             return
-
     handle_user_message(slack_user_id, channel_id, text)
 
 def start_meeting_background(channel_id, video_url):
     try:
+        supabase = get_supabase_client()
+
         run_id = hf_service.start_pipeline(video_url)
 
-        # Save run_id per channel
-        session = SLACK_SESSIONS.get(channel_id, {})
-        run_ids = session.get("run_ids", [])
-        run_ids.append(run_id)
+        # Get user
+        user = supabase.get_user_by_username(channel_id)
+        if not user:
+            user = supabase.create_user(channel_id)
 
-        SLACK_SESSIONS[channel_id] = {
-            "run_ids": run_ids
-        }
+        user_id = user["id"]
+
+        meeting_name = f"meeting_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+        # 🔥 Store in DB
+        supabase.create_meeting({
+            "meeting_name": meeting_name,
+            "user_id": user_id,
+            "run_id": run_id,
+            "channel_id": channel_id,
+            "status": "running"
+        })
 
         slack_client.chat_postMessage(
             channel=channel_id,
@@ -262,9 +391,13 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
 
     session = SLACK_SESSIONS.get(channel_id)
 
+
     # ----------------------------------------
     # CREATE SESSION IF NOT EXISTS (Per Channel)
     # ----------------------------------------
+# ----------------------------------------
+# CREATE SESSION IF NOT EXISTS (Per Channel)
+# ----------------------------------------
     if session is None:
         sid = f"{channel_id}_slack_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
         supabase.create_session(sid, user_id)
@@ -274,8 +407,9 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
             "session_id": sid,
         }
 
-        send_message(channel_id, "Channel session started ✅")
-        return
+        send_message(channel_id, "🆕 New session started for this channel.")
+
+        return  # 🔥 STOP HERE — do not continue to Q&A
 
     # ----------------------------------------
     # EXIT
@@ -338,21 +472,27 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
 
         result = hf_service.fetch_result(run_id)
 
-        if not result or result.get("status") != "complete":
-            send_message(channel_id, "⏳ Pipeline still running...")
+        # CASE 1: Still Running
+        if result["state"] == "running":
+            send_message(channel_id, "⏳ Pipeline is still running...")
             return
 
-        send_message(channel_id, "📥 Processing transcript...")
+        # CASE 2: Completed
+        if result["state"] == "completed":
+            send_message(channel_id, "📥 Output received. Processing transcript...")
 
-        txt_path = convert_hf_json_to_txt(
-            result,
-            username=channel_id,   # 🔥 Channel used as username
-            meeting_name=f"meeting_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        )
+            txt_path = convert_hf_json_to_txt(
+                result["data"],
+                username=channel_id,
+                meeting_name=f"meeting_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            )
 
-        ingest_single_file(txt_path)
+            ingest_single_file(txt_path)
 
-        send_message(channel_id, "✅ Meeting processed and stored successfully.")
+            send_message(channel_id, "✅ Meeting processed and stored successfully.")
+            return
+
+        send_message(channel_id, "⚠️ Unexpected pipeline response.")
         return
 
     # ----------------------------------------

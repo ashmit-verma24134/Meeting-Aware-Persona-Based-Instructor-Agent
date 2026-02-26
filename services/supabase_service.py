@@ -49,25 +49,17 @@ class SupabaseService:
 
         return response.data[0]
 
-    # =========================================================
-    # MEETINGS
-    # =========================================================
-
-    def create_meeting(self, meeting_name: str, user_id: str) -> Dict:
-        response = (
+    def get_meeting_by_run_id(self, run_id: str):
+        result = (
             self.client
             .table("meetings")
-            .insert({
-                "meeting_name": meeting_name,
-                "user_id": user_id
-            })
+            .select("*")
+            .eq("run_id", run_id)
+            .limit(1)
             .execute()
         )
 
-        if not response.data:
-            raise Exception("Failed to create meeting")
-
-        return response.data[0]
+        return result.data[0] if result.data else None
 
     def get_meeting_by_name(self, meeting_name: str) -> Optional[Dict]:
         response = (
@@ -202,7 +194,32 @@ class SupabaseService:
         session_id = str(uuid4())
         self.create_session(session_id, user_id)
         return session_id
+    def create_meeting(self, data: dict):
+        return self.client.table("meetings").insert(data).execute().data[0]
 
+
+    def get_latest_meeting_by_channel(self, channel_id: str):
+        result = (
+            self.client
+            .table("meetings")
+            .select("*")
+            .eq("channel_id", channel_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+
+        return result.data[0] if result.data else None
+
+
+    def update_meeting_status(self, run_id: str, status: str):
+        return (
+            self.client
+            .table("meetings")
+            .update({"status": status})
+            .eq("run_id", run_id)
+            .execute()
+        )
     def save_chat_turn(
         self,
         session_id: str,

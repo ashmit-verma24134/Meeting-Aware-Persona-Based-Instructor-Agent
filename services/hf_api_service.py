@@ -4,24 +4,20 @@ from gradio_client import Client
 
 load_dotenv()
 
-HF_REPO = os.getenv("HF_REPO")
-HF_TOKEN = os.getenv("HF_TOKEN")
+GRADIO_BASE_URL = os.getenv("PIPELINE_BASE_URL")
 
-if not HF_REPO:
-    raise ValueError("HF_REPO not set in .env")
+if not GRADIO_BASE_URL:
+    raise ValueError("PIPELINE_BASE_URL not set in .env")
 
 
 class HFAPIService:
 
     def __init__(self):
-        if HF_TOKEN:
-            self.client = Client(HF_REPO, token=HF_TOKEN)
-        else:
-            self.client = Client(HF_REPO)
+        self.client = Client(GRADIO_BASE_URL)
 
-    # ---------------------------------------
-    # 1️⃣ Start Pipeline
-    # ---------------------------------------
+    # ─────────────────────────────────────
+    # 1️⃣ START PIPELINE (GPU VERSION)
+    # ─────────────────────────────────────
     def start_pipeline(self, video_url: str):
 
         result = self.client.predict(
@@ -33,14 +29,14 @@ class HFAPIService:
             python_bin="",
             deepgram_model="nova-3",
             deepgram_language="",
-            deepgram_request_timeout_sec=3600,
+            deepgram_request_timeout_sec=1200,
             deepgram_connect_timeout_sec=30,
             deepgram_retries=3,
             deepgram_retry_backoff_sec=2,
             force_deepgram=False,
             force_keyframes=False,
             pre_roll_sec=3,
-            gemini_model="gemini-2.5-flash",
+            llm_model="llama-3.3-70b-versatile",  # from your API default
             similarity_threshold=0.82,
             temperature=0.2,
             log_heartbeat_sec=10,
@@ -48,30 +44,94 @@ class HFAPIService:
         )
 
         if not isinstance(result, (list, tuple)) or len(result) < 4:
-            raise Exception(f"Unexpected HF response: {result}")
+            raise Exception(f"Unexpected start response: {result}")
 
-        run_id = result[0] or result[3]
+        run_id = result[0]
 
         if not run_id:
-            raise Exception(f"Could not extract run_id from: {result}")
+            raise Exception("Could not extract run_id from response")
 
         return run_id
 
-    # ---------------------------------------
-    # 2️⃣ Check Status (Sticky Safe)
-    # ---------------------------------------
+
+    # ─────────────────────────────────────
+    # 2️⃣ CHECK STATUS
+    # ─────────────────────────────────────
+# ─────────────────────────────────────
+# 2️⃣ CHECK STATUS
+# ─────────────────────────────────────
     def check_status(self, run_id: str):
 
+        # 1️⃣ Try checking final output first
+        try:
+            final_output = self.client.predict(
+                rid=run_id,
+                api_name="/lambda"
+            )
+
+            if isinstance(final_output, dict) and final_output.get("keyframes"):
+                return {
+                    "status": "completed",
+                    "raw": final_output
+                }
+
+        except Exception:
+            pass  # Not completed yet
+
+
+        # 2️⃣ Otherwise check logs
+        try:
+            result = self.client.predict(
+                run_id=run_id,
+                tail_lines=200,
+                api_name="/refresh_status_logs"
+            )
+
+            if not isinstance(result, (list, tuple)) or len(result) < 2:
+                return {"status": "unknown"}
+
+            status_json = result[0]
+            logs = result[1]
+
+            if isinstance(status_json, dict):
+                return {
+                    "status": status_json.get("status", "running"),
+                    "raw": status_json,
+                    "logs": logs
+                }
+
+            return {"status": "running"}
+
+        except Exception:
+            return {"status": "running"}
+
+
+    # ─────────────────────────────────────
+    # 3️⃣ FETCH FINAL OUTPUT
+    # ─────────────────────────────────────
+    def fetch_result(self, run_id: str):
+
         result = self.client.predict(
-            run_id=run_id,
-            tail_lines=0,      # no logs needed
-            poll_sec=2,
-            api_name="/watch_run"
+            rid=run_id,
+            api_name="/lambda"
         )
 
-        status_json = result[0]
+        # Case 1: Still running
+        if isinstance(result, dict) and result.get("status") == "running":
+            return {
+                "state": "running",
+                "data": result
+            }
 
-        if isinstance(status_json, dict):
-            return status_json.get("status", "unknown")
+        # Case 2: Final Output Ready
+        if isinstance(result, dict):
+            return {
+                "state": "completed",
+                "data": result
+            }
 
-        return "unknown"
+        # Unexpected
+        return {
+            "state": "unknown",
+            "data": result
+        }

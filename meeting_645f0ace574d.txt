@@ -1,0 +1,45 @@
+[00:00:00] Local (no Gemini) summary for slides frame. Utterances: [00:00:00-00:00:01][0] What we actually | [00:00:03-00:00:04][0] what have you understood? | [00:00:18-00:00:19][1] So | [00:00:23-00:00:24][0] let me | [00:00:27-00:00:31][0] show you what one of the recordings which I | [00:00:32-00:00:33][0] downloaded. | [00:00:33-00:00:34][0] So | [00:00:36-00:00:38][0] let me share my screen. Content: SLIDES keyframe. OCR extracted on-screen text (top lines): G | Gautam Shroff
+
+[00:00:46] Local (no Gemini) summary for slides frame. Utterances: [00:00:43-00:00:47][0] So I'm showing you I downloaded this recording | [00:00:47-00:00:48][0] from | [00:00:48-00:00:49][0] you and AI. Right? Content: SLIDES keyframe. OCR extracted on-screen text (top lines): Chrome | File | Edit | History | Tab | C | Mon 5 Jan 11:59AM | Help | View | Bookmarks | Profiles | Window | Google Meet | ~pofy-iri | Meet | mxi- | https:Ilmeet google com/mxi-pofy-iri | School | Meta-Learning Sih | Anvil | Build Web A | CSE643 A | Workspace admin_ | Gautam Shroff (You; presenting; annotating) | Stop presenting
+
+[00:00:49] The speaker is discussing a recording and mentions iCap, while the screen displays a picture with the text 'Bring the call back here' visible in multiple regions.
+
+[00:01:00] The speaker says 'I'll just I downloaded one of them. Right? One minute.' while sharing their screen on Google Meet, showing a Finder window with files and folders, and a picture-in-picture window with the call
+
+[00:01:07] The speaker is navigating through files and folders in a Finder window, including TypeScript files and videos, while screen sharing in a Google Meet call, and says 'I'll just I downloaded one of them. Right?' and 'Say let's say this one. Right? Mhmm.'
+
+[00:01:11] The speaker says 'Say let's say this one. Right? Mhmm.' and then 'So this is a recording. Oops. Why is it not showing?' while the screen shows a Finder window with various files and folders, including images and videos, and a picture-in-picture window with a Google Meet call, which is open because the user is screen sharing.
+
+[00:01:14] The speaker says 'So this is a recording. Oops. Why is it not showing?' while the screen displays a picture of Gautam Shroff, with his name displayed below the image.
+
+[00:01:17] {'summary': 'The screen continues to show a picture of Gautam Shroff with his name displayed below, while the speakers discuss a recording issue, with one speaker indicating it is on the laptop.'}
+
+[00:01:20] {'description': "The speaker is navigating through the laptop settings, with System Settings and Google Meet visible on the screen. The speaker says 'One sec. One sec.' and 'Display.', while the other speaker mentions 'It's here on the laptop.'"}
+
+[00:01:25] The speaker mentioned 'Display' while the screen shows system settings, including 'Displays', and 'Google Meet' is sharing the screen.
+
+[00:01:29] The speaker says 'Okay' and 'So you can see this. Right?' while the screen displays a picture with a person's name 'Gautam Shroff' and a page header with the letter 'G'
+
+[00:01:32] The speaker says 'So you can see this. Right?' while the screen displays a picture with 'Gautam Shroff' and a page header with 'G', as the speaker begins to explain a recording of a classmate.
+
+[00:01:48] The speaker says 'so at some point, he's opening this. At this point,' while the screen shows a picture with a menu bar and various text lines, including 'QuickTimo Playcr', 'New Delhi', and 'Gautam Shroff', and displays 'video call is being recc', 'recording', and 'Meet Recordings folder in'. Another speaker says 'LLM has no clue'.
+
+[00:01:53] The speaker is discussing someone opening something and the LLM having no clue what's going on, while the screen displays a picture with the text 'G' in the page-header region.
+
+[00:02:01] The speaker talks about a demo while the screen displays a picture with 'G' in the page-header region, showing no significant changes from the previous frame.
+
+[00:02:04] Local (no Gemini) summary for slides frame. Utterances: [00:02:02-00:02:05][0] demo of some kind. Right? They he does all this. | [00:02:05-00:02:07][0] Right. And Content: SLIDES keyframe. OCR extracted on-screen text (top lines): QuickTimo Playcr | Edit | View | Window | File | Help | New Delhi | 168 | play_720p.Mpa | Demonstration 0f chatbot | School | Mostly Sunny | functionality | cidoct | Stop presenting | ling | let sessionid | crypto randOrUID | localstorage setiten | sessionid) | ct | session on page load: | console | const | ethoda
+
+[00:02:07] The speaker is discussing a demo, and the current frame shows a picture region with a page header containing the text 'G', which appears to be a new visual context.
+
+[00:02:20] The speaker is referring to a demo given by Gautam Shroff, which is now visible on the screen.
+
+[00:02:23] The speaker discusses a recorded demo while the screen shows a video call interface with options to control the call and display text lines including 'Patient Chatbot' and names 'Gautam Shroff' and 'Agrim Jindal'.
+
+[00:02:26] The speaker is discussing a demo, which is visible on the screen with options to 'Stop presenting', 'Stop recording', and 'Stop sharing'. The demo is being recorded and saved in the 'Meet Recordings' folder. The speaker mentions using change detection to identify significant changes in the video and processing it to extract relevant information.
+
+[00:14:25] {'summary': "The meeting is being recorded and saved in the 'Meet Recordings' folder. The speaker is discussing the meeting duration, training models, and using Blip for text extraction, while the Google Meet interface is visible on the screen with picture-in-picture mode and recording notification."}
+
+[00:16:32] {'description': 'The Google Meet interface is visible with picture-in-picture mode and a recording notification. The text extraction model options are also present. No changes are observed in this frame.'}
+
+[00:16:38] Local (no Gemini) summary for none frame. Utterances: No assigned utterances for this keyframe. Content: NONE keyframe. OCR text not available.

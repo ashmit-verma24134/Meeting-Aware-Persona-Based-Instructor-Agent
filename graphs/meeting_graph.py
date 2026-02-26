@@ -377,13 +377,25 @@ def retrieve_chunks_node(state: MeetingState):
     # -----------------------------------
     # Temporal filtering
     # -----------------------------------
+# -----------------------------------
+# Proper Temporal filtering
+    # -----------------------------------
     if state.get("temporal_constraint") == "latest":
-        first_meeting = clean_chunks[0]["meeting_id"]
+        try:
+            latest_meeting = supabase.get_latest_meeting_by_user(
+                user_id=state["user_id"]
+            )
 
-        clean_chunks = [
-            c for c in clean_chunks
-            if c["meeting_id"] == first_meeting
-        ]
+            if latest_meeting:
+                latest_id = latest_meeting["id"]
+
+                clean_chunks = [
+                    c for c in clean_chunks
+                    if c["meeting_id"] == latest_id
+                ]
+
+        except Exception as e:
+            print("Latest meeting fetch failed:", e)
 
     # -----------------------------------
     # Sort by transcript order

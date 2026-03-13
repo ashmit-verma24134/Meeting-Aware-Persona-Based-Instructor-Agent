@@ -9,7 +9,6 @@ import numpy as np
 from langgraph.graph import StateGraph, END
 from groq import Groq
 from scripts.generate_answer import generate_answer_with_llm
-from sentence_transformers import SentenceTransformer
 SAFE_ABSTAIN = "This was not clearly discussed in the meeting."
 from services.embedding_api import get_embedding
 

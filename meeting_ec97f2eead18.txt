@@ -1,0 +1,45 @@
+[00:00:00] Local (no Gemini) summary for slides frame. Utterances: [00:00:00-00:00:01][0] What we actually | [00:00:03-00:00:04][0] what have you understood? | [00:00:18-00:00:19][1] So | [00:00:23-00:00:24][0] let me | [00:00:27-00:00:31][0] show you what one of the recordings which I | [00:00:32-00:00:33][0] downloaded. | [00:00:33-00:00:34][0] So | [00:00:36-00:00:38][0] let me share my screen. Content: SLIDES keyframe. OCR extracted on-screen text (top lines): G | Gautam Shroff
+
+[00:00:46] Local (no Gemini) summary for slides frame. Utterances: [00:00:43-00:00:47][0] So I'm showing you I downloaded this recording | [00:00:47-00:00:48][0] from | [00:00:48-00:00:49][0] you and AI. Right? Content: SLIDES keyframe. OCR extracted on-screen text (top lines): Chrome | File | Edit | History | Tab | C | Mon 5 Jan 11:59AM | Help | View | Bookmarks | Profiles | Window | Google Meet | ~pofy-iri | Meet | mxi- | https:Ilmeet google com/mxi-pofy-iri | School | Meta-Learning Sih | Anvil | Build Web A | CSE643 A | Workspace admin_ | Gautam Shroff (You; presenting; annotating) | Stop presenting
+
+[00:00:49] The speaker is discussing a recording and mentions iCap, while the screen displays a picture with the text 'Bring the call back here', indicating a shift in context or action.
+
+[00:01:00] The speaker says 'I'll just I downloaded one of them. Right? One minute.' while the screen shows a Finder interface with various files and folders, including TypeScript files, and a picture-in-picture window with a Google Meet interface
+
+[00:01:07] The speaker is navigating through a Finder interface with various files and folders, including TypeScript files, while sharing their screen on a Google Meet call with the URL 'https://meet.google.com/mxi-pofy-iri'. The speaker says 'I'll just I downloaded one of them. Right?' and 'Say let's say this one. Right? Mhmm.' while the picture-in-picture window displays a message 'Picture-in-picture is open because you're screen sharing' and shows the Google Meet interface.
+
+[00:01:11] The speaker says 'Say let's say this one. Right? Mhmm.' and 'So this is a recording. Oops. Why is it not showing?' while the screen shows a Finder interface with various files and folders, and a picture-in-picture window with a Google Meet interface, displaying a message 'Picture-in-picture is open because you're screen sharing' and the meeting URL 'https://meet.google.com/mxi-pofy-iri'.
+
+[00:01:14] The speaker says 'So this is a recording. Oops. Why is it not showing?' while the screen displays a picture of Gautam Shroff, with his name displayed below the image.
+
+[00:01:17] {'description': 'The screen continues to show a picture of Gautam Shroff with his name displayed below, while the speakers discuss a recording issue and its location on the laptop.'}
+
+[00:01:20] {'description': "Speaker 0 says 'One sec. One sec.' and then 'Display.' while the System Settings menu appears on the screen, showing options like 'Appearance', 'Network', and 'Notifications'. The Google Meet screen is also visible, with Gautam Shroff's picture and name displayed."}
+
+[00:01:25] {'summary': "The speaker mentions 'Display' and the System Settings menu is visible on the screen, along with the Google Meet screen and a picture of Gautam Shroff. The screen sharing notification is also displayed."}
+
+[00:01:29] {'summary': "The speaker says 'Okay' and 'So you can see this. Right?' while the picture of Gautam Shroff and their name are visible on the screen."}
+
+[00:01:32] {'description': 'The speaker is referring to a recording of one of the classmates, with a picture of Gautam Shroff and his name visible on the screen.', 'context': 'The speaker is explaining the context of the recording, with the image and name of Gautam Shroff remaining on the screen.'}
+
+[00:01:48] The speaker says 'so at some point, he's opening this. At this point,' while the frame shows a picture with various menu options and text, including 'QuickTimo Playcr', 'New Delhi', '168', 'play_720p.mpa', 'School', 'Mostly Sunny', 'ICAPP', and 'Gautam Shroff'. The frame also shows new elements such as 'video call is being recc', 'recording', and 'Meet Recordings folder in', indicating that a video call is being recorded and will be saved. Another speaker says 'LLM has no clue'.
+
+[00:01:53] The speaker is discussing someone opening something, and at the same time, the screen shows a picture with the text 'G' visible, indicating a change in the visual context.
+
+[00:02:01] The speaker discusses a demo while the screen displays a picture with the text 'G' visible.
+
+[00:02:04] Local (no Gemini) summary for slides frame. Utterances: [00:02:02-00:02:05][0] demo of some kind. Right? They he does all this. | [00:02:05-00:02:07][0] Right. And Content: SLIDES keyframe. OCR extracted on-screen text (top lines): QuickTimo Playcr | Edit | View | Window | File | Help | New Delhi | 168 | play_720p.Mpa | Demonstration 0f chatbot | School | Mostly Sunny | functionality | cidoct | Stop presenting | ling | let sessionid | crypto randOrUID | localstorage setiten | sessionid) | ct | session on page load: | console | const | ethoda
+
+[00:02:07] The speaker is discussing a demo while the screen displays a picture with a page header containing the letter 'G', which may be related to the demo being discussed.
+
+[00:02:20] The speaker is discussing a demo given by Gautam Shroff, and the current frame shows a picture with Gautam Shroff's name displayed on the screen.
+
+[00:02:23] The speaker discusses a demo that was given and recorded, while the screen shows a picture with text lines related to a video call, including options to stop presenting, recording, and sharing, with names 'Gautam Shroff' and 'Agrim Jindal' visible.
+
+[00:02:26] The speaker is discussing a demo, mentioning that it's not for the course, while the screen shows a picture with text lines including 'QuickTimo Playcr', 'Patient Chatbot', 'Gautam Shroff', and 'Agrim Jindal', along with options to control the presentation and recording.
+
+[00:14:25] {'summary': "The speaker is discussing the meeting duration and the use of Blip for text extraction from frames. The screen displays a picture with various text lines, including options to 'Stop presenting', 'Stop recording', and 'Stop sharing'. The picture-in-picture feature is open, and the video call is being recorded. The recording will be saved in 'Shroff s Mcet Recordings folder in'."}
+
+[00:16:32] {'text': 'The screen shows a Google Meet interface with various menu options and a notification that the video call is being recorded. The user, Gautam Shroff, is presenting and annotating. There is a warning that the video call cannot be ended yet and a notification about a recording in the Meet tab. The picture-in-picture feature is open, and there are options to stop recording, dismiss, and go to the Meet tab.'}
+
+[00:16:38] Local (no Gemini) summary for none frame. Utterances: No assigned utterances for this keyframe. Content: NONE keyframe. OCR text not available.

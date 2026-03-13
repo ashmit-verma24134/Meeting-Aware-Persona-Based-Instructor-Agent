@@ -3,13 +3,12 @@ import json
 import re
 import numpy as np
 import faiss
-from sentence_transformers import SentenceTransformer
+from services.embedding_api import get_embedding
 from groq import Groq
 from typing import Union, Dict, List
 from dotenv import load_dotenv
 
 
-_MODEL = None
 _FAISS_INDEX = {}
 _VECTOR_CHUNKS = {}
 
@@ -21,7 +20,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHUNKS_PATH = os.path.join(BASE_DIR, "data", "chunks.json")
 EMBEDDINGS_PATH = os.path.join(BASE_DIR, "chunk_embeddings.json")
 
-MODEL_NAME = "BAAI/bge-base-en-v1.5"
 SAFE_ABSTAIN = "This was not clearly discussed in the meeting."
 
 
@@ -176,10 +174,7 @@ def retrieve_chunks(
     if not vectors:
         return {"chunks": [], "_all_meeting_indices": meeting_ids}
 
-    global _MODEL, _FAISS_INDEX, _VECTOR_CHUNKS
-
-    if _MODEL is None:
-        _MODEL = SentenceTransformer(MODEL_NAME)
+    global _FAISS_INDEX, _VECTOR_CHUNKS
 
     cache_key = f"{user_id}::{project_type or 'all'}"
 
@@ -194,11 +189,10 @@ def retrieve_chunks(
         _VECTOR_CHUNKS[cache_key] = vector_chunks
 
     # IMPORTANT: must match ingestion format (no "query:" prefix unless used in ingestion)
-    q_emb = _MODEL.encode(
-        query_text,
-        normalize_embeddings=True
-    )
+    q_emb = get_embedding(query_text)
     q_emb = np.array([q_emb], dtype="float32")
+
+    faiss.normalize_L2(q_emb)
 
     TOP_K = min(25, len(_VECTOR_CHUNKS[cache_key]))
     scores, ids = _FAISS_INDEX[cache_key].search(q_emb, TOP_K)

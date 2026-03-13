@@ -1,29 +1,18 @@
 import os
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
+from services.embedding_api import get_embedding
 
 from services.supabase_service import SupabaseService
 from scripts.embedding_utils import build_embedding_text
 
 load_dotenv()
 
-MODEL_NAME = "BAAI/bge-base-en-v1.5"
 CHUNK_SIZE = 350
 OVERLAP = 50
 
 # ===================================================
 # GLOBAL MODEL (Load once, reuse forever)
 # ===================================================
-
-_VECTOR_MODEL = None
-
-def get_vector_model():
-    global _VECTOR_MODEL
-    if _VECTOR_MODEL is None:
-        print("Loading embedding model...")
-        _VECTOR_MODEL = SentenceTransformer(MODEL_NAME)
-        print("Embedding model loaded.")
-    return _VECTOR_MODEL
 
 
 # ===================================================
@@ -62,7 +51,6 @@ def ingest_single_file(file_path: str, username: str, run_id: str):
         print("Empty file. Skipping.")
         return
 
-    model = get_vector_model()
     supabase = SupabaseService()
 
     # ================= USER =================
@@ -120,10 +108,7 @@ def ingest_single_file(file_path: str, username: str, run_id: str):
             prev_chunk
         )
 
-        embedding = model.encode(
-            embedding_text,
-            normalize_embeddings=True
-        ).tolist()
+        embedding = get_embedding(embedding_text)
 
         chunk_rows.append({
             "meeting_id": meeting_id,
@@ -139,3 +124,28 @@ def ingest_single_file(file_path: str, username: str, run_id: str):
         print("Chunks inserted.")
 
     print("Single file ingestion completed.")
+
+
+# ==============================================
+# MAIN RUNNER
+# ==============================================
+
+if __name__ == "__main__":
+
+    username = "test_user"
+
+    DATA_DIR = "."
+
+    files = [f for f in os.listdir(DATA_DIR) if f.endswith(".txt")]
+
+    print(f"Found {len(files)} meeting files")
+
+    for file in files:
+
+        run_id = os.path.splitext(file)[0]
+
+        ingest_single_file(
+            file_path=os.path.join(DATA_DIR, file),
+            username=username,
+            run_id=run_id
+        )

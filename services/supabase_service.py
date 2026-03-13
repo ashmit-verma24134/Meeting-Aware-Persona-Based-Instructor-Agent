@@ -61,6 +61,19 @@ class SupabaseService:
 
         return result.data[0] if result.data else None
 
+    def get_latest_meeting_by_user(self, user_id):
+        result = (
+            self.client.table("meetings")
+            .select("*")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+
+        if result.data:
+            return result.data[0]
+        return None
     def get_meeting_by_name(self, meeting_name: str) -> Optional[Dict]:
         response = (
             self.client

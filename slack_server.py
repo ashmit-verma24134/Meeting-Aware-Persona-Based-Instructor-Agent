@@ -160,7 +160,7 @@ async def slack_events(request: Request):
             # 🔥 Immediate response (must be under 3 seconds)
             return {
                 "response_type": "in_channel",
-                "text": f"🔎 Checking status for `{run_id}`..."
+                "text": f"Checking status for `{run_id}`..."
             }
 # ───────────────────────────────────────
 # EVENT PROCESSOR
@@ -487,7 +487,11 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
                 meeting_name=f"meeting_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             )
 
-            ingest_single_file(txt_path)
+            ingest_single_file(
+            file_path=txt_path,
+            username=channel_id,
+            run_id=run_id
+        )
 
             send_message(channel_id, " Meeting processed and stored successfully.")
             return

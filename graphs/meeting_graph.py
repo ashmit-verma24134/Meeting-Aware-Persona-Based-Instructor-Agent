@@ -735,7 +735,7 @@ def chunk_answer_node(state: MeetingState):
         reverse=True
     )
 
-    MAX_CONTEXT_CHUNKS = 12
+    MAX_CONTEXT_CHUNKS = 6
     selected_chunks = sorted_chunks[:MAX_CONTEXT_CHUNKS]
 
     print(f"\nChunks passed to LLM: {len(selected_chunks)}")

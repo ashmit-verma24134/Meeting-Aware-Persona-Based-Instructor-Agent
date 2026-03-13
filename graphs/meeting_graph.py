@@ -11,7 +11,7 @@ from groq import Groq
 from scripts.generate_answer import generate_answer_with_llm
 from sentence_transformers import SentenceTransformer
 SAFE_ABSTAIN = "This was not clearly discussed in the meeting."
-
+from services.embedding_api import get_embedding
 
 client = Groq()
 
@@ -306,17 +306,15 @@ def retrieve_chunks_node(state: MeetingState):
         state["question"]
     )
 
-    model = get_vector_model()
+    
     supabase = get_supabase_client()
 
     # -----------------------------------
     # Generate embedding safely
     # -----------------------------------
     try:
-        query_embedding = model.encode(
-            query_text,
-            normalize_embeddings=True
-        ).tolist()
+        query_embedding = get_embedding(query_text)
+
     except Exception:
         state["retrieved_chunks"] = []
         state["_all_meeting_indices"] = []

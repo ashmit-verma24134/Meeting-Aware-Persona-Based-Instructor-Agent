@@ -7,9 +7,7 @@ openai
 supabase
 requests
 pydantic
-sentence-transformers
 langgraph
 groq
-faiss-cpu
 gradio_client
 python-multipart

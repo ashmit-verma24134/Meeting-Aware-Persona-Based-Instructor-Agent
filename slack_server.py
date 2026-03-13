@@ -547,3 +547,7 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
 
 def send_message(channel_id: str, text: str):
     slack_client.chat_postMessage(channel=channel_id, text=text)
+
+@app.get("/")
+def health():
+    return {"status": "meeting-agent-running"}

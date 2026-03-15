@@ -1,8 +1,6 @@
 import os
 import json
 import re
-import numpy as np
-import faiss
 from services.embedding_api import get_embedding
 from groq import Groq
 from typing import Union, Dict, List

@@ -5,7 +5,6 @@ from agents.source_decider_agent import decide_source_node
 from agents.text_utils import trim_chunk_text
 from agents.decision_types import Decision
 from services.supabase_service import SupabaseService
-import numpy as np
 from langgraph.graph import StateGraph, END
 from groq import Groq
 from scripts.generate_answer import generate_answer_with_llm
@@ -622,7 +621,6 @@ def has_explicit_antecedent(chunks: list) -> bool:
 
 
 import re
-import numpy as np
 
 def generate_with_confidence(
     question: str,

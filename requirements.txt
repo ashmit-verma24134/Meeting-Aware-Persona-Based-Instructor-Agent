@@ -8,3 +8,4 @@ pydantic
 langgraph
 groq
 python-multipart
+gradio_client  

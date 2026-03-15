@@ -6,21 +6,25 @@ load_dotenv()
 
 GRADIO_BASE_URL = os.getenv("PIPELINE_BASE_URL")
 
-if not GRADIO_BASE_URL:
-    raise ValueError("PIPELINE_BASE_URL not set in .env")
+
 
 
 class HFAPIService:
 
     def __init__(self):
-        self.client = Client(GRADIO_BASE_URL)
+        self._client = None
+
+    def _get_client(self):
+        if self._client is None:
+            self._client = Client(GRADIO_BASE_URL)
+        return self._client
 
     # ─────────────────────────────────────
     # 1️⃣ START PIPELINE (GPU VERSION)
     # ─────────────────────────────────────
     def start_pipeline(self, video_url: str):
 
-        result = self.client.predict(
+        result = self._get_client().predict(
             variant="demo-code",
             input_mode="Video URL",
             video_file_path=None,
@@ -64,7 +68,7 @@ class HFAPIService:
 
         # 1️⃣ Try checking final output first
         try:
-            final_output = self.client.predict(
+            final_output = self._get_client().predict(
                 rid=run_id,
                 api_name="/lambda"
             )
@@ -81,7 +85,7 @@ class HFAPIService:
 
         # 2️⃣ Otherwise check logs
         try:
-            result = self.client.predict(
+            result = self._get_client().predict(
                 run_id=run_id,
                 tail_lines=200,
                 api_name="/refresh_status_logs"
@@ -111,7 +115,7 @@ class HFAPIService:
     # ─────────────────────────────────────
     def fetch_result(self, run_id: str):
 
-        result = self.client.predict(
+        result = self._get_client().predict(
             rid=run_id,
             api_name="/lambda"
         )

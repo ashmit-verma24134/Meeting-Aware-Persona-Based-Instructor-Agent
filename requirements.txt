@@ -1,13 +1,10 @@
 fastapi
 uvicorn
-gunicorn
 slack_sdk
 python-dotenv
-openai
 supabase
 requests
 pydantic
 langgraph
 groq
-gradio_client
 python-multipart

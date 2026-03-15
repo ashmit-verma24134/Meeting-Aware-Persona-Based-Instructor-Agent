@@ -50,15 +50,8 @@ class MeetingState(TypedDict):
 
 
 
-_ENTAILMENT_MODEL = None
 
-def get_entailment_model():
-    global _ENTAILMENT_MODEL
-    if _ENTAILMENT_MODEL is None:
-        _ENTAILMENT_MODEL = SentenceTransformer(
-            "BAAI/bge-base-en-v1.5"
-        )
-    return _ENTAILMENT_MODEL
+
 
 
 
@@ -272,19 +265,9 @@ SUMMARY:
 # GLOBAL VECTOR MODEL + SUPABASE
 # ==============================
 
-_VECTOR_MODEL = None
 _SUPABASE_CLIENT = None
 
 
-def get_vector_model():
-    global _VECTOR_MODEL
-    if _VECTOR_MODEL is None:
-        print("Loading vector model...")
-        _VECTOR_MODEL = SentenceTransformer(
-            "BAAI/bge-base-en-v1.5"
-        )
-        print("Vector model loaded.")
-    return _VECTOR_MODEL
 
 
 def get_supabase_client():

@@ -2,6 +2,7 @@ import os
 import json
 import threading
 import requests as http_requests
+import re
 
 from datetime import datetime
 from threading import Lock

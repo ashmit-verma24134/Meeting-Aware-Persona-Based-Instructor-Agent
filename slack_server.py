@@ -162,10 +162,10 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
 
         # Handle events
         if body.get("type") == "event_callback":
-            event = body.get("event")
-            process_event(event)
+                    event = body.get("event")
+                    background_tasks.add_task(process_event, event)
 
-        return {"status": "ok"}
+                return {"status": "ok"}
 
     # ===============================
     # 2️⃣ SLASH COMMANDS

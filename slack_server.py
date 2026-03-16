@@ -48,6 +48,19 @@ EVENT_LOCK = Lock()
 
 STAGE_ACTIVE = "ACTIVE"
 
+def check_state_and_reply(run_id, response_url):
+    try:
+        state = hf_service.check_status(run_id)
+        status = state.get("status", "unknown")
+        http_requests.post(response_url, json={
+            "response_type": "in_channel",
+            "text": f"Status for `{run_id}`: `{status}`"
+        })
+    except Exception as e:
+        http_requests.post(response_url, json={
+            "response_type": "in_channel",
+            "text": f"Failed: {str(e)}"
+        })
 
 def start_and_reply(channel_id, video_url, response_url):
     try:
@@ -194,21 +207,16 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
                     if not run_id:
                         return {
                             "response_type": "in_channel",
-                            "text": "Please provide a run_id.\nUsage: `/state <run_id>`"
+                            "text": "Please provide a run_id."
                         }
 
-                    try:
-                        state = hf_service.check_status(run_id)
-                        status = state.get("status", "unknown")
-                        return {
-                            "response_type": "in_channel",
-                            "text": f"Status for `{run_id}`: `{status}`"
-                        }
-                    except Exception as e:
-                        return {
-                            "response_type": "in_channel",
-                            "text": f"Failed: {str(e)}"
-                        }
+                    response_url = form.get("response_url")
+                    background_tasks.add_task(check_state_and_reply, run_id, response_url)
+
+                    return {
+                        "response_type": "in_channel",
+                        "text": f"Checking status for `{run_id}`..."
+                    }
 # ───────────────────────────────────────
 # EVENT PROCESSOR
 # ───────────────────────────────────────

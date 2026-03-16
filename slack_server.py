@@ -89,79 +89,114 @@ async def slack_events(request: Request):
 
         # ---------- /new_meeting ----------
         if command == "/new_meeting":
-
             if not text:
                 return {"text": "Please provide a video URL."}
 
             video_url = text.strip()
 
-            threading.Thread(
-                target=start_meeting_background,
-                args=(channel_id, video_url),
-                daemon=True
-            ).start()
+            try:
+                run_id = hf_service.start_pipeline(video_url)
 
-            return {
-                "response_type": "in_channel",
-                "text": " Starting meeting pipeline..."
-            }
+                supabase = get_supabase_client()
+                user = supabase.get_user_by_username(channel_id)
+                if not user:
+                    user = supabase.create_user(channel_id)
+
+                supabase.create_meeting({
+                    "meeting_name": f"meeting_{run_id}",
+                    "user_id": user["id"],
+                    "run_id": run_id,
+                    "channel_id": channel_id,
+                    "status": "running"
+                })
+
+                return {
+                    "response_type": "in_channel",
+                    "text": f"Meeting started! Run ID: `{run_id}`\nUse `/state {run_id}` to check progress."
+                }
+
+            except Exception as e:
+                return {
+                    "response_type": "in_channel",
+                    "text": f"Failed: {str(e)}"
+                }
 
         # ---------- /ingest ----------
 # ---------- /ingest ----------
         if command == "/ingest":
+                    run_id = (form.get("text") or "").replace("`", "").strip()
 
-            text = (form.get("text") or "").strip()
+                    if not run_id:
+                        return {
+                            "response_type": "in_channel",
+                            "text": "Please provide a run_id.\nUsage: `/ingest <run_id>`"
+                        }
 
-            if not text:
-                return {
-                    "response_type": "in_channel",
-                    "text": "Please provide a run_id.\nUsage: `/ingest <run_id>`"
-                }
+                    try:
+                        result = hf_service.fetch_result(run_id)
 
-            #REMOVE BACKTICKS + SPACES
-            run_id = text.replace("`", "").strip()
+                        if result["state"] != "completed":
+                            return {
+                                "response_type": "in_channel",
+                                "text": "Pipeline not finished yet."
+                            }
 
-            print("CLEAN INGEST RUN ID:", run_id)
+                        data = result["data"]
+                        keyframes = data.get("keyframes") or data.get("output", {}).get("keyframes", [])
 
-            threading.Thread(
-                target=ingest_background,
-                args=(channel_id, run_id),
-                daemon=True
-            ).start()
+                        if not keyframes:
+                            return {"response_type": "in_channel", "text": "No keyframes found."}
 
-            return {
-                "response_type": "in_channel",
-                "text": f"Starting ingestion for `{run_id}`..."
-            }
+                        lines = [
+                            f"[{f.get('timestamp')}] {f.get('combined_summary')}"
+                            for f in keyframes if f.get("combined_summary")
+                        ]
+
+                        full_text = "\n\n".join(lines)
+
+                        # Write to /tmp (only writable dir on Vercel)
+                        file_path = f"/tmp/meeting_{run_id}.txt"
+                        with open(file_path, "w", encoding="utf-8") as f:
+                            f.write(full_text)
+
+                        ingest_single_file(
+                            file_path=file_path,
+                            username=channel_id,
+                            run_id=run_id
+                        )
+
+                        return {
+                            "response_type": "in_channel",
+                            "text": f"Ingestion complete for `{run_id}`."
+                        }
+
+                    except Exception as e:
+                        return {
+                            "response_type": "in_channel",
+                            "text": f"Ingestion failed: {str(e)}"
+                        }
         # ---------- /state ----------
         if command == "/state":
+                    run_id = (text or "").replace("`", "").strip()
 
-            supabase = get_supabase_client()
+                    if not run_id:
+                        return {
+                            "response_type": "in_channel",
+                            "text": "Please provide a run_id.\nUsage: `/state <run_id>`"
+                        }
 
-            meeting = supabase.get_latest_meeting_by_channel(channel_id)
-
-            if not meeting:
-                return {
-                    "response_type": "in_channel",
-                    "text": " No meeting found in this channel."
-                }
-
-            run_id = text.replace("`", "").strip()
-
-            print("STATE RUN ID:", run_id)
-
-            # 🔥 Run status check in background thread
-            threading.Thread(
-                target=check_status_background,
-                args=(channel_id, run_id),
-                daemon=True
-            ).start()
-
-            # 🔥 Immediate response (must be under 3 seconds)
-            return {
-                "response_type": "in_channel",
-                "text": f"Checking status for `{run_id}`..."
-            }
+                    try:
+                        state = hf_service.check_status(run_id)
+                        status = state.get("status", "unknown")
+                        return {
+                            "response_type": "in_channel",
+                            "text": f"Status for `{run_id}`: `{status}`"
+                        }
+                    except Exception as e:
+                        return {
+                            "response_type": "in_channel",
+                            "text": f"Failed: {str(e)}"
+                        }
 # ───────────────────────────────────────
 # EVENT PROCESSOR
 # ───────────────────────────────────────

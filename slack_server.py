@@ -153,20 +153,16 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
     # 1️⃣ EVENTS API (JSON)
     # ===============================
     if "application/json" in content_type:
+            body = await request.json()
 
-        body = await request.json()
+            if body.get("type") == "url_verification":
+                return {"challenge": body.get("challenge")}
 
-        # Slack URL verification
-        if body.get("type") == "url_verification":
-            return {"challenge": body.get("challenge")}
+            if body.get("type") == "event_callback":
+                event = body.get("event")
+                background_tasks.add_task(process_event, event)
 
-        # Handle events
-        if body.get("type") == "event_callback":
-                    event = body.get("event")
-                    background_tasks.add_task(process_event, event)
-
-                return {"status": "ok"}
-
+            return {"status": "ok"}
     # ===============================
     # 2️⃣ SLASH COMMANDS
     # ===============================

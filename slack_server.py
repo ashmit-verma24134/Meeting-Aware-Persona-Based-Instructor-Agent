@@ -48,6 +48,56 @@ EVENT_LOCK = Lock()
 
 STAGE_ACTIVE = "ACTIVE"
 
+
+def ingest_and_reply(channel_id, run_id, response_url):
+    try:
+        result = hf_service.fetch_result(run_id)
+
+        if result["state"] != "completed":
+            http_requests.post(response_url, json={
+                "response_type": "in_channel",
+                "text": "Pipeline not finished yet."
+            })
+            return
+
+        data = result["data"]
+        keyframes = data.get("keyframes") or data.get("output", {}).get("keyframes", [])
+
+        if not keyframes:
+            http_requests.post(response_url, json={
+                "response_type": "in_channel",
+                "text": "No keyframes found."
+            })
+            return
+
+        lines = [
+            f"[{f.get('timestamp')}] {f.get('combined_summary')}"
+            for f in keyframes if f.get("combined_summary")
+        ]
+
+        full_text = "\n\n".join(lines)
+        file_path = f"/tmp/meeting_{run_id}.txt"
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(full_text)
+
+        ingest_single_file(
+            file_path=file_path,
+            username=channel_id,
+            run_id=run_id
+        )
+
+        http_requests.post(response_url, json={
+            "response_type": "in_channel",
+            "text": f"Ingestion complete for `{run_id}`."
+        })
+
+    except Exception as e:
+        http_requests.post(response_url, json={
+            "response_type": "in_channel",
+            "text": f"Ingestion failed: {str(e)}"
+        })
+
 def check_state_and_reply(run_id, response_url):
     try:
         state = hf_service.check_status(run_id)
@@ -157,49 +207,13 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
                             "text": "Please provide a run_id.\nUsage: `/ingest <run_id>`"
                         }
 
-                    try:
-                        result = hf_service.fetch_result(run_id)
+                    response_url = form.get("response_url")
+                    background_tasks.add_task(ingest_and_reply, channel_id, run_id, response_url)
 
-                        if result["state"] != "completed":
-                            return {
-                                "response_type": "in_channel",
-                                "text": "Pipeline not finished yet."
-                            }
-
-                        data = result["data"]
-                        keyframes = data.get("keyframes") or data.get("output", {}).get("keyframes", [])
-
-                        if not keyframes:
-                            return {"response_type": "in_channel", "text": "No keyframes found."}
-
-                        lines = [
-                            f"[{f.get('timestamp')}] {f.get('combined_summary')}"
-                            for f in keyframes if f.get("combined_summary")
-                        ]
-
-                        full_text = "\n\n".join(lines)
-
-                        # Write to /tmp (only writable dir on Vercel)
-                        file_path = f"/tmp/meeting_{run_id}.txt"
-                        with open(file_path, "w", encoding="utf-8") as f:
-                            f.write(full_text)
-
-                        ingest_single_file(
-                            file_path=file_path,
-                            username=channel_id,
-                            run_id=run_id
-                        )
-
-                        return {
-                            "response_type": "in_channel",
-                            "text": f"Ingestion complete for `{run_id}`."
-                        }
-
-                    except Exception as e:
-                        return {
-                            "response_type": "in_channel",
-                            "text": f"Ingestion failed: {str(e)}"
-                        }
+                    return {
+                        "response_type": "in_channel",
+                        "text": f"Starting ingestion for `{run_id}`..."
+                    }
         # ---------- /state ----------
         if command == "/state":
                     run_id = (text or "").replace("`", "").strip()

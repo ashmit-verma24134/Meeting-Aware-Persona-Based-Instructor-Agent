@@ -1,7 +1,8 @@
 import os
 import json
 import threading
-import re
+import requests as http_requests
+
 from datetime import datetime
 from threading import Lock
 from services.supabase_service import get_supabase_client
@@ -10,8 +11,7 @@ from scripts.ingest_to_supabase import ingest_single_file
 from slack_sdk import WebClient
 from slack_sdk.signature import SignatureVerifier
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
-
+from fastapi import FastAPI, Request, BackgroundTasks
 from graphs.meeting_graph import meeting_graph
 from services.hf_api_service import HFAPIService
 
@@ -49,14 +49,42 @@ EVENT_LOCK = Lock()
 STAGE_ACTIVE = "ACTIVE"
 
 
+def start_and_reply(channel_id, video_url, response_url):
+    try:
+        run_id = hf_service.start_pipeline(video_url)
+
+        supabase = get_supabase_client()
+        user = supabase.get_user_by_username(channel_id)
+        if not user:
+            user = supabase.create_user(channel_id)
+
+        supabase.create_meeting({
+            "meeting_name": f"meeting_{run_id}",
+            "user_id": user["id"],
+            "run_id": run_id,
+            "channel_id": channel_id,
+            "status": "running"
+        })
+
+        http_requests.post(response_url, json={
+            "response_type": "in_channel",
+            "text": f"Meeting started! Run ID: `{run_id}`\nUse `/state {run_id}` to check."
+        })
+
+    except Exception as e:
+        http_requests.post(response_url, json={
+            "response_type": "in_channel",
+            "text": f"Failed: {str(e)}"
+        })
 # ───────────────────────────────────────
 # SLACK EVENTS ENDPOINT
 # ───────────────────────────────────────
 
-@app.post("/slack/events")
-async def slack_events(request: Request):
 
+@app.post("/slack/events")
+async def slack_events(request: Request, background_tasks: BackgroundTasks):
     content_type = request.headers.get("content-type", "")
+
 
     # ===============================
     # 1️⃣ EVENTS API (JSON)
@@ -89,37 +117,21 @@ async def slack_events(request: Request):
 
         # ---------- /new_meeting ----------
         if command == "/new_meeting":
-            if not text:
-                return {"text": "Please provide a video URL."}
+                    if not text:
+                        return {"text": "Please provide a video URL."}
 
-            video_url = text.strip()
+                    video_url = text.strip()
+                    response_url = form.get("response_url")
 
-            try:
-                run_id = hf_service.start_pipeline(video_url)
+                    background_tasks.add_task(
+                        start_and_reply,
+                        channel_id, video_url, response_url
+                    )
 
-                supabase = get_supabase_client()
-                user = supabase.get_user_by_username(channel_id)
-                if not user:
-                    user = supabase.create_user(channel_id)
-
-                supabase.create_meeting({
-                    "meeting_name": f"meeting_{run_id}",
-                    "user_id": user["id"],
-                    "run_id": run_id,
-                    "channel_id": channel_id,
-                    "status": "running"
-                })
-
-                return {
-                    "response_type": "in_channel",
-                    "text": f"Meeting started! Run ID: `{run_id}`\nUse `/state {run_id}` to check progress."
-                }
-
-            except Exception as e:
-                return {
-                    "response_type": "in_channel",
-                    "text": f"Failed: {str(e)}"
-                }
+                    return {
+                        "response_type": "in_channel",
+                        "text": "Pipeline starting... Run ID will appear shortly."
+                    }
 
         # ---------- /ingest ----------
 # ---------- /ingest ----------

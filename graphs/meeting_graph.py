@@ -289,7 +289,6 @@ def retrieve_chunks_node(state: MeetingState):
         state["question"]
     )
 
-    
     supabase = get_supabase_client()
 
     # -----------------------------------
@@ -297,7 +296,6 @@ def retrieve_chunks_node(state: MeetingState):
     # -----------------------------------
     try:
         query_embedding = get_embedding(query_text)
-
     except Exception:
         state["retrieved_chunks"] = []
         state["_all_meeting_indices"] = []
@@ -338,6 +336,7 @@ def retrieve_chunks_node(state: MeetingState):
                 "chunk_index": row["chunk_index"],
                 "text": row["chunk_text"],
                 "similarity": float(row.get("similarity", 0.0)),
+                "source": row.get("source", "transcript"),
             })
 
     if not clean_chunks:
@@ -356,25 +355,76 @@ def retrieve_chunks_node(state: MeetingState):
     )
 
     # -----------------------------------
-    # Temporal filtering
+    # DATE-SPECIFIC filtering
+    # Handles: "22 march", "march 22", "22-03-2026", "2026-03-22" etc.
+    # Slack chunks are stored as "--- 2026-03-22 ---\n[messages]"
     # -----------------------------------
-# -----------------------------------
-# Proper Temporal filtering
+    import re as _re
+
+    detected_date = None
+    q_text = (state.get("question", "") + " " + state.get("standalone_query", "")).lower()
+
+    # Format 1: YYYY-MM-DD or YYYY/MM/DD
+    m = _re.search(r'(\d{4})[-/](\d{2})[-/](\d{2})', q_text)
+    if m:
+        detected_date = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+
+    # Format 2: DD-MM-YYYY or DD/MM/YYYY or DD - MM - YY
+    if not detected_date:
+        m = _re.search(r'(\d{1,2})\s*[-/\s]\s*(\d{1,2})\s*[-/\s]\s*(\d{2,4})', q_text)
+        if m:
+            d, mo, y = m.group(1), m.group(2), m.group(3)
+            if len(y) == 2:
+                y = "20" + y
+            detected_date = f"{y}-{mo.zfill(2)}-{d.zfill(2)}"
+
+    # Format 3: "22 march", "march 22", "22nd march", "22 mar" etc.
+    if not detected_date:
+        MONTHS = {
+            "january": "01", "february": "02", "march": "03", "april": "04",
+            "may": "05", "june": "06", "july": "07", "august": "08",
+            "september": "09", "october": "10", "november": "11", "december": "12",
+            "jan": "01", "feb": "02", "mar": "03", "apr": "04",
+            "jun": "06", "jul": "07", "aug": "08", "sep": "09",
+            "oct": "10", "nov": "11", "dec": "12"
+        }
+        for month_name, month_num in MONTHS.items():
+            # matches "22 march", "22nd march", "march 22"
+            m = _re.search(
+                rf'(\d{{1,2}})\s*(?:st|nd|rd|th)?\s*{month_name}|{month_name}\s*(\d{{1,2}})',
+                q_text
+            )
+            if m:
+                day = m.group(1) or m.group(2)
+                detected_date = f"2026-{month_num}-{day.zfill(2)}"
+                break
+
+    if detected_date:
+        print(f"[DATE FILTER] Detected date: {detected_date}")
+        date_chunks = [
+            c for c in clean_chunks
+            if detected_date in c.get("text", "")
+        ]
+        if date_chunks:
+            print(f"[DATE FILTER] Found {len(date_chunks)} chunks for {detected_date}")
+            clean_chunks = date_chunks
+        else:
+            print(f"[DATE FILTER] No chunks for {detected_date}, keeping all")
+
+    # -----------------------------------
+    # Temporal filtering (latest meeting)
     # -----------------------------------
     if state.get("temporal_constraint") == "latest":
         try:
             latest_meeting = supabase.get_latest_meeting_by_user(
                 user_id=state["user_id"]
             )
-
             if latest_meeting:
                 latest_id = latest_meeting["id"]
-
                 clean_chunks = [
                     c for c in clean_chunks
                     if c["meeting_id"] == latest_id
                 ]
-
         except Exception as e:
             print("Latest meeting fetch failed:", e)
 
@@ -399,7 +449,6 @@ def retrieve_chunks_node(state: MeetingState):
     state["_all_meeting_indices"] = meeting_ids
     state["meeting_indices"] = meeting_ids
 
-    # Debug: log source distribution
     source_counts = {}
     for c in clean_chunks:
         src = c.get("source", "transcript")
@@ -407,7 +456,6 @@ def retrieve_chunks_node(state: MeetingState):
     print(f"[RETRIEVE] Sources: {source_counts}")
 
     return state
-
 
 
 def infer_intent_node(state: MeetingState):

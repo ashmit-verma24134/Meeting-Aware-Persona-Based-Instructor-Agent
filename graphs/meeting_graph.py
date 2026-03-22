@@ -818,24 +818,20 @@ Answer:"""
         return state
 
     # ---------------------------------------------------
-    #GLOBAL TOP-K (NO MEETING DOMINANCE)
+    # TOP-K — reduced to 3 to avoid cross-chunk hallucination
+    # More chunks = more noise = LLM mixing unrelated facts
     # ---------------------------------------------------
-
-    # Sort all retrieved chunks by similarity
     sorted_chunks = sorted(
         retrieved,
         key=lambda c: c.get("similarity", 0.0),
         reverse=True
     )
 
-    MAX_CONTEXT_CHUNKS = 6
+    MAX_CONTEXT_CHUNKS = 3
     selected_chunks = sorted_chunks[:MAX_CONTEXT_CHUNKS]
 
     print(f"\nChunks passed to LLM: {len(selected_chunks)}")
 
-    # ---------------------------------------------------
-    # Generate answer
-    # ---------------------------------------------------
     answer, confidence = generate_with_confidence(
         question=query,
         retrieved_chunks=selected_chunks

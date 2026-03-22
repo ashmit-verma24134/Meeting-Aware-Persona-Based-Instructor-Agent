@@ -58,8 +58,9 @@ RULES:
 - If the context contains relevant information, answer from it.
 - If the question is general knowledge (e.g., "What is Supabase?", "How does RAG work?"), answer using your own knowledge concisely — do NOT refuse.
 - If the question asks what happened, what was discussed, or what was done on a specific date, describe ALL activity visible in the context — including commands run, pipeline starts, questions asked, bot responses, and any other actions. Do NOT refuse just because there is no formal "discussion".
-- If the question asks which model/tool was used for something, look for any named technology or tool in the context related to that task and treat it as the answer.
+- If the question asks which model/tool was used for something, look for any named technology or tool in the context DIRECTLY related to that task — do NOT associate tools mentioned in unrelated parts of the context.
 - If the question is about a person and their name appears in the context, answer from the context directly.
+- Answer ONLY from chunks where the answer is clearly present. Do NOT combine information from unrelated chunks to form an answer.
 - If the question is about a specific meeting/project detail and the context does not contain it, reply EXACTLY with:
   "{SAFE_ABSTAIN}"
 - Paraphrase facts; do NOT copy text verbatim.

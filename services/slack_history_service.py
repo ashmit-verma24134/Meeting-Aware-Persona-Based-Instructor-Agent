@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
+SLACK_BOT_NAME = os.getenv("SLACK_BOT_NAME", "MMA AGENT")  # add this to .env or keep default
 
 
 class SlackHistoryService:
@@ -27,7 +28,8 @@ class SlackHistoryService:
         """
         Fetch up to `limit` messages from a Slack channel.
         Returns list of {text, user, timestamp} dicts.
-        Filters out bot messages and system join/leave messages.
+        Includes bot's own replies so full conversation is stored.
+        Filters out only system events and other bots.
         """
         messages = []
         cursor = None
@@ -42,23 +44,38 @@ class SlackHistoryService:
             )
 
             for msg in response.get("messages", []):
-                # Skip bot messages
-                if msg.get("bot_id") or msg.get("subtype") in [
-                    "bot_message",
+
+                # Always skip system events
+                if msg.get("subtype") in [
                     "channel_join",
                     "channel_leave",
                     "channel_topic",
                     "channel_purpose",
+                    "message_changed",
+                    "message_deleted",
                 ]:
                     continue
+
+                # Allow OUR bot's messages through
+                # Block only other/external bots
+                if msg.get("bot_id"):
+                    bot_name = (msg.get("username") or "").strip()
+                    if bot_name != SLACK_BOT_NAME:
+                        continue  # skip other bots, keep ours
 
                 text = (msg.get("text") or "").strip()
                 if not text:
                     continue
 
+                # Label user vs bot for context clarity
+                if msg.get("bot_id"):
+                    speaker = f"BOT({SLACK_BOT_NAME})"
+                else:
+                    speaker = msg.get("user", "unknown")
+
                 messages.append({
                     "text": text,
-                    "user": msg.get("user", "unknown"),
+                    "user": speaker,
                     "timestamp": msg.get("ts", ""),
                 })
 

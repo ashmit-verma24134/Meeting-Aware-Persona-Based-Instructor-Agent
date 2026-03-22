@@ -101,11 +101,12 @@ class SupabaseService:
         )
         return bool(response.data)
 
+    # FIX — explicitly conflict on meeting_id
     def upsert_transcript(self, meeting_id: str, raw_text: str) -> None:
         self.client.table("transcripts").upsert({
             "meeting_id": meeting_id,
             "raw_text": raw_text
-        }).execute()
+        }, on_conflict="meeting_id").execute()
 
     # =========================================================
     # CHUNKS

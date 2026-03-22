@@ -181,10 +181,18 @@ def meeting_summary_node(state: MeetingState):
         state["context_extended"] = False
         return state
 
-    # -----------------------------
-    # Get first meeting (similarity-sorted already)
-    # -----------------------------
-    first_meeting_id = retrieved[0].get("meeting_id")
+    # ── Keep ONLY transcript chunks for summary ──
+    # Slack chunks contain Q&A history which pollutes the summary
+    transcript_chunks = [
+        c for c in retrieved
+        if c.get("source", "transcript") == "transcript"
+    ]
+
+    # Fallback to all chunks if no transcript chunks found
+    if not transcript_chunks:
+        transcript_chunks = retrieved
+
+    first_meeting_id = transcript_chunks[0].get("meeting_id")
 
     if not first_meeting_id:
         state["final_answer"] = SAFE_ABSTAIN
@@ -192,11 +200,8 @@ def meeting_summary_node(state: MeetingState):
         state["context_extended"] = False
         return state
 
-    # -----------------------------
-    # Keep only chunks from that meeting
-    # -----------------------------
     meeting_chunks = [
-        c for c in retrieved
+        c for c in transcript_chunks
         if c.get("meeting_id") == first_meeting_id
         and isinstance(c.get("text"), str)
     ]
@@ -207,7 +212,6 @@ def meeting_summary_node(state: MeetingState):
         state["context_extended"] = False
         return state
 
-    # Sort by chunk_index for proper transcript order
     meeting_chunks = sorted(
         meeting_chunks,
         key=lambda c: c.get("chunk_index", 0)
@@ -221,11 +225,11 @@ def meeting_summary_node(state: MeetingState):
 You are a professional project assistant summarizing a meeting.
 
 RULES:
-- Use primarily the provided transcript fragments.
+- Use ONLY the provided transcript fragments.
 - Do NOT assume decisions unless explicitly stated.
 - If information is unclear, omit it.
-- You may add brief general context if helpful.
 - Do NOT include bare timestamps like [00:15:30] in your answer unless you also know the calendar date.
+- Do NOT include Slack messages, run IDs, or chat history in the summary.
 
 TASK:
 Summarize the meeting with 3–5 bullet points covering:
@@ -247,10 +251,8 @@ SUMMARY:
             temperature=0.2,
             max_tokens=300,
         )
-
         state["final_answer"] = response.choices[0].message.content.strip()
         state["method"] = "meeting_summary_uuid_safe"
-
     except Exception as e:
         print(f"Summary Error: {e}")
         state["final_answer"] = SAFE_ABSTAIN

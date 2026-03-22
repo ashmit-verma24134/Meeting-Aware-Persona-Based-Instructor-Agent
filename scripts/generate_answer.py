@@ -57,8 +57,8 @@ RULES:
 - PRIORITIZE the provided context (transcripts, Slack history, project docs).
 - If the context contains relevant information, answer from it.
 - If the question is general knowledge (e.g., "What is Supabase?", "How does RAG work?"), answer using your own knowledge concisely — do NOT refuse.
-- PRIORITIZE the provided context (transcripts, Slack history, project docs).
-- If the context contains relevant information, answer from it.
+- If the question asks what happened, what was discussed, or what was done on a specific date, describe ALL activity visible in the context — including commands run, pipeline starts, questions asked, bot responses, and any other actions. Do NOT refuse just because there is no formal "discussion".
+- If the question asks which model/tool was used for something, look for any named technology or tool in the context related to that task and treat it as the answer.
 - If the question is about a specific meeting/project detail and the context does not contain it, reply EXACTLY with:
   "{SAFE_ABSTAIN}"
 - Paraphrase facts; do NOT copy text verbatim.

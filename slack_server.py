@@ -43,27 +43,28 @@ hf_service = HFAPIService()
 
 def store_slack_message(channel_id: str, user_id: str, text: str):
     """
-    Store a single incoming Slack message as an embedded chunk.
-    This keeps the Slack RAG context continuously up-to-date.
+    Append a live incoming Slack message to today's daily chunk.
+    If today's chunk doesn't exist yet, create it.
+    This keeps live messages consistent with the daily-chunk structure
+    created by ingest_slack_history.
     """
     from services.embedding_api import get_embedding
+    from datetime import datetime, timezone
 
     if not text or len(text.strip()) < 10:
-        return  # Skip very short messages
+        return
 
     supabase = get_supabase_client()
 
-    # Ensure user exists
+    # ── Ensure user exists ──
     user = supabase.get_user_by_username(channel_id)
     if not user:
         user = supabase.create_user(channel_id)
-
     user_uuid = user["id"]
 
-    # Ensure "slack meeting" record exists for this channel
+    # ── Ensure slack meeting record exists ──
     meeting_name = f"slack_{channel_id}"
     meeting = supabase.get_meeting_by_name(meeting_name)
-
     if not meeting:
         meeting = supabase.create_meeting({
             "meeting_name": meeting_name,
@@ -72,34 +73,63 @@ def store_slack_message(channel_id: str, user_id: str, text: str):
             "run_id": f"slack_{channel_id}",
             "status": "ingested",
         })
-
     meeting_id = meeting["id"]
 
-    # Get next chunk index
+    # ── Today's date key ──
+    today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
+    formatted_line = f"[{user_id}]: {text}"
+
     try:
+        # ── Look for today's existing chunk ──
         existing = supabase.client.table("chunks") \
-            .select("chunk_index") \
+            .select("id, chunk_index, chunk_text") \
             .eq("meeting_id", meeting_id) \
-            .order("chunk_index", desc=True) \
+            .like("chunk_text", f"--- {today} ---%") \
             .limit(1) \
             .execute()
-        next_index = (existing.data[0]["chunk_index"] + 1) if existing.data else 0
-    except Exception:
-        next_index = 0
 
-    # Embed and store
-    formatted_text = f"[{user_id}]: {text}"
-    embedding = get_embedding(formatted_text)
+        if existing.data:
+            # ── Append to today's chunk ──
+            row = existing.data[0]
+            updated_text = row["chunk_text"] + f"\n\n{formatted_line}"
+            new_embedding = get_embedding(updated_text)
 
-    supabase.insert_chunks([{
-        "meeting_id": meeting_id,
-        "chunk_index": next_index,
-        "chunk_text": formatted_text,
-        "embedding": embedding,
-        "source": "slack",
-    }])
+            supabase.client.table("chunks") \
+                .update({
+                    "chunk_text": updated_text,
+                    "embedding": new_embedding,
+                }) \
+                .eq("id", row["id"]) \
+                .execute()
 
-    print(f"[SLACK STORE] Stored message from {user_id} in {channel_id}")
+            print(f"[SLACK STORE] Appended to {today} chunk for {channel_id}")
+
+        else:
+            # ── No chunk for today yet — create it ──
+            # Get next chunk index
+            all_chunks = supabase.client.table("chunks") \
+                .select("chunk_index") \
+                .eq("meeting_id", meeting_id) \
+                .order("chunk_index", desc=True) \
+                .limit(1) \
+                .execute()
+            next_index = (all_chunks.data[0]["chunk_index"] + 1) if all_chunks.data else 0
+
+            chunk_text = f"--- {today} ---\n{formatted_line}"
+            embedding = get_embedding(chunk_text)
+
+            supabase.insert_chunks([{
+                "meeting_id": meeting_id,
+                "chunk_index": next_index,
+                "chunk_text": chunk_text,
+                "embedding": embedding,
+                "source": "slack",
+            }])
+
+            print(f"[SLACK STORE] Created new {today} chunk for {channel_id}")
+
+    except Exception as e:
+        print(f"[SLACK STORE] Failed: {e}")
 
 
 

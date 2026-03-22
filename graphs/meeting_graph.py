@@ -278,8 +278,6 @@ def get_supabase_client():
     return _SUPABASE_CLIENT
 
 
-
-
 def retrieve_chunks_node(state: MeetingState):
 
     state["path"].append("retrieve_chunks")
@@ -361,6 +359,7 @@ def retrieve_chunks_node(state: MeetingState):
 
     detected_date = None
     q_text = (state.get("question", "") + " " + state.get("standalone_query", "")).lower()
+    q_words = set(_re.findall(r'\b\w{4,}\b', q_text))
 
     # Format 1: YYYY-MM-DD or YYYY/MM/DD
     m = _re.search(r'(\d{4})[-/](\d{2})[-/](\d{2})', q_text)
@@ -411,9 +410,7 @@ def retrieve_chunks_node(state: MeetingState):
             print(f"[DATE FILTER] No slack chunks for {detected_date}, keeping all")
 
     else:
-        # No date detected — boost slack chunks whose text matches query keywords
-        # This ensures Slack-specific info (e.g. Manmohan Singh) surfaces above transcripts
-        q_words = set(_re.findall(r'\b\w{4,}\b', q_text))
+        # No date — boost slack chunks whose text matches query keywords
         boosted = False
 
         for chunk in clean_chunks:
@@ -426,7 +423,28 @@ def retrieve_chunks_node(state: MeetingState):
 
         if boosted:
             clean_chunks = sorted(clean_chunks, key=lambda c: c["similarity"], reverse=True)
-            print(f"[SLACK BOOST] Applied keyword boost to slack chunks")
+
+            # ── WINDOWING: slack chunks can be huge (full day of messages)
+            # Extract only the lines around matching keywords so LLM gets
+            # focused context instead of hundreds of unrelated messages
+            for i, chunk in enumerate(clean_chunks):
+                if chunk.get("source") == "slack":
+                    lines = chunk.get("text", "").split("\n")
+                    relevant = []
+                    seen = set()
+                    for j, line in enumerate(lines):
+                        line_words = set(_re.findall(r'\b\w{4,}\b', line.lower()))
+                        if len(q_words & line_words) >= 1:
+                            start = max(0, j - 2)
+                            end = min(len(lines), j + 4)
+                            for k in range(start, end):
+                                if k not in seen:
+                                    relevant.append(lines[k])
+                                    seen.add(k)
+                    if relevant:
+                        clean_chunks[i] = {**chunk, "text": "\n".join(relevant)}
+
+            print(f"[SLACK BOOST] Applied keyword boost + windowing to slack chunks")
 
     # -----------------------------------
     # Temporal filtering (latest meeting)

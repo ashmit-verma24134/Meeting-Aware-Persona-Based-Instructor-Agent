@@ -877,6 +877,22 @@ def chat_answer_node(state: MeetingState):
     print("\nCHAT NODE STARTS ")
 
     # --------------------------------------------------
+    # FORCE RETRIEVAL for summary/overview questions
+    # These must NEVER be answered from chat memory
+    # --------------------------------------------------
+    FORCE_RETRIEVAL_KEYS = [
+        "summarize", "summary", "overview", "highlights", "takeaways",
+        "what happened", "what was discussed", "what did we discuss",
+        "summarise", "give me a summary", "latest meeting",
+    ]
+    q_lower = state["question"].lower()
+    if any(k in q_lower for k in FORCE_RETRIEVAL_KEYS):
+        print("Force retrieval — summary/overview question")
+        state["decision"] = Decision.RETRIEVAL_ONLY
+        state["method"] = "force_retrieval_summary"
+        return state
+
+    # --------------------------------------------------
     # Fetch chat history
     # --------------------------------------------------
     try:
@@ -917,8 +933,6 @@ def chat_answer_node(state: MeetingState):
     print(chat_context)
     print("\n..........................\n")
 
-
-
     if not chat_context:
         print(" Empty chat context → Retrieval")
         state["decision"] = Decision.RETRIEVAL_ONLY
@@ -946,7 +960,6 @@ ASSISTANT MESSAGES:
 QUESTION:
 {state["question"]}
 """.strip()
-
 
     try:
         verdict_resp = client.chat.completions.create(

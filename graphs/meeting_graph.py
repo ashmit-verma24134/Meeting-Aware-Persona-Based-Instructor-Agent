@@ -355,9 +355,7 @@ def retrieve_chunks_node(state: MeetingState):
     )
 
     # -----------------------------------
-    # DATE-SPECIFIC filtering
-    # Handles: "22 march", "march 22", "22-03-2026", "2026-03-22" etc.
-    # Slack chunks are stored as "--- 2026-03-22 ---\n[messages]"
+    # DATE + SLACK KEYWORD LOGIC
     # -----------------------------------
     import re as _re
 
@@ -389,7 +387,6 @@ def retrieve_chunks_node(state: MeetingState):
             "oct": "10", "nov": "11", "dec": "12"
         }
         for month_name, month_num in MONTHS.items():
-            # matches "22 march", "22nd march", "march 22"
             m = _re.search(
                 rf'(\d{{1,2}})\s*(?:st|nd|rd|th)?\s*{month_name}|{month_name}\s*(\d{{1,2}})',
                 q_text
@@ -400,16 +397,36 @@ def retrieve_chunks_node(state: MeetingState):
                 break
 
     if detected_date:
+        # Dates only exist in Slack chunks — filter to slack + date match
         print(f"[DATE FILTER] Detected date: {detected_date}")
         date_chunks = [
             c for c in clean_chunks
-            if detected_date in c.get("text", "")
+            if c.get("source") == "slack"
+            and detected_date in c.get("text", "")
         ]
         if date_chunks:
-            print(f"[DATE FILTER] Found {len(date_chunks)} chunks for {detected_date}")
+            print(f"[DATE FILTER] Found {len(date_chunks)} slack chunks for {detected_date}")
             clean_chunks = date_chunks
         else:
-            print(f"[DATE FILTER] No chunks for {detected_date}, keeping all")
+            print(f"[DATE FILTER] No slack chunks for {detected_date}, keeping all")
+
+    else:
+        # No date detected — boost slack chunks whose text matches query keywords
+        # This ensures Slack-specific info (e.g. Manmohan Singh) surfaces above transcripts
+        q_words = set(_re.findall(r'\b\w{4,}\b', q_text))
+        boosted = False
+
+        for chunk in clean_chunks:
+            if chunk.get("source") == "slack":
+                chunk_words = set(_re.findall(r'\b\w{4,}\b', chunk.get("text", "").lower()))
+                hits = len(q_words & chunk_words)
+                if hits >= 2:
+                    chunk["similarity"] += 0.15 * hits
+                    boosted = True
+
+        if boosted:
+            clean_chunks = sorted(clean_chunks, key=lambda c: c["similarity"], reverse=True)
+            print(f"[SLACK BOOST] Applied keyword boost to slack chunks")
 
     # -----------------------------------
     # Temporal filtering (latest meeting)
@@ -456,7 +473,6 @@ def retrieve_chunks_node(state: MeetingState):
     print(f"[RETRIEVE] Sources: {source_counts}")
 
     return state
-
 
 def infer_intent_node(state: MeetingState):
     """

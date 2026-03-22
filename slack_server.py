@@ -474,15 +474,24 @@ def process_event(event: dict):
 
     # Ignore bot messages and message edits/deletes
     if event.get("bot_id"):
-        return
+        # Still store bot's own replies into daily chunk
+        bot_text = (event.get("text") or "").strip()
+        bot_channel = event.get("channel")
+        bot_name = event.get("username") or "MMA AGENT"
+        if bot_text and bot_channel:
+            try:
+                store_slack_message(bot_channel, bot_name, bot_text)
+            except Exception as e:
+                print(f"[SLACK STORE BOT] Failed: {e}")
+        return  # still don't process as a user command
 
-    if event.get("subtype") in [
-        "bot_message",
-        "message_changed",
-        "message_deleted",
-        "thread_broadcast"
-    ]:
-        return
+        if event.get("subtype") in [
+            "bot_message",
+            "message_changed",
+            "message_deleted",
+            "thread_broadcast"
+        ]:
+            return
 
     event_id = event.get("event_ts")
     if not event_id:

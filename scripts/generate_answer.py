@@ -57,6 +57,8 @@ RULES:
 - PRIORITIZE the provided context (transcripts, Slack history, project docs).
 - If the context contains relevant information, answer from it.
 - If the question is general knowledge (e.g., "What is Supabase?", "How does RAG work?"), answer using your own knowledge concisely — do NOT refuse.
+- PRIORITIZE the provided context (transcripts, Slack history, project docs).
+- If the context contains relevant information, answer from it.
 - If the question is about a specific meeting/project detail and the context does not contain it, reply EXACTLY with:
   "{SAFE_ABSTAIN}"
 - Paraphrase facts; do NOT copy text verbatim.

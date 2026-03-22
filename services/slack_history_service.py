@@ -1,11 +1,12 @@
 import os
+from datetime import datetime, timezone
+from collections import defaultdict
 from slack_sdk import WebClient
 from dotenv import load_dotenv
 
 load_dotenv()
 
 SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
-SLACK_BOT_NAME = os.getenv("SLACK_BOT_NAME", "MMA AGENT")  # add this to .env or keep default
 
 
 class SlackHistoryService:
@@ -28,8 +29,8 @@ class SlackHistoryService:
         """
         Fetch up to `limit` messages from a Slack channel.
         Returns list of {text, user, timestamp} dicts.
-        Includes bot's own replies so full conversation is stored.
-        Filters out only system events and other bots.
+        Stores ALL messages — user + bot.
+        Only skips structural system events.
         """
         messages = []
         cursor = None
@@ -45,7 +46,7 @@ class SlackHistoryService:
 
             for msg in response.get("messages", []):
 
-                # Always skip system events
+                # Skip ONLY system/structural events
                 if msg.get("subtype") in [
                     "channel_join",
                     "channel_leave",
@@ -53,23 +54,17 @@ class SlackHistoryService:
                     "channel_purpose",
                     "message_changed",
                     "message_deleted",
+                    "thread_broadcast",
                 ]:
                     continue
-
-                # Allow OUR bot's messages through
-                # Block only other/external bots
-                if msg.get("bot_id"):
-                    bot_name = (msg.get("username") or "").strip()
-                    if bot_name != SLACK_BOT_NAME:
-                        continue  # skip other bots, keep ours
 
                 text = (msg.get("text") or "").strip()
                 if not text:
                     continue
 
-                # Label user vs bot for context clarity
+                # Label speaker clearly
                 if msg.get("bot_id"):
-                    speaker = f"BOT({SLACK_BOT_NAME})"
+                    speaker = msg.get("username") or "MMA AGENT"
                 else:
                     speaker = msg.get("user", "unknown")
 
@@ -89,13 +84,49 @@ class SlackHistoryService:
         return messages
 
     # ─────────────────────────────────────
-    # Build text blob from messages
+    # Group messages by day → one chunk per day
+    # ─────────────────────────────────────
+
+    def messages_to_daily_chunks(self, messages: list[dict]) -> list[dict]:
+        """
+        Group messages by calendar date (UTC).
+        Returns list of {date, text} dicts — one per day.
+        Each day's chunk = all messages from that day joined together.
+        """
+        daily = defaultdict(list)
+
+        for msg in messages:
+            ts = msg.get("timestamp", "")
+            try:
+                dt = datetime.fromtimestamp(float(ts), tz=timezone.utc)
+                date_key = dt.strftime("%Y-%m-%d")  # e.g. "2026-03-22"
+            except Exception:
+                date_key = "unknown"
+
+            user = msg.get("user", "unknown")
+            text = msg.get("text", "")
+            daily[date_key].append(f"[{user}]: {text}")
+
+        # Sort dates chronologically
+        sorted_dates = sorted(daily.keys())
+
+        chunks = []
+        for date in sorted_dates:
+            chunk_text = f"--- {date} ---\n" + "\n\n".join(daily[date])
+            chunks.append({
+                "date": date,
+                "text": chunk_text,
+            })
+
+        return chunks
+
+    # ─────────────────────────────────────
+    # Build full text blob (kept for compatibility)
     # ─────────────────────────────────────
 
     def messages_to_text(self, messages: list[dict]) -> str:
         """
-        Convert list of Slack messages into a single text blob
-        suitable for chunking and embedding.
+        Convert list of Slack messages into a single text blob.
         """
         lines = []
         for msg in messages:

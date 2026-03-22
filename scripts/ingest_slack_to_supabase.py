@@ -1,5 +1,6 @@
 """
 Ingest Slack channel history into Supabase as embedded chunks.
+Groups messages by day — one chunk per calendar date.
 
 Usage:
     from scripts.ingest_slack_to_supabase import ingest_slack_history
@@ -12,43 +13,22 @@ from dotenv import load_dotenv
 from services.slack_history_service import SlackHistoryService
 from services.supabase_service import SupabaseService
 from services.embedding_api import get_embedding
-from scripts.embedding_utils import build_embedding_text
 
 load_dotenv()
-
-CHUNK_SIZE = 350
-OVERLAP = 50
-
-
-def chunk_text(text: str, chunk_size: int, overlap: int) -> list[str]:
-    """Split text into overlapping word-level chunks."""
-    words = text.split()
-    chunks = []
-    step = chunk_size - overlap
-
-    for i in range(0, len(words), step):
-        chunk_words = words[i : i + chunk_size]
-        if chunk_words:
-            chunks.append(" ".join(chunk_words))
-
-    return chunks
 
 
 def ingest_slack_history(channel_id: str, limit: int = 500):
     """
-    Fetch Slack channel messages → chunk → embed → store in Supabase.
-
-    Uses the same `chunks` table as transcripts, with source="slack".
-    Linked to a meeting record with meeting_name="slack_{channel_id}".
+    Fetch Slack channel messages → group by day → embed → store in Supabase.
+    One chunk per calendar day (e.g. all March 22 messages = one chunk).
     """
 
     print(f"\n[SLACK INGEST] Fetching history for channel: {channel_id}")
 
-    # ─── Services ───
     slack_service = SlackHistoryService()
     supabase = SupabaseService()
 
-    # ─── Fetch messages ───
+    # ── Fetch all messages ──
     messages = slack_service.fetch_channel_history(
         channel_id=channel_id,
         limit=limit,
@@ -60,28 +40,29 @@ def ingest_slack_history(channel_id: str, limit: int = 500):
 
     print(f"[SLACK INGEST] Fetched {len(messages)} messages")
 
-    # ─── Build text blob ───
-    full_text = slack_service.messages_to_text(messages)
+    # ── Group into daily chunks ──
+    daily_chunks = slack_service.messages_to_daily_chunks(messages)
 
-    if not full_text.strip():
-        print("[SLACK INGEST] Empty text after conversion. Skipping.")
+    if not daily_chunks:
+        print("[SLACK INGEST] No daily chunks generated. Skipping.")
         return
 
-    # ─── Ensure user exists ───
+    print(f"[SLACK INGEST] {len(daily_chunks)} daily chunks (one per day)")
+
+    # ── Ensure user exists ──
     user = supabase.get_user_by_username(channel_id)
     if not user:
         user = supabase.create_user(channel_id)
 
     user_uuid = user["id"]
 
-    # ─── Ensure "meeting" record for Slack history ───
+    # ── Ensure meeting record for this Slack channel ──
     meeting_name = f"slack_{channel_id}"
     meeting = supabase.get_meeting_by_name(meeting_name)
 
     if meeting:
         meeting_id = meeting["id"]
         print("[SLACK INGEST] Slack meeting record exists. Re-ingesting...")
-        # Delete old chunks so we can re-ingest fresh
         supabase.delete_chunks_by_meeting(meeting_id)
     else:
         meeting = supabase.create_meeting({
@@ -94,39 +75,30 @@ def ingest_slack_history(channel_id: str, limit: int = 500):
         meeting_id = meeting["id"]
         print("[SLACK INGEST] Created new slack meeting record.")
 
-    # ─── Upsert transcript (raw text) ───
+    # ── Upsert raw transcript (full text blob for reference) ──
+    full_text = "\n\n".join(c["text"] for c in daily_chunks)
     supabase.upsert_transcript(meeting_id, full_text)
 
-    # ─── Chunk ───
-    chunks = chunk_text(full_text, CHUNK_SIZE, OVERLAP)
-    print(f"[SLACK INGEST] Generated {len(chunks)} chunks")
-
-    # ─── Embed & prepare rows ───
-    prev_chunk = None
+    # ── Embed each daily chunk and insert ──
     chunk_rows = []
 
-    for idx, chunk in enumerate(chunks):
-        embedding_text = build_embedding_text(
-            {"text": chunk},
-            prev_chunk,
-        )
-
+    for idx, chunk in enumerate(daily_chunks):
+        embedding_text = chunk["text"]
         embedding = get_embedding(embedding_text)
 
         chunk_rows.append({
             "meeting_id": meeting_id,
             "chunk_index": idx,
-            "chunk_text": chunk,
+            "chunk_text": chunk["text"],
             "embedding": embedding,
             "source": "slack",
         })
 
-        prev_chunk = {"text": chunk}
+        print(f"[SLACK INGEST] Embedded day {chunk['date']} (chunk {idx})")
 
-    # ─── Insert ───
     if chunk_rows:
         supabase.insert_chunks(chunk_rows)
-        print(f"[SLACK INGEST] Inserted {len(chunk_rows)} chunks.")
+        print(f"[SLACK INGEST] Inserted {len(chunk_rows)} daily chunks.")
 
     print("[SLACK INGEST] Done.")
 

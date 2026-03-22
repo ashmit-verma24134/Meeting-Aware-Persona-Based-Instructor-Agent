@@ -114,7 +114,8 @@ def ingest_single_file(file_path: str, username: str, run_id: str):
             "meeting_id": meeting_id,
             "chunk_index": idx,
             "chunk_text": chunk,
-            "embedding": embedding
+            "embedding": embedding,
+            "source": "transcript",
         })
 
         prev_chunk = {"text": chunk}

@@ -233,6 +233,13 @@ class SupabaseService:
             .eq("run_id", run_id)
             .execute()
         )
+
+    def get_slack_ingestion_status(self, channel_id: str) -> bool:
+        """Check if Slack history has already been ingested for a channel."""
+        meeting = self.get_meeting_by_name(f"slack_{channel_id}")
+        if not meeting:
+            return False
+        return self.chunks_exist(meeting["id"])
     def save_chat_turn(
         self,
         session_id: str,

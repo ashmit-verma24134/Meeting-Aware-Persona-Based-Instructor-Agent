@@ -85,21 +85,14 @@ def clean_answer(text: Optional[str], max_sentences: int = 4) -> str:
     cleaned = " ".join(sentences[:max_sentences])
 
     # --------------------
-    # Hallucination guard (STRICT but FAIR)
+    # Light hallucination guard (relaxed for project assistant mode)
     # --------------------
-    # NOTE:
-    # We intentionally DO NOT block:
-    # - "can be used to"
-    # - "allows users to"
-    # - "provides"
-    # These are normal definition phrases.
+    # NOTE: Previously blocked "for example", "in general", etc.
+    # These are now allowed since the agent can answer general knowledge.
+    # Only block clearly speculative filler patterns.
     hallucination_patterns = [
-        r"\bin general\b",
-        r"\bvarious ways\b",
         r"\bmany approaches\b",
         r"\betc\b",
-        r"\bfor instance\b",
-        r"\bfor example\b",
     ]
 
     for pattern in hallucination_patterns:

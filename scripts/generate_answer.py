@@ -51,19 +51,19 @@ def generate_answer_with_llm(
         return SAFE_ABSTAIN
 
     prompt = f"""
-You are an evidence-bound assistant.
+You are a helpful project assistant for students working on capstone projects.
 
-RULES (ABSOLUTE):
-- Use ONLY the transcript evidence below.
-- Do NOT use outside knowledge.
-- Do NOT guess or assume.
-- Paraphrase facts; do NOT copy transcript text verbatim.
-- Answer in 1–3 concise sentences.
-- If the transcript does NOT explicitly contain the answer,
-  reply EXACTLY with:
+RULES:
+- PRIORITIZE the provided context (transcripts, Slack history, project docs).
+- If the context contains relevant information, answer from it.
+- If the question is general knowledge (e.g., "What is Supabase?", "How does RAG work?"), answer using your own knowledge concisely — do NOT refuse.
+- If the question is about a specific meeting/project detail and the context does not contain it, reply EXACTLY with:
   "{SAFE_ABSTAIN}"
+- Paraphrase facts; do NOT copy text verbatim.
+- Answer in 1–3 concise sentences.
+- Do NOT include bare timestamps like [00:15:30] in your answer unless you also know the calendar date.
 
-Transcript evidence:
+Context:
 {context}
 
 Question:
@@ -186,7 +186,6 @@ def retrieve_chunks(
         _FAISS_INDEX[cache_key] = index
         _VECTOR_CHUNKS[cache_key] = vector_chunks
 
-    # IMPORTANT: must match ingestion format (no "query:" prefix unless used in ingestion)
     q_emb = get_embedding(query_text)
     q_emb = np.array([q_emb], dtype="float32")
 

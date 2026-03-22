@@ -218,13 +218,14 @@ def meeting_summary_node(state: MeetingState):
     )[:12000]
 
     prompt = f"""
-You are a professional executive assistant summarizing a meeting.
+You are a professional project assistant summarizing a meeting.
 
 RULES:
-- Use ONLY the provided transcript fragments.
-- Do NOT infer missing information.
+- Use primarily the provided transcript fragments.
 - Do NOT assume decisions unless explicitly stated.
 - If information is unclear, omit it.
+- You may add brief general context if helpful.
+- Do NOT include bare timestamps like [00:15:30] in your answer unless you also know the calendar date.
 
 TASK:
 Summarize the meeting with 3–5 bullet points covering:
@@ -257,7 +258,6 @@ SUMMARY:
 
     state["context_extended"] = False
     return state
-
 
 
 # ==============================
@@ -396,6 +396,13 @@ def retrieve_chunks_node(state: MeetingState):
     state["retrieved_chunks"] = clean_chunks
     state["_all_meeting_indices"] = meeting_ids
     state["meeting_indices"] = meeting_ids
+
+    # Debug: log source distribution
+    source_counts = {}
+    for c in clean_chunks:
+        src = c.get("source", "transcript")
+        source_counts[src] = source_counts.get(src, 0) + 1
+    print(f"[RETRIEVE] Sources: {source_counts}")
 
     return state
 
@@ -552,13 +559,13 @@ def action_summary_node(state: MeetingState):
     )[:12000]
 
     prompt = f"""
-You are extracting ACTION ITEMS ONLY.
+You are extracting ACTION ITEMS from the context.
 
 RULES:
-- Use ONLY the transcript text
-- List ONLY concrete next steps / tasks
-- Do NOT include goals or explanations
-- If no action items are explicit, say exactly:
+- Use primarily the transcript text
+- List concrete next steps / tasks
+- You may include brief context for clarity
+- If no action items are found, say exactly:
 "{SAFE_ABSTAIN}"
 
 TRANSCRIPT:
@@ -697,6 +704,30 @@ def chunk_answer_node(state: MeetingState):
     retrieved = state.get("retrieved_chunks", [])
 
     if not retrieved:
+        # No evidence from context — try general knowledge answer
+        try:
+            gen_prompt = f"""You are a helpful project assistant.
+Answer the question concisely in 1-2 sentences using your general knowledge.
+If you are unsure, say so.
+
+Question: {query}
+
+Answer:"""
+            response = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[{"role": "user", "content": gen_prompt}],
+                temperature=0.0,
+                max_tokens=150,
+            )
+            general_answer = response.choices[0].message.content.strip()
+            if general_answer:
+                state["candidate_answer"] = general_answer
+                state["confidence"] = 0.5
+                state["method"] = "general_knowledge"
+                return state
+        except Exception as e:
+            print(f"General knowledge fallback failed: {e}")
+
         state["candidate_answer"] = SAFE_ABSTAIN
         state["confidence"] = 0.0
         state["method"] = "no_evidence"
@@ -783,13 +814,14 @@ def verification_node(state: MeetingState):
     has_exploratory = any(p in answer for p in EXPLORATORY_PATTERNS)
     has_confirmation = any(p in answer for p in CONFIRMATION_PATTERNS)
 
-    # User wants certainty, answer is exploratory → BLOCK
+    # User wants certainty, answer is exploratory → ADD DISCLAIMER instead of blocking
     if asks_for_certainty() and has_exploratory:
-        state["final_answer"] = (
-            "The meeting explored this as an idea, but no final or "
-            "confirmed decision was explicitly stated in the transcript."
+        state["candidate_answer"] = (
+            state.get("candidate_answer", "") + 
+            "\n\nNote: The meeting explored this as an idea, but no final "
+            "or confirmed decision was explicitly stated in the transcript."
         )
-        state["method"] = "hard_decision_override"
+        state["method"] = "answer_with_certainty_disclaimer"
         state["context_extended"] = False
         return state
 

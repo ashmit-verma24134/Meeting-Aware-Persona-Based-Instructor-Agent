@@ -74,6 +74,7 @@ class SupabaseService:
         if result.data:
             return result.data[0]
         return None
+
     def get_meeting_by_name(self, meeting_name: str) -> Optional[Dict]:
         response = (
             self.client
@@ -131,10 +132,13 @@ class SupabaseService:
         if not chunks:
             return
 
+        # upsert instead of insert — if (meeting_id, chunk_index) already
+        # exists (e.g. from a race between store_slack_message and
+        # ingest_slack_history), just overwrite instead of crashing.
         response = (
             self.client
             .table("chunks")
-            .insert(chunks)
+            .upsert(chunks, on_conflict="meeting_id,chunk_index")
             .execute()
         )
 
@@ -173,13 +177,11 @@ class SupabaseService:
             "user_id": user_id
         }).execute()
 
-
     def end_session(self, session_id: str):
         self.client.table("sessions") \
             .update({"ended_at": "now()"}) \
             .eq("session_id", session_id) \
             .execute()
-
 
     def create_session_if_not_exists(self, session_id: str, user_id: str):
         existing = (
@@ -200,16 +202,17 @@ class SupabaseService:
         }).execute()
 
     # =========================================================
-    # CHAT MEMORY (PRODUCTION REPLACEMENT)
+    # CHAT MEMORY
     # =========================================================
+
     def create_session_for_user(self, user_id):
         from uuid import uuid4
         session_id = str(uuid4())
         self.create_session(session_id, user_id)
         return session_id
+
     def create_meeting(self, data: dict):
         return self.client.table("meetings").insert(data).execute().data[0]
-
 
     def get_latest_meeting_by_channel(self, channel_id: str):
         result = (
@@ -223,7 +226,6 @@ class SupabaseService:
         )
 
         return result.data[0] if result.data else None
-
 
     def update_meeting_status(self, run_id: str, status: str):
         return (
@@ -240,19 +242,18 @@ class SupabaseService:
         if not meeting:
             return False
         return self.chunks_exist(meeting["id"])
+
     def save_chat_turn(
         self,
         session_id: str,
         user_id: str,
         question: str,
         answer: str,
-        source: str,              # "chat" | "system"
+        source: str,
         meeting_id: Optional[str] = None,
         method: Optional[str] = None,
         time_scope: Optional[str] = None,
     ):
-
-        # Ensure session exists
         self.create_session_if_not_exists(session_id, user_id)
 
         payload = {
@@ -279,7 +280,7 @@ class SupabaseService:
     ) -> List[str]:
 
         response = (
-            self.client.table("chat_turns")  
+            self.client.table("chat_turns")
             .select("question, answer")
             .eq("session_id", session_id)
             .order("created_at", desc=False)
@@ -297,6 +298,8 @@ class SupabaseService:
                 lines.append(f"AI: {r['answer']}")
 
         return lines
+
+
 # =========================================================
 # GLOBAL SUPABASE SINGLETON
 # =========================================================

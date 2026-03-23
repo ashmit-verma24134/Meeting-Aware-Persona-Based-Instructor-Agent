@@ -275,6 +275,10 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
     # ===============================
     # 1️⃣ EVENTS API (JSON)
     if "application/json" in content_type:
+        # Ignore Slack retries
+        if request.headers.get("X-Slack-Retry-Num"):
+            return {"status": "ok"}
+        
         body = await request.json()
 
         if body.get("type") == "url_verification":

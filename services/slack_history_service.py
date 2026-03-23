@@ -76,6 +76,15 @@ class SlackHistoryService:
                         )
                     except Exception:
                         speaker = user_id
+                    try:
+                        user_info = self.client.users_info(user=user_id)
+                        speaker = (
+                            user_info["user"]["profile"].get("display_name")
+                            or user_info["user"]["profile"].get("real_name")
+                            or user_id
+                        )
+                    except Exception:
+                        speaker = user_id
 
                 messages.append({
                     "text": text,

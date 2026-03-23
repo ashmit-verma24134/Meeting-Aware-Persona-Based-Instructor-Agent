@@ -1477,7 +1477,6 @@ graph.add_node("decide_source", decide_source_node)
 graph.add_node("chunk_answer", chunk_answer_node)
 graph.add_node("meeting_summary", meeting_summary_node)
 graph.add_node("action_summary", action_summary_node)
-graph.add_node("llm_verify", llm_verify_node)   # ← ADDED
 graph.add_node("verify", verification_node)
 graph.add_node("finalize", finalize_node)
 
@@ -1514,9 +1513,9 @@ graph.add_conditional_edges(
 graph.add_edge("meeting_summary", "finalize")
 graph.add_edge("action_summary", "finalize")
 
-graph.add_edge("chunk_answer", "llm_verify")
-graph.add_edge("llm_verify", "verify")
-graph.add_edge("verify", "finalize")             # ← ADDED
+# llm_verify disabled — 8B model too unreliable as verifier
+graph.add_edge("chunk_answer", "verify")
+graph.add_edge("verify", "finalize")
 
 graph.add_edge("finalize", END)
 

@@ -603,19 +603,44 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
     session = SLACK_SESSIONS.get(channel_id)
 
     # ----------------------------------------
-    # CREATE SESSION IF NOT EXISTS (Per Channel)
+    # CREATE OR RESTORE SESSION (Per Channel)
     # ----------------------------------------
     if session is None:
-        sid = f"{channel_id}_slack_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
-        supabase.create_session(sid, user_id)
+
+        # ── Check if a session already exists in Supabase for this channel ──
+        # This handles Vercel restarts where in-memory SLACK_SESSIONS is wiped
+        try:
+            existing = supabase.client.table("sessions") \
+                .select("session_id") \
+                .eq("user_id", user_id) \
+                .order("created_at", desc=True) \
+                .limit(1) \
+                .execute()
+        except Exception:
+            existing = None
+
+        if existing and existing.data:
+            # ── RESTORE: reuse existing session after restart ──
+            sid = existing.data[0]["session_id"]
+            is_new = False
+            print(f"[SESSION] Restored session {sid} for {channel_id}")
+        else:
+            # ── NEW: genuinely new channel ──
+            sid = f"{channel_id}_slack_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+            supabase.create_session(sid, user_id)
+            is_new = True
+            print(f"[SESSION] Created new session {sid} for {channel_id}")
 
         SLACK_SESSIONS[channel_id] = {
             "user_id": user_id,
             "session_id": sid,
         }
 
-        session = SLACK_SESSIONS[channel_id]  # use the newly created session
-        send_message(channel_id, "🤖 New session started for this channel.") 
+        session = SLACK_SESSIONS[channel_id]
+
+        # Only announce on genuinely new channels
+        if is_new:
+            send_message(channel_id, "🤖 New session started for this channel.")
 
         # ── AUTO-INGEST Slack history if this channel has never been indexed ──
         try:
@@ -628,8 +653,6 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
                 print(f"[AUTO-INGEST] Started Slack history ingest for {channel_id}")
         except Exception as e:
             print(f"[AUTO-INGEST] Failed to start: {e}")
-
-        # NOTE: No return here — fall through so the first message gets answered
 
     # ----------------------------------------
     # EXIT
@@ -651,11 +674,8 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
             return
 
         video_url = parts[1]
-
         send_message(channel_id, "Starting meeting pipeline...")
-
         run_id = hf_service.start_pipeline(video_url)
-
         session["current_run_id"] = run_id
 
         send_message(
@@ -719,6 +739,14 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
 
     # ----------------------------------------
     # NORMAL QUESTION FLOW
+    # Flow:
+    # 1. chat_answer_node → checks current session's chat_turns in Supabase
+    #    → if answer found in chat history → answer directly (fast)
+    #    → if not → go to retrieval
+    # 2. retrieve_chunks_node → vector + BM25 search over:
+    #    → slack chunks (daily messages for this channel)
+    #    → transcript chunks (ingested meeting recordings)
+    # 3. Answer generated from retrieved context
     # ----------------------------------------
     try:
         initial_state = {
@@ -760,7 +788,6 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
             channel_id,
             "Something went wrong while processing your question."
         )
-
 
 # ───────────────────────────────────────
 # SLACK SEND

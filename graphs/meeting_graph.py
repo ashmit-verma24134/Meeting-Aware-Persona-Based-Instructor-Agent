@@ -1482,7 +1482,6 @@ graph.add_node("chunk_answer", chunk_answer_node)
 graph.add_node("meeting_summary", meeting_summary_node)
 graph.add_node("action_summary", action_summary_node)
 graph.add_node("verify", verification_node)
-graph.add_node("llm_verify", llm_verify_node)
 graph.add_node("finalize", finalize_node)
 
 

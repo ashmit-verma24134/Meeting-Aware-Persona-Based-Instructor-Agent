@@ -1470,23 +1470,18 @@ graph = StateGraph(MeetingState)
 # Nodes
 # --------------------
 graph.add_node("query", query_understanding_node)
-
-# REPLACE pure_chat WITH chat_answer
 graph.add_node("chat_answer", chat_answer_node)
-
 graph.add_node("retrieve", retrieve_chunks_node)
 graph.add_node("infer_intent", infer_intent_node)
 graph.add_node("decide_source", decide_source_node)
-
 graph.add_node("chunk_answer", chunk_answer_node)
 graph.add_node("meeting_summary", meeting_summary_node)
 graph.add_node("action_summary", action_summary_node)
+graph.add_node("llm_verify", llm_verify_node)   # ← ADDED
 graph.add_node("verify", verification_node)
 graph.add_node("finalize", finalize_node)
 
-
 graph.set_entry_point("query")
-
 
 graph.add_edge("query", "chat_answer")
 
@@ -1503,8 +1498,6 @@ graph.add_conditional_edges(
     }
 )
 
-
-
 graph.add_edge("retrieve", "infer_intent")
 graph.add_edge("infer_intent", "decide_source")
 
@@ -1518,15 +1511,13 @@ graph.add_conditional_edges(
     }
 )
 
-
 graph.add_edge("meeting_summary", "finalize")
 graph.add_edge("action_summary", "finalize")
 
 graph.add_edge("chunk_answer", "llm_verify")
 graph.add_edge("llm_verify", "verify")
-
+graph.add_edge("verify", "finalize")             # ← ADDED
 
 graph.add_edge("finalize", END)
 
 meeting_graph = graph.compile()
-

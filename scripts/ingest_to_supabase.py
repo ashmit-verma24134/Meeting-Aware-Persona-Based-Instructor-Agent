@@ -1,39 +1,81 @@
 import os
+import re
 from dotenv import load_dotenv
 from services.embedding_api import get_embedding
-
 from services.supabase_service import SupabaseService
 from scripts.embedding_utils import build_embedding_text
 
 load_dotenv()
 
-CHUNK_SIZE = 350
-OVERLAP = 50
-
 # ===================================================
-# GLOBAL MODEL (Load once, reuse forever)
-# ===================================================
-
-
-# ===================================================
-# CHUNKING
+# KEYFRAME CHUNKING
+# Split transcript by [HH:MM:SS] timestamp markers
+# Each keyframe = one semantically coherent chunk
 # ===================================================
 
-def chunk_text(text: str, chunk_size: int, overlap: int):
-    words = text.split()
+def chunk_by_keyframe(text: str) -> list[dict]:
+    """
+    Split transcript into keyframe chunks.
+    Each chunk = one [timestamp] block.
+    Returns list of {text, timestamp_start, topic, speaker} dicts.
+    """
+    # Match lines starting with [HH:MM:SS] or [HH:MM:SS.ms]
+    pattern = re.compile(r'(\[\d{2}:\d{2}:\d{2}(?:\.\d+)?\])')
+    parts = pattern.split(text)
+
     chunks = []
-    step = chunk_size - overlap
+    i = 0
 
-    for i in range(0, len(words), step):
-        chunk_words = words[i:i + chunk_size]
-        if chunk_words:
-            chunks.append(" ".join(chunk_words))
+    # parts = ['', '[00:00:00]', 'content...', '[00:00:46]', 'content...', ...]
+    while i < len(parts):
+        if pattern.match(parts[i]):
+            timestamp = parts[i].strip("[]")
+            content = parts[i + 1].strip() if i + 1 < len(parts) else ""
+            i += 2
+
+            if not content:
+                continue
+
+            # Extract speaker from content if present
+            # Format: "[U0AANT5PPPH]: text" or "The speaker says..."
+            speaker = None
+            speaker_match = re.match(r'^\[([^\]]+)\]:\s*', content)
+            if speaker_match:
+                speaker = speaker_match.group(1)
+
+            # Extract topic — first 6 words of content as a label
+            words = content.split()
+            topic = " ".join(words[:6]) if words else ""
+
+            chunks.append({
+                "text": content,
+                "timestamp_start": timestamp,
+                "topic": topic,
+                "speaker": speaker,
+            })
+        else:
+            i += 1
+
+    # Fallback: if no timestamps found, use word-level chunking
+    if not chunks:
+        print("[CHUNK] No timestamps found — falling back to word-level chunking")
+        words = text.split()
+        step = 300
+        for idx in range(0, len(words), step):
+            chunk_text = " ".join(words[idx:idx + step])
+            if chunk_text:
+                chunks.append({
+                    "text": chunk_text,
+                    "timestamp_start": None,
+                    "topic": " ".join(chunk_text.split()[:6]),
+                    "speaker": None,
+                })
 
     return chunks
 
 
 # ===================================================
-# CORE INGEST LOGIC (Multi-Meeting Safe)
+# CORE INGEST LOGIC
 # ===================================================
 
 def ingest_single_file(file_path: str, username: str, run_id: str):
@@ -95,34 +137,30 @@ def ingest_single_file(file_path: str, username: str, run_id: str):
         print("Chunks already exist. Skipping embedding.")
         return
 
-    chunks = chunk_text(text, CHUNK_SIZE, OVERLAP)
-    print(f"Generated {len(chunks)} chunks.")
+    # Split by keyframe timestamps
+    keyframe_chunks = chunk_by_keyframe(text)
+    print(f"Generated {len(keyframe_chunks)} keyframe chunks.")
 
-    prev_chunk = None
     chunk_rows = []
 
-    for idx, chunk in enumerate(chunks):
-
-        embedding_text = build_embedding_text(
-            {"text": chunk},
-            prev_chunk
-        )
-
-        embedding = get_embedding(embedding_text)
+    for idx, kf in enumerate(keyframe_chunks):
+        chunk_text = kf["text"]
+        embedding = get_embedding(chunk_text)
 
         chunk_rows.append({
             "meeting_id": meeting_id,
             "chunk_index": idx,
-            "chunk_text": chunk,
+            "chunk_text": chunk_text,
             "embedding": embedding,
             "source": "transcript",
+            "timestamp_start": kf.get("timestamp_start"),
+            "topic": kf.get("topic"),
+            "speaker": kf.get("speaker"),
         })
-
-        prev_chunk = {"text": chunk}
 
     if chunk_rows:
         supabase.insert_chunks(chunk_rows)
-        print("Chunks inserted.")
+        print(f"Inserted {len(chunk_rows)} keyframe chunks.")
 
     print("Single file ingestion completed.")
 
@@ -134,17 +172,13 @@ def ingest_single_file(file_path: str, username: str, run_id: str):
 if __name__ == "__main__":
 
     username = "test_user"
-
     DATA_DIR = "."
 
     files = [f for f in os.listdir(DATA_DIR) if f.endswith(".txt")]
-
     print(f"Found {len(files)} meeting files")
 
     for file in files:
-
         run_id = os.path.splitext(file)[0]
-
         ingest_single_file(
             file_path=os.path.join(DATA_DIR, file),
             username=username,

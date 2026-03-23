@@ -290,19 +290,41 @@ def retrieve_chunks_node(state: MeetingState):
     supabase = get_supabase_client()
 
     # -----------------------------------
-    # Generate embedding safely
+    # QUERY EXPANSION
     # -----------------------------------
+    SYNONYMS = {
+        "course": "course class subject lecture CSE",
+        "bot": "bot agent MMA assistant",
+        "screen": "screen display visible monitor showed",
+        "meeting": "meeting call session discussion",
+        "model": "model tool library framework",
+        "extraction": "extraction parsing reading OCR",
+        "recording": "recording video demo presentation",
+        "pipeline": "pipeline process workflow system",
+        "agenda": "agenda plan goals topics",
+        "summary": "summary overview highlights recap",
+        "chatbot": "chatbot bot assistant patient chat",
+        "demo": "demo demonstration presentation showcase",
+        "file": "file folder directory path",
+        "run": "run execute start pipeline process",
+    }
+
+    expanded_query = query_text
+    q_lower = query_text.lower()
+    for keyword, expansion in SYNONYMS.items():
+        if keyword in q_lower:
+            expanded_query = expanded_query + " " + expansion
+
+    print(f"[QUERY EXPAND] Original: '{query_text}' → Expanded: '{expanded_query[:80]}...'")
+
     try:
-        query_embedding = get_embedding(query_text)
+        query_embedding = get_embedding(expanded_query)
     except Exception:
         state["retrieved_chunks"] = []
         state["_all_meeting_indices"] = []
         state["meeting_indices"] = []
         return state
 
-    # -----------------------------------
-    # Supabase RPC call (safe)
-    # -----------------------------------
     try:
         results = supabase.match_chunks_by_user(
             query_embedding=query_embedding,
@@ -318,9 +340,6 @@ def retrieve_chunks_node(state: MeetingState):
         state["meeting_indices"] = []
         return state
 
-    # -----------------------------------
-    # Convert Supabase rows → clean format
-    # -----------------------------------
     clean_chunks = []
 
     for row in results:
@@ -344,6 +363,59 @@ def retrieve_chunks_node(state: MeetingState):
         return state
 
     # -----------------------------------
+    # BM25 HYBRID SEARCH
+    # Run keyword search in parallel with vector search
+    # Vector catches semantic matches, BM25 catches exact keywords
+    # Chunks found by both get a score boost
+    # Chunks only found by BM25 get added to the pool
+    # -----------------------------------
+    try:
+        bm25_results = supabase.match_chunks_bm25(
+            query_text=query_text,
+            user_id=state["user_id"],
+            match_count=20
+        )
+
+        if bm25_results:
+            existing_ids = {
+                c["meeting_id"] + str(c["chunk_index"])
+                for c in clean_chunks
+            }
+
+            for row in bm25_results:
+                if (
+                    isinstance(row.get("meeting_id"), str)
+                    and isinstance(row.get("chunk_index"), int)
+                    and isinstance(row.get("chunk_text"), str)
+                ):
+                    chunk_key = row["meeting_id"] + str(row["chunk_index"])
+
+                    if chunk_key not in existing_ids:
+                        # Found by BM25 but missed by vector — add it
+                        clean_chunks.append({
+                            "meeting_id": row["meeting_id"],
+                            "chunk_index": row["chunk_index"],
+                            "text": row["chunk_text"],
+                            "similarity": float(row.get("bm25_rank", 0.1)),
+                            "source": row.get("source", "transcript"),
+                        })
+                        existing_ids.add(chunk_key)
+                    else:
+                        # Found by both — boost its similarity score
+                        for c in clean_chunks:
+                            if (
+                                c["meeting_id"] == row["meeting_id"]
+                                and c["chunk_index"] == row["chunk_index"]
+                            ):
+                                c["similarity"] += float(row.get("bm25_rank", 0.0)) * 0.3
+                                break
+
+            print(f"[BM25] Hybrid merge done, total chunks: {len(clean_chunks)}")
+
+    except Exception as e:
+        print(f"[BM25] Hybrid search failed: {e}")
+
+    # -----------------------------------
     # Sort by similarity FIRST
     # -----------------------------------
     clean_chunks = sorted(
@@ -352,21 +424,65 @@ def retrieve_chunks_node(state: MeetingState):
         reverse=True
     )
 
+    import re as _re
+
+    q_text = (state.get("question", "") + " " + state.get("standalone_query", "")).lower()
+
+    # -----------------------------------
+    # SOURCE-AWARE ROUTING
+    # -----------------------------------
+    SLACK_KEYS = {
+        "slack", "channel", "discuss", "discussed", "chat",
+        "said", "typed", "message", "conversation", "talked"
+    }
+    TRANSCRIPT_KEYS = {
+        "screen", "meeting", "transcript", "visible", "recording",
+        "speaker", "demo", "agenda", "summary", "presentation",
+        "keyframe", "pipeline", "video"
+    }
+
+    q_lower_words = set(q_text.split())
+    force_slack = any(k in q_lower_words for k in SLACK_KEYS)
+    force_transcript = any(k in q_lower_words for k in TRANSCRIPT_KEYS)
+
+    if force_slack and not force_transcript:
+        slack_only = [c for c in clean_chunks if c.get("source") == "slack"]
+        if slack_only:
+            clean_chunks = slack_only
+            print("[SOURCE ROUTE] Forced to slack only")
+
+    elif force_transcript and not force_slack:
+        transcript_only = [c for c in clean_chunks if c.get("source") == "transcript"]
+        if transcript_only:
+            clean_chunks = transcript_only
+            print("[SOURCE ROUTE] Forced to transcript only")
+
+    # -----------------------------------
+    # RE-RANKING
+    # -----------------------------------
+    q_words = set(_re.findall(r'\b\w{3,}\b', q_text))
+
+    for chunk in clean_chunks:
+        chunk_words = set(_re.findall(r'\b\w{3,}\b', chunk.get("text", "").lower()))
+        keyword_overlap = len(q_words & chunk_words)
+        chunk["rerank_score"] = chunk["similarity"] + (0.05 * keyword_overlap)
+
+    clean_chunks = sorted(
+        clean_chunks,
+        key=lambda c: c.get("rerank_score", c["similarity"]),
+        reverse=True
+    )
+    print(f"[RERANK] Re-ranked {len(clean_chunks)} chunks by keyword overlap")
+
     # -----------------------------------
     # DATE + SLACK KEYWORD LOGIC
     # -----------------------------------
-    import re as _re
-
     detected_date = None
-    q_text = (state.get("question", "") + " " + state.get("standalone_query", "")).lower()
-    q_words = set(_re.findall(r'\b\w{4,}\b', q_text))
 
-    # Format 1: YYYY-MM-DD or YYYY/MM/DD
     m = _re.search(r'(\d{4})[-/](\d{2})[-/](\d{2})', q_text)
     if m:
         detected_date = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
 
-    # Format 2: DD-MM-YYYY or DD/MM/YYYY or DD - MM - YY
     if not detected_date:
         m = _re.search(r'(\d{1,2})\s*[-/\s]\s*(\d{1,2})\s*[-/\s]\s*(\d{2,4})', q_text)
         if m:
@@ -375,7 +491,6 @@ def retrieve_chunks_node(state: MeetingState):
                 y = "20" + y
             detected_date = f"{y}-{mo.zfill(2)}-{d.zfill(2)}"
 
-    # Format 3: "22 march", "march 22", "22nd march", "22 mar" etc.
     if not detected_date:
         MONTHS = {
             "january": "01", "february": "02", "march": "03", "april": "04",
@@ -396,7 +511,6 @@ def retrieve_chunks_node(state: MeetingState):
                 break
 
     if detected_date:
-        # Dates only exist in Slack chunks — filter to slack + date match
         print(f"[DATE FILTER] Detected date: {detected_date}")
         date_chunks = [
             c for c in clean_chunks
@@ -410,12 +524,11 @@ def retrieve_chunks_node(state: MeetingState):
             print(f"[DATE FILTER] No slack chunks for {detected_date}, keeping all")
 
     else:
-        # No date — boost slack chunks whose text matches query keywords
         boosted = False
 
         for chunk in clean_chunks:
             if chunk.get("source") == "slack":
-                chunk_words = set(_re.findall(r'\b\w{4,}\b', chunk.get("text", "").lower()))
+                chunk_words = set(_re.findall(r'\b\w{3,}\b', chunk.get("text", "").lower()))
                 hits = len(q_words & chunk_words)
                 if hits >= 2:
                     chunk["similarity"] += 0.15 * hits
@@ -424,16 +537,13 @@ def retrieve_chunks_node(state: MeetingState):
         if boosted:
             clean_chunks = sorted(clean_chunks, key=lambda c: c["similarity"], reverse=True)
 
-            # ── WINDOWING: slack chunks can be huge (full day of messages)
-            # Extract only the lines around matching keywords so LLM gets
-            # focused context instead of hundreds of unrelated messages
             for i, chunk in enumerate(clean_chunks):
                 if chunk.get("source") == "slack":
                     lines = chunk.get("text", "").split("\n")
                     relevant = []
                     seen = set()
                     for j, line in enumerate(lines):
-                        line_words = set(_re.findall(r'\b\w{4,}\b', line.lower()))
+                        line_words = set(_re.findall(r'\b\w{3,}\b', line.lower()))
                         if len(q_words & line_words) >= 1:
                             start = max(0, j - 2)
                             end = min(len(lines), j + 4)
@@ -471,9 +581,6 @@ def retrieve_chunks_node(state: MeetingState):
         key=lambda c: (c["meeting_id"], c["chunk_index"])
     )
 
-    # -----------------------------------
-    # Collect meeting IDs safely
-    # -----------------------------------
     meeting_ids = []
     for c in clean_chunks:
         mid = c["meeting_id"]
@@ -788,7 +895,6 @@ def chunk_answer_node(state: MeetingState):
     retrieved = state.get("retrieved_chunks", [])
 
     if not retrieved:
-        # No evidence from context — try general knowledge answer
         try:
             gen_prompt = f"""You are a helpful project assistant.
 Answer the question concisely in 1-2 sentences using your general knowledge.
@@ -817,13 +923,49 @@ Answer:"""
         state["method"] = "no_evidence"
         return state
 
-    # ---------------------------------------------------
-    # TOP-K — reduced to 3 to avoid cross-chunk hallucination
-    # More chunks = more noise = LLM mixing unrelated facts
-    # ---------------------------------------------------
+    # -----------------------------------
+    # CONFIDENCE THRESHOLD TUNING
+    # Different question types need different thresholds
+    # Factual (who/what/when) → stricter → less hallucination
+    # General (how/why/explain) → looser → more answers
+    # Date questions → very loose → date filter already did the work
+    # -----------------------------------
+    q_lower = query.lower()
+
+    FACTUAL_KEYS = {"who", "what", "when", "where", "which"}
+    GENERAL_KEYS = {"how", "why", "explain", "describe", "tell"}
+    DATE_KEYS = {"march", "january", "february", "april", "may", "june",
+                 "july", "august", "september", "october", "november", "december",
+                 "2026", "2025", "date", "day"}
+
+    q_words_set = set(q_lower.split())
+
+    if q_words_set & DATE_KEYS:
+        sim_threshold = 0.10
+        print("[THRESHOLD] Date question → 0.10")
+    elif q_words_set & FACTUAL_KEYS:
+        sim_threshold = 0.25
+        print("[THRESHOLD] Factual question → 0.25")
+    elif q_words_set & GENERAL_KEYS:
+        sim_threshold = 0.18
+        print("[THRESHOLD] General question → 0.18")
+    else:
+        sim_threshold = 0.20
+        print("[THRESHOLD] Default → 0.20")
+
+    # Filter chunks below threshold
+    filtered = [c for c in retrieved if c.get("similarity", 0.0) >= sim_threshold]
+    if not filtered:
+        # Fallback: keep top 1 regardless of threshold
+        filtered = retrieved[:1]
+        print("[THRESHOLD] All below threshold, keeping top 1")
+
+    # -----------------------------------
+    # TOP-K — max 3 to avoid cross-chunk hallucination
+    # -----------------------------------
     sorted_chunks = sorted(
-        retrieved,
-        key=lambda c: c.get("similarity", 0.0),
+        filtered,
+        key=lambda c: c.get("rerank_score", c.get("similarity", 0.0)),
         reverse=True
     )
 
@@ -946,7 +1088,7 @@ def chat_answer_node(state: MeetingState):
     - If chat is sufficient → ALWAYS answer from chat
     - No fallback after YES
     - Yes/No answers must include explanation
-    - Semantic comparison (case/wording safe)
+    - Chat history is summarized before sufficiency check (fewer tokens, better context)
     """
 
     state.setdefault("path", [])
@@ -1007,26 +1149,78 @@ def chat_answer_node(state: MeetingState):
         elif isinstance(c, str):
             chat_context_parts.append(c)
 
-    chat_context = "\n\n".join(chat_context_parts).strip()
+    chat_context_raw = "\n\n".join(chat_context_parts).strip()
 
-    print("\n...CHAT CONTEXT SENT TO SUFFICIENCY... ")
-    print(chat_context)
-    print("\n..........................\n")
-
-    if not chat_context:
+    if not chat_context_raw:
         print(" Empty chat context → Retrieval")
         state["decision"] = Decision.RETRIEVAL_ONLY
         state["method"] = "chat_empty_context"
         return state
 
     # --------------------------------------------------
-    # Semantic Sufficiency Check (Anti-Sabji Mode)
+    # CHAT MEMORY SUMMARIZATION
+    # If history is long (>10 turns), compress it into a
+    # concise summary before passing to sufficiency check.
+    # Benefits:
+    # - Fewer tokens sent to LLM
+    # - Removes old irrelevant turns
+    # - Keeps only key facts from the conversation
     # --------------------------------------------------
-    assistant_only = "\n\n".join(
-        part for part in chat_context_parts
-        if part.startswith("AI:")
-    )
+    if len(chat_lines) > 10:
+        try:
+            summarize_prompt = f"""
+You are summarizing a conversation between a User and an AI assistant.
 
+TASK:
+- Extract ONLY the key facts and answers that were established in this conversation.
+- Write as a compact bullet list (max 8 bullets).
+- Each bullet = one fact/answer established.
+- Do NOT include greetings, failed answers, or "I couldn't find" responses.
+- Keep it under 200 words total.
+
+CONVERSATION:
+{chat_context_raw}
+
+KEY FACTS ESTABLISHED:
+""".strip()
+
+            summary_resp = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[{"role": "user", "content": summarize_prompt}],
+                temperature=0.0,
+                max_tokens=250,
+            )
+
+            chat_summary = summary_resp.choices[0].message.content.strip()
+            print(f"[CHAT SUMMARY] Compressed {len(chat_lines)} turns → summary")
+            print(f"[CHAT SUMMARY] {chat_summary[:100]}...")
+
+            # Use summary as the context for sufficiency check
+            chat_context = chat_summary
+            assistant_only = chat_summary  # summary already contains AI facts
+
+        except Exception as e:
+            print(f"[CHAT SUMMARY] Failed: {e} — using raw context")
+            chat_context = chat_context_raw
+            assistant_only = "\n\n".join(
+                part for part in chat_context_parts
+                if part.startswith("AI:")
+            )
+    else:
+        # Short history — use raw context directly
+        chat_context = chat_context_raw
+        assistant_only = "\n\n".join(
+            part for part in chat_context_parts
+            if part.startswith("AI:")
+        )
+
+    print("\n...CHAT CONTEXT SENT TO SUFFICIENCY... ")
+    print(chat_context[:300])
+    print("\n..........................\n")
+
+    # --------------------------------------------------
+    # Semantic Sufficiency Check
+    # --------------------------------------------------
     sufficiency_prompt = f"""
 You are checking whether the QUESTION can be answered
 using information already provided in earlier ASSISTANT responses.
@@ -1099,7 +1293,6 @@ FINAL ANSWER:
         )
 
         answer = response.choices[0].message.content.strip()
-
         print("Chat Answer RAW:", repr(answer))
 
     except Exception as e:
@@ -1213,7 +1406,61 @@ def finalize_node(state: MeetingState):
     return state
 
 
+def llm_verify_node(state: MeetingState):
 
+    state.setdefault("path", [])
+    state["path"].append("llm_verify")
+
+    candidate = state.get("candidate_answer", "")
+    method = state.get("method", "")
+
+    if method == "general_knowledge":
+        return state
+
+    if not candidate or candidate.strip() == SAFE_ABSTAIN:
+        return state
+
+    retrieved = state.get("retrieved_chunks", [])
+    if not retrieved:
+        return state
+
+    context = "\n\n".join(
+        c.get("text", "") for c in retrieved[:3]
+        if isinstance(c.get("text"), str)
+    )
+
+    verify_prompt = f"""
+Does the ANSWER directly come from or is clearly supported by the CONTEXT?
+Reply YES if supported. Reply NO if it contains information NOT in the context.
+Reply with only YES or NO.
+
+CONTEXT:
+{context}
+
+ANSWER:
+{candidate}
+
+QUESTION:
+{state.get("question", "")}
+""".strip()
+
+    try:
+        resp = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": verify_prompt}],
+            temperature=0.0,
+            max_tokens=3,
+        )
+        raw = resp.choices[0].message.content.strip().upper()
+        verdict = raw.split()[0] if raw else "NO"
+        print(f"[LLM VERIFY] Verdict: {verdict}")
+        if verdict == "NO":
+            state["candidate_answer"] = SAFE_ABSTAIN
+            state["method"] = "llm_verify_failed"
+    except Exception as e:
+        print(f"[LLM VERIFY] Error: {e}")
+
+    return state
 
 
 
@@ -1235,6 +1482,7 @@ graph.add_node("chunk_answer", chunk_answer_node)
 graph.add_node("meeting_summary", meeting_summary_node)
 graph.add_node("action_summary", action_summary_node)
 graph.add_node("verify", verification_node)
+graph.add_node("llm_verify", llm_verify_node)
 graph.add_node("finalize", finalize_node)
 
 
@@ -1275,8 +1523,9 @@ graph.add_conditional_edges(
 graph.add_edge("meeting_summary", "finalize")
 graph.add_edge("action_summary", "finalize")
 
-graph.add_edge("chunk_answer", "verify")
-graph.add_edge("verify", "finalize")
+graph.add_edge("chunk_answer", "llm_verify")
+graph.add_edge("llm_verify", "verify")
+
 
 graph.add_edge("finalize", END)
 

@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 _FAISS_INDEX = {}
 _VECTOR_CHUNKS = {}
 
-# SETUP
 load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -66,6 +65,22 @@ RULES:
 - Paraphrase facts; do NOT copy text verbatim.
 - Answer in 1–3 concise sentences.
 - Do NOT include bare timestamps like [00:15:30] in your answer unless you also know the calendar date.
+
+EXAMPLES:
+Q: Who was presenting in the meeting?
+A: Gautam Shroff was presenting in the meeting.
+
+Q: What was visible on the screen?
+A: A Finder window with TypeScript files and a Google Meet picture-in-picture window were visible on the screen.
+
+Q: What happened to Manmohan Singh?
+A: Manmohan Singh, a member of parliament, passed away on 19/03/2026 at 5:49 pm.
+
+Q: What pipeline was used to process the video?
+A: The smart_keyframes_and_classify pipeline was used to process the meeting video.
+
+Q: Was the bot working well?
+A: Yes, Ashmit Verma mentioned that the bot was working really well.
 
 Context:
 {context}

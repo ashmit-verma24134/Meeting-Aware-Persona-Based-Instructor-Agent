@@ -101,7 +101,6 @@ class SupabaseService:
         )
         return bool(response.data)
 
-    # FIX — explicitly conflict on meeting_id
     def upsert_transcript(self, meeting_id: str, raw_text: str) -> None:
         self.client.table("transcripts").upsert({
             "meeting_id": meeting_id,
@@ -133,9 +132,6 @@ class SupabaseService:
         if not chunks:
             return
 
-        # upsert instead of insert — if (meeting_id, chunk_index) already
-        # exists (e.g. from a race between store_slack_message and
-        # ingest_slack_history), just overwrite instead of crashing.
         response = (
             self.client
             .table("chunks")
@@ -167,6 +163,35 @@ class SupabaseService:
         ).execute()
 
         return response.data or []
+
+    # =========================================================
+    # BM25 KEYWORD SEARCH
+    # =========================================================
+
+    def match_chunks_bm25(
+        self,
+        query_text: str,
+        user_id: str,
+        match_count: int = 20
+    ) -> List[Dict[str, Any]]:
+        """
+        BM25 full-text keyword search using PostgreSQL tsvector.
+        Catches exact keyword matches that vector search misses
+        (e.g. OCR typos, rare named entities, exact phrases).
+        """
+        try:
+            response = self.client.rpc(
+                "match_chunks_bm25",
+                {
+                    "query_text": query_text,
+                    "filter_user_id": user_id,
+                    "match_count": match_count
+                }
+            ).execute()
+            return response.data or []
+        except Exception as e:
+            print(f"[BM25] Search failed: {e}")
+            return []
 
     # =========================================================
     # SESSIONS

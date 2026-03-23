@@ -472,9 +472,27 @@ def process_event(event: dict):
     if not event:
         return
 
-    # Ignore bot messages and message edits/deletes
+    # ── 1. Skip system subtypes ──
+    if event.get("subtype") in [
+        "bot_message", "message_changed", "message_deleted",
+        "thread_broadcast", "channel_join", "channel_leave",
+        "channel_purpose", "channel_topic",
+    ]:
+        return
+
+    # ── 2. Skip system join/leave text messages ──
+    text_raw = (event.get("text") or "").strip()
+    if any(phrase in text_raw for phrase in [
+        "has been added to",
+        "joined the channel",
+        "left the channel",
+        "MMA AGENT has joined",
+        "joined #",
+    ]):
+        return
+
+    # ── 3. Store bot replies, skip bot commands ──
     if event.get("bot_id"):
-        # Still store bot's own replies into daily chunk
         bot_text = (event.get("text") or "").strip()
         bot_channel = event.get("channel")
         bot_name = event.get("username") or "MMA AGENT"
@@ -483,15 +501,7 @@ def process_event(event: dict):
                 store_slack_message(bot_channel, bot_name, bot_text)
             except Exception as e:
                 print(f"[SLACK STORE BOT] Failed: {e}")
-        return  # still don't process as a user command
-
-        if event.get("subtype") in [
-            "bot_message",
-            "message_changed",
-            "message_deleted",
-            "thread_broadcast"
-        ]:
-            return
+        return
 
     event_id = event.get("event_ts")
     if not event_id:
@@ -525,10 +535,7 @@ def process_event(event: dict):
     if not slack_user_id or not channel_id:
         return
 
-    # ───────────────────────────────────────
-    # AUTO-STORE every incoming Slack message
-    # (so Slack history is continuously indexed)
-    # ───────────────────────────────────────
+    # ── AUTO-STORE every incoming Slack message ──
     try:
         store_slack_message(channel_id, slack_user_id, text)
     except Exception as e:

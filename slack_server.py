@@ -608,6 +608,7 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
         }
 
         session = SLACK_SESSIONS[channel_id]  # use the newly created session
+        send_message(channel_id, "🤖 New session started for this channel.") 
 
         # ── AUTO-INGEST Slack history if this channel has never been indexed ──
         try:

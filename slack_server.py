@@ -77,7 +77,18 @@ def store_slack_message(channel_id: str, user_id: str, text: str):
 
     # ── Today's date key ──
     today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
-    formatted_line = f"[{user_id}]: {text}"
+    # Resolve display name
+    try:
+        user_info = slack_client.users_info(user=user_id)
+        display_name = (
+            user_info["user"]["profile"].get("display_name")
+            or user_info["user"]["profile"].get("real_name")
+            or user_id
+        )
+    except Exception:
+        display_name = user_id
+
+    formatted_line = f"[{display_name}]: {text}"
 
     try:
         # ── Look for today's existing chunk ──

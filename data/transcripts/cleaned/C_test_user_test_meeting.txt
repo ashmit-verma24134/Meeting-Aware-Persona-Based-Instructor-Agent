@@ -1,0 +1,68 @@
+[00:00:00]
+Local (no Gemini) summary for slides frame. Utterances: [00:00:00-00:00:01][0] What we actually | [00:00:03-00:00:04][0] what have you understood? | [00:00:18-00:00:19][1] So | [00:00:23-00:00:24][0] let me | [00:00:27-00:00:31][0] show you what one of the recordings which I | [00:00:32-00:00:33][0] downloaded. | [00:00:33-00:00:34][0] So | [00:00:36-00:00:38][0] let me share my screen. Content: SLIDES keyframe. OCR extracted on-screen text (top lines): G | Gautam Shroff
+
+[00:00:46]
+Local (no Gemini) summary for slides frame. Utterances: [00:00:43-00:00:47][0] So I'm showing you I downloaded this recording | [00:00:47-00:00:48][0] from | [00:00:48-00:00:49][0] you and AI. Right? Content: SLIDES keyframe. OCR extracted on-screen text (top lines): Chrome | File | Edit | History | Tab | C | Mon 5 Jan 11:59AM | Help | View | Bookmarks | Profiles | Window | Google Meet | ~pofy-iri | Meet | mxi- | https:Ilmeet google com/mxi-pofy-iri | School | Meta-Learning Sih | Anvil | Build Web A | CSE643 A | Workspace admin_ | Gautam Shroff (You; presenting; annotating) | Stop presenting
+
+[00:00:49]
+The speaker is discussing a recording and iCap segments while the screen shows a demo with the text 'Bring the call back here', indicating a shift in the presentation from the Google Meet screen to this new demo screen.
+
+[00:01:00]
+The speaker says 'I'll just I downloaded one of them. Right? One minute.' while a Finder window is open on the screen, displaying various files and folders, including TypeScript files and videos, and a Google Meet window with picture-in-picture mode enabled.
+
+[00:01:07]
+The speaker says 'I'll just I downloaded one of them. Right?', 'One minute.', and 'Say let's say this one. Right? Mhmm.' while the screen shows a Finder window with various files and folders, including TypeScript files and videos, and a Google Meet window with picture-in-picture mode enabled, and the screen is being shared.
+
+[00:01:11]
+The speaker says 'Say let's say this one. Right? Mhmm.' and 'So this is a recording. Oops. Why is it not showing?' while the screen shows a Finder window with various files and a Google Meet window with picture-in-picture mode enabled, and the screen is being shared.
+
+[00:01:14]
+The speaker says 'So this is a recording. Oops. Why is it not showing?' while the screen displays the name 'Gautam Shroff' in a text region.
+
+[00:01:17]
+{'description': "The demo screen still displays 'Gautam Shroff' with a picture and text regions, while the speakers discuss a recording issue on the laptop."}
+
+[00:01:20]
+{'description': "The speaker is navigating through the laptop display, showing the Google Meet screen with various menu options and settings. The text 'Edit', 'Q 8', and 'System Settings' are visible on the screen. The speaker says 'One sec. One sec.' and 'Display.' while the other speaker mentions 'It's here on the laptop.'"}
+
+[00:01:25]
+{'speaker': 'Unknown', 'utterance': 'Display.', 'timestamp': '00:01:22-00:01:23', 'visible_text': ['Edit', 'Mon 5 Jan 12*O0PM', 'System Settings', 'Q', 'File', 'View', 'Window', 'Help', 'Google Meet', '~pofy-iri', 'Meet', 'mxi-', 'Displays', 'School', '88', 'Search', 'Gautam Shroff', 'ICAPP', 'sarthak23490@iiitd.ac in', 'Stop presenting', 'Apple ID', 'Wi-Fi', 'Home', 'Built-in Display', 'Benq PD3225U', 'Arrange _', 'Bluetooth', 'My Application', 'Network', 'Main display', 'Use as', 'My Project Tasks', 'VPN', '1800 * 1169', 'My Course Tasks', '1512 * 982 (Default)', 'Notifications', '1352 * 878', 'Sound', 'Logout', '1147 * 745', 'Focus', '1024 * 665', '~google com', 'meet.', 'G', 'Show all resolutions', 'Screen Time', 'Gautam Shroff (You; pres _', 'Brightness', 'General', 'Appearance', 'Automatically adjust brightness', 'G', 'Accessibility', 'A', 'True Tone', 'Gautam Shroff', 'Automatically adapt display t0 make colours appear consistent in different', 'Control Centre', 'ambient lighting conditions;', 'Siri & Spotlight', 'Agrim Jindal', 'Gautam Shr_.', 'Apple XDR Display (P3-1600 nits)', 'Preset', 'Privacy & Security', 'Refresh rate', 'ProMotion', 'Desktop & Dock', 'Night Shift_', 'Displays', 'Wallpaper', 'Screen Saver', '0', '12.00 PM', 'mxi-pofy-iri', 'meet google com is sharing your screen_', 'Stop sharing', 'Hide'], 'layout_regions': ['Picture', 'Page-footer'], 'changes': 'low similarity to previous frame, new text and layout regions appeared'}
+
+[00:01:29]
+{'speaker_0': ['Okay.', 'So you can see this. Right?'], 'visible_context': "The screen shows 'G' and 'Gautam Shroff' with a picture and text regions, which is different from the previous frame."}
+
+[00:01:32]
+{'summary': "The speaker is discussing a recording of one of the classmates, with the text 'G' and 'Gautam Shroff' visible on the screen, and the layout regions remaining largely unchanged from the previous frame."}
+
+[00:01:48]
+{'description': "The speaker is discussing something while the screen shows various options and text, including 'QuickTimo Playcr', 'New Delhi', and 'Gautam Shroff'. The speaker mentions 'he's going through the whole thing' and 'he's opening this'. The screen also displays 'video call is being recc' and 'recording', indicating a video call is in progress."}
+
+[00:01:53]
+The speaker is discussing a situation where someone is opening something and the LLM has no clue what's going on, while the screen shows a picture with a small header containing the text 'G'.
+
+[00:02:01]
+The speaker mentions that later on, he also shows a demo of some kind, while the frame shows a picture region with a small page header region containing the text 'G', with minimal visible text and no noticeable changes from the previous keyframe.
+
+[00:02:04]
+Local (no Gemini) summary for slides frame. Utterances: [00:02:02-00:02:05][0] a demo of some kind. Right? They he does all this. | [00:02:05-00:02:07][0] Right. And Content: SLIDES keyframe. OCR extracted on-screen text (top lines): QuickTimo Playcr | Edit | View | Window | File | Help | New Delhi | 168 | play_720p.Mpa | Demonstration 0f chatbot | School | Mostly Sunny | functionality | cidoct | Stop presenting | ling | let sessionid | crypto randOrUID | localstorage setiten | sessionid) | ct | session on page load: | console | const | ethoda
+
+[00:02:07]
+As the speaker talks about a demo, the screen shows a picture region and a page header with the text 'G', indicating a change in visual content from the previous slide.
+
+[00:02:20]
+The speaker is discussing a demo given by someone, and the current frame shows a picture and the name 'Gautam Shroff', indicating a possible connection between the speaker's utterance and the visual content.
+
+[00:02:23]
+The speaker is discussing a demo that was given and recorded, while the current frame shows a chat session with a patient chatbot, displaying a conversation about stomach issues and headaches. The menu bar at the top suggests that the chat session is part of a larger application or platform.
+
+[00:02:26]
+The speaker is discussing a demo, mentioning that it's not for the course, while the screen shows a chat session with a patient chatbot, displaying text such as 'Tve been experiencing in my stomach and neadaches'. The speaker is also talking about using LLM to generate ground truth and extracting text from frames.
+
+[00:14:25]
+{'summary': 'The speaker discusses the meeting duration, model training, and text extraction from frames using Blip and Clip models, while the screen displays a Google Meet session with a menu bar and various text elements.'}
+
+[00:16:32]
+{'description': "The screen shows a Google Meet session with a menu bar and various text elements. A notification 'Something in the Meet tab needs your attention' is visible. The video call is being recorded, as indicated by the notification 'This video call is being recorded; If you want t0 end'. Picture-in-picture mode is enabled."}
+
+[00:16:38]
+Local (no Gemini) summary for none frame. Utterances: No assigned utterances for this keyframe. Content: NONE keyframe. OCR text not available.

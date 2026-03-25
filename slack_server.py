@@ -260,12 +260,12 @@ def sync_slack_and_reply(channel_id, response_url):
         ingest_slack_history(channel_id=channel_id)
         http_requests.post(response_url, json={
             "response_type": "in_channel",
-            "text": f"✅ Slack history synced for this channel."
+            "text": f" Slack history synced for this channel."
         })
     except Exception as e:
         http_requests.post(response_url, json={
             "response_type": "in_channel",
-            "text": f"❌ Slack sync failed: {str(e)}"
+            "text": f" Slack sync failed: {str(e)}"
         })
 
 # ───────────────────────────────────────
@@ -370,7 +370,7 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
             )
             return {
                 "response_type": "in_channel",
-                "text": "⏳ Syncing Slack history for this channel..."
+                "text": "Syncing Slack history for this channel..."
             }
 
 

@@ -63,6 +63,7 @@ RULES:
 - If the question is about a specific meeting/project detail and the context does not contain it, reply EXACTLY with:
   "{SAFE_ABSTAIN}"
 - Paraphrase facts; do NOT copy text verbatim.
+- EXCEPTION: For specific IDs, codes, tokens, URLs, numbers — always quote the exact value directly.
 - Answer in 1–3 concise sentences.
 - Do NOT include bare timestamps like [00:15:30] in your answer unless you also know the calendar date.
 

@@ -61,21 +61,19 @@ class SlackHistoryService:
                 text = (msg.get("text") or "").strip()
                 if not text:
                     continue
+                # Clean Slack mention formatting
+                import re
+                text = re.sub(r'<@[^>]+>', '', text).strip()
+                text = re.sub(r'<!channel>', '@channel', text).strip()
+                text = re.sub(r'<!here>', '@here', text).strip()
+                if not text:
+                    continue
 
                 # Label speaker clearly
                 if msg.get("bot_id"):
                     speaker = msg.get("username") or "MMA AGENT"
                 else:
                     user_id = msg.get("user", "unknown")
-                    try:
-                        user_info = self.client.users_info(user=user_id)
-                        speaker = (
-                            user_info["user"]["profile"].get("display_name")
-                            or user_info["user"]["profile"].get("real_name")
-                            or user_id
-                        )
-                    except Exception:
-                        speaker = user_id
                     try:
                         user_info = self.client.users_info(user=user_id)
                         speaker = (

@@ -53,6 +53,12 @@ def store_slack_message(channel_id: str, user_id: str, text: str):
 
     if not text or len(text.strip()) < 10:
         return
+    # Clean Slack mention formatting
+    text = re.sub(r'<@[^>]+>', '', text).strip()
+    text = re.sub(r'<!channel>', '@channel', text).strip()
+    text = re.sub(r'<!here>', '@here', text).strip()
+    if len(text.strip()) < 10:
+        return
 
     supabase = get_supabase_client()
 

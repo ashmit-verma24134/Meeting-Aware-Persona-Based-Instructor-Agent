@@ -895,6 +895,22 @@ def chunk_answer_node(state: MeetingState):
     retrieved = state.get("retrieved_chunks", [])
 
     if not retrieved:
+        # ── For date questions — never use general knowledge ──
+        # If no chunks found for a date, just say we don't know
+        # Do NOT hallucinate historical facts (e.g. Annunciation Day)
+        q_lower_check = query.lower()
+        DATE_MONTHS = [
+            "january", "february", "march", "april", "may", "june",
+            "july", "august", "september", "october", "november", "december",
+            "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "oct", "nov", "dec"
+        ]
+        if any(m in q_lower_check for m in DATE_MONTHS) or "happened on" in q_lower_check:
+            state["candidate_answer"] = SAFE_ABSTAIN
+            state["confidence"] = 0.0
+            state["method"] = "no_date_evidence"
+            return state
+
+        # No evidence — try general knowledge for non-date questions
         try:
             gen_prompt = f"""You are a helpful project assistant.
 Answer the question concisely in 1-2 sentences using your general knowledge.
@@ -925,10 +941,6 @@ Answer:"""
 
     # -----------------------------------
     # CONFIDENCE THRESHOLD TUNING
-    # Different question types need different thresholds
-    # Factual (who/what/when) → stricter → less hallucination
-    # General (how/why/explain) → looser → more answers
-    # Date questions → very loose → date filter already did the work
     # -----------------------------------
     q_lower = query.lower()
 
@@ -953,23 +965,23 @@ Answer:"""
         sim_threshold = 0.20
         print("[THRESHOLD] Default → 0.20")
 
-    # Filter chunks below threshold
     filtered = [c for c in retrieved if c.get("similarity", 0.0) >= sim_threshold]
     if not filtered:
-        # Fallback: keep top 1 regardless of threshold
         filtered = retrieved[:1]
         print("[THRESHOLD] All below threshold, keeping top 1")
 
-    # -----------------------------------
-    # TOP-K — max 3 to avoid cross-chunk hallucination
-    # -----------------------------------
+    # TOP-K — use more chunks for people/attendee questions
+    if any(k in q_lower for k in ["who", "members", "attendees", "present", "people", "there"]):
+        MAX_CONTEXT_CHUNKS = 6
+    else:
+        MAX_CONTEXT_CHUNKS = 3
+
     sorted_chunks = sorted(
         filtered,
         key=lambda c: c.get("rerank_score", c.get("similarity", 0.0)),
         reverse=True
     )
 
-    MAX_CONTEXT_CHUNKS = 3
     selected_chunks = sorted_chunks[:MAX_CONTEXT_CHUNKS]
 
     print(f"\nChunks passed to LLM: {len(selected_chunks)}")
@@ -990,7 +1002,6 @@ Answer:"""
     state["method"] = "answer_entailment_verified"
 
     return state
-
 
 
     

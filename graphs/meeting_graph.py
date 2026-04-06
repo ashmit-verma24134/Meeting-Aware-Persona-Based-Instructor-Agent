@@ -674,7 +674,7 @@ def post_retrieve_router(state: MeetingState):
     sq = state.get("standalone_query", "").lower()
 
     SUMMARY_KEYS = {
-        "summary", "summarize", "overview",
+        "summary", "summarize","summarise" ,  "overview",
         "highlights", "takeaways"
     }
 
@@ -1479,9 +1479,6 @@ QUESTION:
 
 graph = StateGraph(MeetingState)
 
-# --------------------
-# Nodes
-# --------------------
 graph.add_node("query", query_understanding_node)
 graph.add_node("chat_answer", chat_answer_node)
 graph.add_node("retrieve", retrieve_chunks_node)
@@ -1490,7 +1487,6 @@ graph.add_node("decide_source", decide_source_node)
 graph.add_node("chunk_answer", chunk_answer_node)
 graph.add_node("meeting_summary", meeting_summary_node)
 graph.add_node("action_summary", action_summary_node)
-graph.add_node("verify", verification_node)
 graph.add_node("finalize", finalize_node)
 
 graph.set_entry_point("query")
@@ -1525,10 +1521,7 @@ graph.add_conditional_edges(
 
 graph.add_edge("meeting_summary", "finalize")
 graph.add_edge("action_summary", "finalize")
-
-# llm_verify disabled — 8B model too unreliable as verifier
-graph.add_edge("chunk_answer", "verify")
-graph.add_edge("verify", "finalize")
+graph.add_edge("chunk_answer", "finalize")  # verify removed
 
 graph.add_edge("finalize", END)
 

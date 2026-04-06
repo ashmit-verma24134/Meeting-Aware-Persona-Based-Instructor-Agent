@@ -39,6 +39,9 @@ def generate_answer_with_llm(
     if not retrieved_chunks:
         return SAFE_ABSTAIN
 
+    # Cap to top 5 chunks to reduce noise reaching the LLM
+    retrieved_chunks = retrieved_chunks[:5]
+
     context = "\n\n".join(
         f"[Meeting {c.get('meeting_id', c.get('meeting_index'))} | "
         f"Chunk {c.get('chunk_index')}]: {c.get('text', '')}"
@@ -54,12 +57,23 @@ You are a helpful project assistant for students working on capstone projects.
 
 RULES:
 - PRIORITIZE the provided context (transcripts, Slack history, project docs).
-- If the context contains relevant information, answer from it.
-- If the question is general knowledge (e.g., "What is Supabase?", "How does RAG work?"), answer using your own knowledge concisely — do NOT refuse.
+- If the context contains a direct answer to the question, answer from it.
 - If the question asks what happened, what was discussed, or what was done on a specific date, describe ALL activity visible in the context — including commands run, pipeline starts, questions asked, bot responses, and any other actions. Do NOT refuse just because there is no formal "discussion".
-- If the question asks which model/tool was used for something, look for any named technology or tool in the context DIRECTLY related to that task — do NOT associate tools mentioned in unrelated parts of the context.
-- If the question is about a person and their name appears in the context, answer from the context directly.
-- Answer ONLY from chunks where the answer is clearly present. Do NOT combine information from unrelated chunks to form an answer.
+- If the question asks which model/tool was used for something, collect ALL models/tools mentioned across ALL chunks that are directly related to that task and list them together in one answer. Do NOT pick just one and ignore the rest.
+- If multiple chunks discuss the SAME topic or task, combine their information into one complete answer.
+- Do NOT draw connections between chunks that are clearly about different unrelated topics.
+- If a chunk describes something visual (e.g. "menu bar", "screen", "window visible") and the question is NOT about visuals or screen content, ignore that chunk entirely.
+- If the question is about a person and their name appears in the context as a speaker or subject with relevant facts, answer from the context directly.
+
+CRITICAL — CHUNK CONTAINS THE QUESTION BEING ASKED, NOT AN ANSWER:
+- If the context only shows that someone ASKED the question (e.g. "[Ashmit Verma]: who is abdul kalam") but does NOT provide an actual answer to it, that chunk does NOT count as context. Treat it as if no relevant context exists and apply the rules below.
+
+WHEN CONTEXT DOES NOT CONTAIN THE ANSWER:
+- If the question is general knowledge (a well-known person, historical figure, scientific concept, geography, technology), answer it from your own knowledge concisely in 1–2 sentences.
+- If the question is NOT general knowledge and the context does not contain the answer, respond with exactly: "The answer is not available in the provided context."
+- Do NOT fabricate or infer answers from unrelated chunks.
+
+OTHER RULES:
 - Paraphrase facts; do NOT copy text verbatim.
 - EXCEPTION: For specific IDs, codes, tokens, URLs, numbers — always quote the exact value directly.
 - Answer in 1–3 concise sentences.
@@ -81,6 +95,21 @@ A: The smart_keyframes_and_classify pipeline was used to process the meeting vid
 Q: Was the bot working well?
 A: Yes, Ashmit Verma mentioned that the bot was working really well.
 
+Q: What models were used for text extraction?
+A: The BG model code, along with the Blip and Clip models, were used for text extraction from frames.
+
+Q: Who is Abdul Kalam?
+Context only contains: "[Ashmit Verma]: who is abdul kalam" (someone asking, no answer present)
+A: Dr. A.P.J. Abdul Kalam was an Indian aerospace scientist and the 11th President of India, widely known as the Missile Man of India.
+
+Q: What is the capital of France?
+Context contains no relevant information.
+A: The capital of France is Paris.
+
+Q: What did the team decide about database migrations?
+Context contains no relevant information.
+A: The answer is not available in the provided context.
+
 Context:
 {context}
 
@@ -101,6 +130,10 @@ Answer:
         answer = response.choices[0].message.content.strip()
 
         if not answer or SAFE_ABSTAIN.lower() in answer.lower():
+            return SAFE_ABSTAIN
+
+        # Map the new abstention phrase back to SAFE_ABSTAIN constant
+        if "not available in the provided context" in answer.lower():
             return SAFE_ABSTAIN
 
         return answer

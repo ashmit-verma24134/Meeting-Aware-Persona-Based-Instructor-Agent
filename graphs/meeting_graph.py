@@ -969,7 +969,8 @@ Answer:"""
         reverse=True
     )
 
-    MAX_CONTEXT_CHUNKS = 3
+    q_words_set = set(q_lower.split())
+    MAX_CONTEXT_CHUNKS = 8 if q_words_set & DATE_KEYS else 3
     selected_chunks = sorted_chunks[:MAX_CONTEXT_CHUNKS]
 
     print(f"\nChunks passed to LLM: {len(selected_chunks)}")

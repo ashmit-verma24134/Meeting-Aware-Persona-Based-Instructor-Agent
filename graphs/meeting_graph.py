@@ -460,7 +460,7 @@ def retrieve_chunks_node(state: MeetingState):
     # -----------------------------------
     # RE-RANKING
     # -----------------------------------
-    q_words = set(_re.findall(r'\b\w{3,}\b', q_text))
+    q_words = set(_re.findall(r'\b\w{2,}\b', q_text))
 
     for chunk in clean_chunks:
         chunk_words = set(_re.findall(r'\b\w{3,}\b', chunk.get("text", "").lower()))
@@ -528,7 +528,7 @@ def retrieve_chunks_node(state: MeetingState):
 
         for chunk in clean_chunks:
             if chunk.get("source") == "slack":
-                chunk_words = set(_re.findall(r'\b\w{3,}\b', chunk.get("text", "").lower()))
+                chunk_words = set(_re.findall(r'\b\w{2,}\b', chunk.get("text", "").lower()))
                 hits = len(q_words & chunk_words)
                 if hits >= 2:
                     chunk["similarity"] += 0.15 * hits
@@ -545,8 +545,8 @@ def retrieve_chunks_node(state: MeetingState):
                     for j, line in enumerate(lines):
                         line_words = set(_re.findall(r'\b\w{3,}\b', line.lower()))
                         if len(q_words & line_words) >= 1:
-                            start = max(0, j - 2)
-                            end = min(len(lines), j + 4)
+                            start = max(0, j - 5)  # Increased from 2 to 5
+                            end = min(len(lines), j + 15) # Increased from 4 to 15 to capture long credential blocks
                             for k in range(start, end):
                                 if k not in seen:
                                     relevant.append(lines[k])

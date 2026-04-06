@@ -1424,6 +1424,19 @@ def llm_verify_node(state: MeetingState):
     if not retrieved:
         return state
 
+    # Skip verify ONLY for date/activity questions
+    # Date filter already narrowed chunks upstream, verify would incorrectly kill valid answers
+    import re as _re
+    q_lower = state.get("question", "").lower()
+    DATE_SIGNALS = {
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december",
+        "2025", "2026", "what happened", "what was done", "what did"
+    }
+    if any(sig in q_lower for sig in DATE_SIGNALS):
+        print("[LLM VERIFY] Skipping — date/activity question")
+        return state
+
     context = "\n\n".join(
         c.get("text", "") for c in retrieved[:3]
         if isinstance(c.get("text"), str)

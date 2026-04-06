@@ -244,10 +244,10 @@ def retrieve_chunks(
 
     faiss.normalize_L2(q_emb)
 
-    TOP_K = min(25, len(_VECTOR_CHUNKS[cache_key]))
+    TOP_K = min(50, len(_VECTOR_CHUNKS[cache_key]))
     scores, ids = _FAISS_INDEX[cache_key].search(q_emb, TOP_K)
 
-    SIM_THRESHOLD = 0.25
+    SIM_THRESHOLD = 0.15
 
     filtered_chunks = []
     for score, idx in zip(scores[0], ids[0]):

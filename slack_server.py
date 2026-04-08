@@ -513,15 +513,33 @@ def process_event(event: dict):
         return
 
     # ── 3. Store bot replies, skip bot commands ──
+# ── 3. Store bot replies, skip bot commands ──
     if event.get("bot_id"):
         bot_text = (event.get("text") or "").strip()
         bot_channel = event.get("channel")
         bot_name = event.get("username") or "MMA AGENT"
+        
         if bot_text and bot_channel:
+            # PRO-TIP: List phrases you DON'T want the bot to memorize
+            noise_phrases = [
+                "Syncing Slack history", 
+                "Pipeline starting", 
+                "Pipeline not finished yet",
+                "Checking status for",
+                "Sorry, I couldn't find a clear answer", # Don't learn failures
+                "Something went wrong"
+            ]
+            
+            # If the bot message contains any noise, skip storing it
+            if any(phrase in bot_text for phrase in noise_phrases):
+                return
+
             try:
+                # If it's a real answer, store it so it can be retrieved later
                 store_slack_message(bot_channel, bot_name, bot_text)
+                print(f"[SLACK STORE BOT] Saved bot answer to memory: {bot_text[:50]}...")
             except Exception as e:
-                print(f"[SLACK STORE BOT] Failed: {e}")
+                print(f"[SLACK STORE BOT] Failed to store bot message: {e}")
         return
 
     event_id = event.get("event_ts")

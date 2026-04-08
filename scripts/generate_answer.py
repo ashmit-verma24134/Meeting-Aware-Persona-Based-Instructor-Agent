@@ -20,7 +20,7 @@ EMBEDDINGS_PATH = os.path.join(BASE_DIR, "chunk_embeddings.json")
 SAFE_ABSTAIN = "This was not clearly discussed in the meeting."
 
 
-def trim_chunk_text(text: str, max_words: int = 120) -> str:
+def trim_chunk_text(text: str, max_words: int = 1000) -> str:
     if not text:
         return ""
     cleaned_text = " ".join(text.split())

@@ -40,7 +40,7 @@ def generate_answer_with_llm(
         return SAFE_ABSTAIN
 
     # Cap to top 5 chunks to reduce noise reaching the LLM
-    retrieved_chunks = retrieved_chunks[:5]
+    retrieved_chunks = retrieved_chunks[:10]
 
     context = "\n\n".join(
         f"[Meeting {c.get('meeting_id', c.get('meeting_index'))} | "
@@ -66,7 +66,7 @@ RULES:
 - If the question is about a person and their name appears in the context as a speaker or subject with relevant facts, answer from the context directly.
 
 CRITICAL — CHUNK CONTAINS THE QUESTION BEING ASKED, NOT AN ANSWER:
-- If the context only shows that someone ASKED the question (e.g. "[Ashmit Verma]: who is abdul kalam") but does NOT provide an actual answer to it, that chunk does NOT count as context. Treat it as if no relevant context exists and apply the rules below.
+-If a chunk contains the question being asked, look at the surrounding lines (AI responses or other user messages) within that same chunk for the answer before discarding it.
 
 WHEN CONTEXT DOES NOT CONTAIN THE ANSWER:
 - If the question is general knowledge (a well-known person, historical figure, scientific concept, geography, technology), answer it from your own knowledge concisely in 1–2 sentences.
@@ -247,7 +247,7 @@ def retrieve_chunks(
     TOP_K = min(50, len(_VECTOR_CHUNKS[cache_key]))
     scores, ids = _FAISS_INDEX[cache_key].search(q_emb, TOP_K)
 
-    SIM_THRESHOLD = 0.15
+    SIM_THRESHOLD = 0.10
 
     filtered_chunks = []
     for score, idx in zip(scores[0], ids[0]):

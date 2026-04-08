@@ -41,7 +41,7 @@ hf_service = HFAPIService()
 # SLACK MESSAGE AUTO-STORE (Real-time RAG)
 # ───────────────────────────────────────
 
-def store_slack_message(channel_id: str, user_id: str, text: str, display_name: str = None):
+def store_slack_message(channel_id: str, user_id: str, text: str):
     """
     Append a live incoming Slack message to today's daily chunk.
     If today's chunk doesn't exist yet, create it.
@@ -84,16 +84,15 @@ def store_slack_message(channel_id: str, user_id: str, text: str, display_name: 
     # ── Today's date key ──
     today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
     # Resolve display name
-    if not display_name:
-        try:
-            user_info = slack_client.users_info(user=user_id)
-            display_name = (
-                user_info["user"]["profile"].get("display_name")
-                or user_info["user"]["profile"].get("real_name")
-                or user_id
-            )
-        except Exception:
-            display_name = user_id
+    try:
+        user_info = slack_client.users_info(user=user_id)
+        display_name = (
+            user_info["user"]["profile"].get("display_name")
+            or user_info["user"]["profile"].get("real_name")
+            or user_id
+        )
+    except Exception:
+        display_name = user_id
 
     formatted_line = f"[{display_name}]: {text}"
 
@@ -502,36 +501,11 @@ def process_event(event: dict):
     bot_id = event.get("bot_id")
 
     # ──────────────────────────────────────────────────────────
-    # 2. HANDLE BOT MESSAGES (Store answers in RAG memory)
+    # 2. HANDLE BOT MESSAGES
     # ──────────────────────────────────────────────────────────
+    # Bot answers are now stored directly in handle_user_message (inline store),
+    # so we just exit here to prevent the bot replying to itself.
     if bot_id:
-        # Check if this is a "real" answer we want to remember
-        noise_phrases = [
-            "Syncing Slack history", 
-            "Pipeline starting", 
-            "Pipeline not finished yet",
-            "Checking status for",
-            "Sorry, I couldn't find a clear answer",
-            "Something went wrong",
-            "joined the channel"
-        ]
-        
-        if text_raw and channel_id:
-            # Skip noise/status updates
-            if any(phrase in text_raw for phrase in noise_phrases):
-                print(f"[SLACK SKIP] Bot status/noise ignored: {text_raw[:30]}...")
-                return
-
-            try:
-                # Store the bot's response so it can be retrieved as context later
-                bot_name = event.get("username") or "MMA AGENT"
-                store_slack_message(channel_id, bot_id, text_raw, display_name=bot_name)
-                print(f"[SLACK STORE BOT] Saved bot answer to memory: {text_raw[:50]}...")
-            except Exception as e:
-                print(f"[SLACK STORE BOT] Failed to store: {e}")
-        
-        # IMPORTANT: Always exit after handling bot events so the bot doesn't 
-        # try to "reply" to itself and cause an infinite loop.
         return
 
     # ──────────────────────────────────────────────────────────
@@ -818,6 +792,22 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
                 "Sorry, I couldn't find a clear answer for that."
             )
             return
+
+        # ── Store bot answer directly into RAG memory ──
+        # We do this here (not via Slack event webhook) because bot message
+        # events are unreliable — they require specific Slack event subscriptions
+        # and may never arrive. Storing inline guarantees the answer is always
+        # captured as context for future questions.
+        try:
+            store_slack_message(
+                channel_id=channel_id,
+                user_id="bot",
+                text=answer,
+                display_name="MMA AGENT",
+            )
+            print(f"[INLINE STORE] Bot answer stored to RAG: {answer[:50]}...")
+        except Exception as store_err:
+            print(f"[INLINE STORE] Failed to store bot answer: {store_err}")
 
         send_message(channel_id, answer)
 

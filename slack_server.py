@@ -41,7 +41,7 @@ hf_service = HFAPIService()
 # SLACK MESSAGE AUTO-STORE (Real-time RAG)
 # ───────────────────────────────────────
 
-def store_slack_message(channel_id: str, user_id: str, text: str):
+def store_slack_message(channel_id: str, user_id: str, text: str, display_name: str = None):
     """
     Append a live incoming Slack message to today's daily chunk.
     If today's chunk doesn't exist yet, create it.
@@ -51,13 +51,13 @@ def store_slack_message(channel_id: str, user_id: str, text: str):
     from services.embedding_api import get_embedding
     from datetime import datetime, timezone
 
-    if not text or not text.strip():
+    if not text or len(text.strip()) < 10:
         return
     # Clean Slack mention formatting
     text = re.sub(r'<@[^>]+>', '', text).strip()
     text = re.sub(r'<!channel>', '@channel', text).strip()
     text = re.sub(r'<!here>', '@here', text).strip()
-    if not text.strip():
+    if len(text.strip()) < 10:
         return
 
     supabase = get_supabase_client()
@@ -83,16 +83,17 @@ def store_slack_message(channel_id: str, user_id: str, text: str):
 
     # ── Today's date key ──
     today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
-    # Resolve display name
-    try:
-        user_info = slack_client.users_info(user=user_id)
-        display_name = (
-            user_info["user"]["profile"].get("display_name")
-            or user_info["user"]["profile"].get("real_name")
-            or user_id
-        )
-    except Exception:
-        display_name = user_id
+    # Resolve display name (use passed-in name for bots, look up for humans)
+    if not display_name:
+        try:
+            user_info = slack_client.users_info(user=user_id)
+            display_name = (
+                user_info["user"]["profile"].get("display_name")
+                or user_info["user"]["profile"].get("real_name")
+                or user_id
+            )
+        except Exception:
+            display_name = user_id
 
     formatted_line = f"[{display_name}]: {text}"
 
@@ -501,11 +502,11 @@ def process_event(event: dict):
     bot_id = event.get("bot_id")
 
     # ──────────────────────────────────────────────────────────
-    # 2. HANDLE BOT MESSAGES
+    # 2. HANDLE BOT MESSAGES (Store answers in RAG memory)
     # ──────────────────────────────────────────────────────────
-    # Bot answers are now stored directly in handle_user_message (inline store),
-    # so we just exit here to prevent the bot replying to itself.
     if bot_id:
+        # Bot answers are stored inline in handle_user_message.
+        # Just exit here to prevent the bot replying to itself.
         return
 
     # ──────────────────────────────────────────────────────────
@@ -560,8 +561,6 @@ def process_event(event: dict):
     # Clean text of bot mentions before processing logic
     clean_text = re.sub(r"<@[^>]+>", "", text_raw).strip()
 
-    # Store every human message (even short ones like "hmm", "ok", "thanks")
-    # but only invoke the bot for messages that look like actual questions/commands
     NOISE_WORDS = {"hmm", "hm", "ok", "okay", "thanks", "thank you", "lol",
                    "nice", "cool", "great", "got it", "noted", "sure", "yes", "no",
                    "yep", "nope", "k", "ty", "np"}
@@ -570,7 +569,7 @@ def process_event(event: dict):
     if clean_text and not is_noise:
         handle_user_message(slack_user_id, channel_id, clean_text)
     elif clean_text and is_noise:
-        print(f"[SKIP BOT] Short/noise message not sent to bot: '{clean_text}'")
+        print(f"[SKIP BOT] Noise message ignored by bot: '{clean_text}'")
 
         
 def start_meeting_background(channel_id, video_url):
@@ -804,10 +803,8 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
             return
 
         # ── Store bot answer directly into RAG memory ──
-        # We do this here (not via Slack event webhook) because bot message
-        # events are unreliable — they require specific Slack event subscriptions
-        # and may never arrive. Storing inline guarantees the answer is always
-        # captured as context for future questions.
+        # Inline store is guaranteed — does NOT rely on Slack webhook events,
+        # which require special subscriptions and often never fire for bots.
         try:
             store_slack_message(
                 channel_id=channel_id,
@@ -815,9 +812,9 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
                 text=answer,
                 display_name="MMA AGENT",
             )
-            print(f"[INLINE STORE] Bot answer stored to RAG: {answer[:50]}...")
+            print(f"[INLINE STORE] Bot answer stored: {answer[:60]}...")
         except Exception as store_err:
-            print(f"[INLINE STORE] Failed to store bot answer: {store_err}")
+            print(f"[INLINE STORE] Failed: {store_err}")
 
         send_message(channel_id, answer)
 

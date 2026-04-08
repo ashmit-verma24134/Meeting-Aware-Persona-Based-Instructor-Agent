@@ -51,13 +51,13 @@ def store_slack_message(channel_id: str, user_id: str, text: str):
     from services.embedding_api import get_embedding
     from datetime import datetime, timezone
 
-    if not text or len(text.strip()) < 10:
+    if not text or not text.strip():
         return
     # Clean Slack mention formatting
     text = re.sub(r'<@[^>]+>', '', text).strip()
     text = re.sub(r'<!channel>', '@channel', text).strip()
     text = re.sub(r'<!here>', '@here', text).strip()
-    if len(text.strip()) < 10:
+    if not text.strip():
         return
 
     supabase = get_supabase_client()
@@ -559,8 +559,18 @@ def process_event(event: dict):
 
     # Clean text of bot mentions before processing logic
     clean_text = re.sub(r"<@[^>]+>", "", text_raw).strip()
-    if clean_text:
+
+    # Store every human message (even short ones like "hmm", "ok", "thanks")
+    # but only invoke the bot for messages that look like actual questions/commands
+    NOISE_WORDS = {"hmm", "hm", "ok", "okay", "thanks", "thank you", "lol",
+                   "nice", "cool", "great", "got it", "noted", "sure", "yes", "no",
+                   "yep", "nope", "k", "ty", "np"}
+    is_noise = clean_text.lower() in NOISE_WORDS or len(clean_text) < 3
+
+    if clean_text and not is_noise:
         handle_user_message(slack_user_id, channel_id, clean_text)
+    elif clean_text and is_noise:
+        print(f"[SKIP BOT] Short/noise message not sent to bot: '{clean_text}'")
 
         
 def start_meeting_background(channel_id, video_url):

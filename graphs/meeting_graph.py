@@ -289,13 +289,38 @@ def retrieve_chunks_node(state: MeetingState):
 
     supabase = get_supabase_client()
 
+    import re as _re
+
     # -----------------------------------
-    # QUERY EXPANSION
+    # DETECT SPECIFIC VALUE QUERY
+    # For queries asking for IDs, secrets, tokens, links — BM25 dominates.
+    # Vector search finds chunks semantically similar to the question
+    # (e.g. someone else asking the same thing), not the answer chunk.
+    # -----------------------------------
+    SPECIFIC_VALUE_PATTERNS = [
+        r'\bapp\s*id\b', r'\bapp_id\b',
+        r'\bsigning\s*secret\b', r'\bclient\s*secret\b',
+        r'\bverification\s*token\b', r'\boauth\s*token\b',
+        r'\bclient\s*id\b', r'\bapi\s*key\b',
+        r'\brun\s*id\b', r'\bwebhook\b',
+        r'\bpassword\b', r'\bcredential\b',
+        r'\bsecret\b', r'\btoken\b',
+        r'\blink\b', r'\burl\b',
+    ]
+    q_lower_sv = query_text.lower()
+    is_specific_value_query = any(
+        re.search(p, q_lower_sv) for p in SPECIFIC_VALUE_PATTERNS
+    )
+    if is_specific_value_query:
+        print(f"[SPECIFIC VALUE] Detected — BM25 will dominate, skipping expansion")
+
+    # -----------------------------------
+    # QUERY EXPANSION — skip for specific value queries
     # -----------------------------------
     SYNONYMS = {
-        "course": "course class subject lecture CSE",
-        "bot": "bot agent MMA assistant",
-        "screen": "screen display visible monitor showed",
+        "course": "course class subject lecture",
+        "bot": "bot agent assistant",
+        "screen": "screen display visible monitor",
         "meeting": "meeting call session discussion",
         "model": "model tool library framework",
         "extraction": "extraction parsing reading OCR",
@@ -303,17 +328,18 @@ def retrieve_chunks_node(state: MeetingState):
         "pipeline": "pipeline process workflow system",
         "agenda": "agenda plan goals topics",
         "summary": "summary overview highlights recap",
-        "chatbot": "chatbot bot assistant patient chat",
-        "demo": "demo demonstration presentation showcase",
+        "chatbot": "chatbot bot assistant",
+        "demo": "demo demonstration presentation",
         "file": "file folder directory path",
-        "run": "run execute start pipeline process",
+        "run": "run execute start process",
     }
 
     expanded_query = query_text
-    q_lower = query_text.lower()
-    for keyword, expansion in SYNONYMS.items():
-        if keyword in q_lower:
-            expanded_query = expanded_query + " " + expansion
+    if not is_specific_value_query:
+        q_lower = query_text.lower()
+        for keyword, expansion in SYNONYMS.items():
+            if keyword in q_lower:
+                expanded_query = expanded_query + " " + expansion
 
     print(f"[QUERY EXPAND] Original: '{query_text}' → Expanded: '{expanded_query[:80]}...'")
 
@@ -401,13 +427,16 @@ def retrieve_chunks_node(state: MeetingState):
                         })
                         existing_ids.add(chunk_key)
                     else:
-                        # Found by both — boost its similarity score
+                        # Found by both — boost score
+                        # For specific value queries, BM25 match is a strong
+                        # signal — boost much more aggressively
+                        boost_multiplier = 2.0 if is_specific_value_query else 0.3
                         for c in clean_chunks:
                             if (
                                 c["meeting_id"] == row["meeting_id"]
                                 and c["chunk_index"] == row["chunk_index"]
                             ):
-                                c["similarity"] += float(row.get("bm25_rank", 0.0)) * 0.3
+                                c["similarity"] += float(row.get("bm25_rank", 0.0)) * boost_multiplier
                                 break
 
             print(f"[BM25] Hybrid merge done, total chunks: {len(clean_chunks)}")
@@ -423,8 +452,6 @@ def retrieve_chunks_node(state: MeetingState):
         key=lambda c: c["similarity"],
         reverse=True
     )
-
-    import re as _re
 
     q_text = (state.get("question", "") + " " + state.get("standalone_query", "")).lower()
 
@@ -460,7 +487,7 @@ def retrieve_chunks_node(state: MeetingState):
     # -----------------------------------
     # RE-RANKING
     # -----------------------------------
-    q_words = set(_re.findall(r'\b\w{2,}\b', q_text))
+    q_words = set(_re.findall(r'\b\w{3,}\b', q_text))
 
     for chunk in clean_chunks:
         chunk_words = set(_re.findall(r'\b\w{3,}\b', chunk.get("text", "").lower()))
@@ -473,6 +500,37 @@ def retrieve_chunks_node(state: MeetingState):
         reverse=True
     )
     print(f"[RERANK] Re-ranked {len(clean_chunks)} chunks by keyword overlap")
+
+    # -----------------------------------
+    # PENALIZE QUESTION-ONLY CHUNKS
+    # Chunks where >60% of lines are questions contain no answers.
+    # These rank high on keyword overlap but are useless for answering.
+    # Penalize them so answer-containing chunks surface instead.
+    # -----------------------------------
+    for chunk in clean_chunks:
+        text = chunk.get("text", "")
+        lines = [
+            l.strip() for l in text.split("\n")
+            if l.strip() and not l.strip().startswith("---")
+        ]
+        if lines:
+            question_lines = sum(1 for l in lines if l.endswith("?"))
+            question_ratio = question_lines / len(lines)
+            if question_ratio > 0.6:
+                chunk["rerank_score"] = (
+                    chunk.get("rerank_score", chunk["similarity"]) * 0.2
+                )
+                print(
+                    f"[PENALIZE] Question-only chunk penalized "
+                    f"(ratio={question_ratio:.2f})"
+                )
+
+    clean_chunks = sorted(
+        clean_chunks,
+        key=lambda c: c.get("rerank_score", c["similarity"]),
+        reverse=True
+    )
+    print(f"[PENALIZE] Re-sorted after question-only penalty")
 
     # -----------------------------------
     # DATE + SLACK KEYWORD LOGIC
@@ -528,7 +586,7 @@ def retrieve_chunks_node(state: MeetingState):
 
         for chunk in clean_chunks:
             if chunk.get("source") == "slack":
-                chunk_words = set(_re.findall(r'\b\w{2,}\b', chunk.get("text", "").lower()))
+                chunk_words = set(_re.findall(r'\b\w{3,}\b', chunk.get("text", "").lower()))
                 hits = len(q_words & chunk_words)
                 if hits >= 2:
                     chunk["similarity"] += 0.15 * hits
@@ -545,8 +603,8 @@ def retrieve_chunks_node(state: MeetingState):
                     for j, line in enumerate(lines):
                         line_words = set(_re.findall(r'\b\w{3,}\b', line.lower()))
                         if len(q_words & line_words) >= 1:
-                            start = max(0, j - 5)  # Increased from 2 to 5
-                            end = min(len(lines), j + 15) # Increased from 4 to 15 to capture long credential blocks
+                            start = max(0, j - 2)
+                            end = min(len(lines), j + 4)
                             for k in range(start, end):
                                 if k not in seen:
                                     relevant.append(lines[k])
@@ -674,7 +732,7 @@ def post_retrieve_router(state: MeetingState):
     sq = state.get("standalone_query", "").lower()
 
     SUMMARY_KEYS = {
-        "summary", "summarize","summarise" ,  "overview",
+        "summary", "summarize", "overview",
         "highlights", "takeaways"
     }
 
@@ -969,8 +1027,7 @@ Answer:"""
         reverse=True
     )
 
-    q_words_set = set(q_lower.split())
-    MAX_CONTEXT_CHUNKS = 8 if q_words_set & DATE_KEYS else 3
+    MAX_CONTEXT_CHUNKS = 3
     selected_chunks = sorted_chunks[:MAX_CONTEXT_CHUNKS]
 
     print(f"\nChunks passed to LLM: {len(selected_chunks)}")
@@ -1425,19 +1482,6 @@ def llm_verify_node(state: MeetingState):
     if not retrieved:
         return state
 
-    # Skip verify ONLY for date/activity questions
-    # Date filter already narrowed chunks upstream, verify would incorrectly kill valid answers
-    import re as _re
-    q_lower = state.get("question", "").lower()
-    DATE_SIGNALS = {
-        "january", "february", "march", "april", "may", "june",
-        "july", "august", "september", "october", "november", "december",
-        "2025", "2026", "what happened", "what was done", "what did"
-    }
-    if any(sig in q_lower for sig in DATE_SIGNALS):
-        print("[LLM VERIFY] Skipping — date/activity question")
-        return state
-
     context = "\n\n".join(
         c.get("text", "") for c in retrieved[:3]
         if isinstance(c.get("text"), str)
@@ -1480,6 +1524,9 @@ QUESTION:
 
 graph = StateGraph(MeetingState)
 
+# --------------------
+# Nodes
+# --------------------
 graph.add_node("query", query_understanding_node)
 graph.add_node("chat_answer", chat_answer_node)
 graph.add_node("retrieve", retrieve_chunks_node)
@@ -1488,6 +1535,7 @@ graph.add_node("decide_source", decide_source_node)
 graph.add_node("chunk_answer", chunk_answer_node)
 graph.add_node("meeting_summary", meeting_summary_node)
 graph.add_node("action_summary", action_summary_node)
+graph.add_node("verify", verification_node)
 graph.add_node("finalize", finalize_node)
 
 graph.set_entry_point("query")
@@ -1522,7 +1570,10 @@ graph.add_conditional_edges(
 
 graph.add_edge("meeting_summary", "finalize")
 graph.add_edge("action_summary", "finalize")
-graph.add_edge("chunk_answer", "finalize")  # verify removed
+
+# llm_verify disabled — 8B model too unreliable as verifier
+graph.add_edge("chunk_answer", "verify")
+graph.add_edge("verify", "finalize")
 
 graph.add_edge("finalize", END)
 

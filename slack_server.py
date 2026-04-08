@@ -9,7 +9,6 @@ from threading import Lock
 from services.supabase_service import get_supabase_client
 from scripts.hf_json_to_txt import convert_hf_json_to_txt
 from scripts.ingest_to_supabase import ingest_single_file
-from scripts.ingest_slack_to_supabase import ingest_slack_history
 from slack_sdk import WebClient
 from slack_sdk.signature import SignatureVerifier
 from dotenv import load_dotenv
@@ -36,39 +35,30 @@ signature_verifier = SignatureVerifier(SLACK_SIGNING_SECRET)
 app = FastAPI()
 hf_service = HFAPIService()
 
-
 # ───────────────────────────────────────
 # SLACK MESSAGE AUTO-STORE (Real-time RAG)
 # ───────────────────────────────────────
 
 def store_slack_message(channel_id: str, user_id: str, text: str):
-    """
-    Append a live incoming Slack message to today's daily chunk.
-    If today's chunk doesn't exist yet, create it.
-    This keeps live messages consistent with the daily-chunk structure
-    created by ingest_slack_history.
-    """
     from services.embedding_api import get_embedding
     from datetime import datetime, timezone
 
-    if not text or len(text.strip()) < 10:
+    if not text or len(text.strip()) < 5:
         return
-    # Clean Slack mention formatting
-    text = re.sub(r'<@[^>]+>', '', text).strip()
-    text = re.sub(r'<!channel>', '@channel', text).strip()
-    text = re.sub(r'<!here>', '@here', text).strip()
-    if len(text.strip()) < 10:
+
+    clean = re.sub(r'<@[^>]+>', '', text).strip()
+    clean = re.sub(r'<!channel>', '@channel', clean).strip()
+    clean = re.sub(r'<!here>', '@here', clean).strip()
+    if len(clean.strip()) < 5:
         return
 
     supabase = get_supabase_client()
 
-    # ── Ensure user exists ──
     user = supabase.get_user_by_username(channel_id)
     if not user:
         user = supabase.create_user(channel_id)
     user_uuid = user["id"]
 
-    # ── Ensure slack meeting record exists ──
     meeting_name = f"slack_{channel_id}"
     meeting = supabase.get_meeting_by_name(meeting_name)
     if not meeting:
@@ -81,23 +71,24 @@ def store_slack_message(channel_id: str, user_id: str, text: str):
         })
     meeting_id = meeting["id"]
 
-    # ── Today's date key ──
     today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
-    # Resolve display name
-    try:
-        user_info = slack_client.users_info(user=user_id)
-        display_name = (
-            user_info["user"]["profile"].get("display_name")
-            or user_info["user"]["profile"].get("real_name")
-            or user_id
-        )
-    except Exception:
-        display_name = user_id
 
-    formatted_line = f"[{display_name}]: {text}"
+    # If already pre-formatted as [NAME]: text, use as-is
+    if clean.startswith("[") and "]: " in clean:
+        formatted_line = clean
+    else:
+        try:
+            user_info = slack_client.users_info(user=user_id)
+            display_name = (
+                user_info["user"]["profile"].get("display_name")
+                or user_info["user"]["profile"].get("real_name")
+                or user_id
+            )
+        except Exception:
+            display_name = user_id
+        formatted_line = f"[{display_name}]: {clean}"
 
     try:
-        # ── Look for today's existing chunk ──
         existing = supabase.client.table("chunks") \
             .select("id, chunk_index, chunk_text") \
             .eq("meeting_id", meeting_id) \
@@ -106,24 +97,15 @@ def store_slack_message(channel_id: str, user_id: str, text: str):
             .execute()
 
         if existing.data:
-            # ── Append to today's chunk ──
             row = existing.data[0]
             updated_text = row["chunk_text"] + f"\n\n{formatted_line}"
             new_embedding = get_embedding(updated_text)
-
             supabase.client.table("chunks") \
-                .update({
-                    "chunk_text": updated_text,
-                    "embedding": new_embedding,
-                }) \
+                .update({"chunk_text": updated_text, "embedding": new_embedding}) \
                 .eq("id", row["id"]) \
                 .execute()
-
-            print(f"[SLACK STORE] Appended to {today} chunk for {channel_id}")
-
+            print(f"[SLACK STORE] Appended to {today} chunk")
         else:
-            # ── No chunk for today yet — create it ──
-            # Get next chunk index
             all_chunks = supabase.client.table("chunks") \
                 .select("chunk_index") \
                 .eq("meeting_id", meeting_id) \
@@ -131,10 +113,8 @@ def store_slack_message(channel_id: str, user_id: str, text: str):
                 .limit(1) \
                 .execute()
             next_index = (all_chunks.data[0]["chunk_index"] + 1) if all_chunks.data else 0
-
             chunk_text = f"--- {today} ---\n{formatted_line}"
             embedding = get_embedding(chunk_text)
-
             supabase.insert_chunks([{
                 "meeting_id": meeting_id,
                 "chunk_index": next_index,
@@ -142,11 +122,10 @@ def store_slack_message(channel_id: str, user_id: str, text: str):
                 "embedding": embedding,
                 "source": "slack",
             }])
-
-            print(f"[SLACK STORE] Created new {today} chunk for {channel_id}")
-
+            print(f"[SLACK STORE] Created new {today} chunk")
     except Exception as e:
         print(f"[SLACK STORE] Failed: {e}")
+
 
 
 
@@ -156,7 +135,7 @@ def store_slack_message(channel_id: str, user_id: str, text: str):
 
 SAFE_ABSTAIN = "This was not clearly discussed in the meeting."
 
-SLACK_SESSIONS = {}  # channel_id → session info
+SLACK_SESSIONS = {}  # channel_id → session info]
 PROCESSED_EVENTS = set()
 EVENT_LOCK = Lock()
 
@@ -253,21 +232,6 @@ def start_and_reply(channel_id, video_url, response_url):
             "response_type": "in_channel",
             "text": f"Failed: {str(e)}"
         })
-
-def sync_slack_and_reply(channel_id, response_url):
-    """Background task: ingest Slack channel history and reply."""
-    try:
-        ingest_slack_history(channel_id=channel_id)
-        http_requests.post(response_url, json={
-            "response_type": "in_channel",
-            "text": f" Slack history synced for this channel."
-        })
-    except Exception as e:
-        http_requests.post(response_url, json={
-            "response_type": "in_channel",
-            "text": f" Slack sync failed: {str(e)}"
-        })
-
 # ───────────────────────────────────────
 # SLACK EVENTS ENDPOINT
 # ───────────────────────────────────────
@@ -281,10 +245,6 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
     # ===============================
     # 1️⃣ EVENTS API (JSON)
     if "application/json" in content_type:
-        # Ignore Slack retries
-        if request.headers.get("X-Slack-Retry-Num"):
-            return {"status": "ok"}
-        
         body = await request.json()
 
         if body.get("type") == "url_verification":
@@ -309,75 +269,60 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
 
         # ---------- /new_meeting ----------
         if command == "/new_meeting":
-            if not text:
-                return {"text": "Please provide a video URL."}
+                    if not text:
+                        return {"text": "Please provide a video URL."}
 
-            video_url = text.strip()
-            response_url = form.get("response_url")
+                    video_url = text.strip()
+                    response_url = form.get("response_url")
 
-            background_tasks.add_task(
-                start_and_reply,
-                channel_id, video_url, response_url
-            )
+                    background_tasks.add_task(
+                        start_and_reply,
+                        channel_id, video_url, response_url
+                    )
 
-            return {
-                "response_type": "in_channel",
-                "text": "Pipeline starting... Run ID will appear shortly."
-            }
+                    return {
+                        "response_type": "in_channel",
+                        "text": "Pipeline starting... Run ID will appear shortly."
+                    }
 
         # ---------- /ingest ----------
+# ---------- /ingest ----------
         if command == "/ingest":
-            run_id = (form.get("text") or "").replace("`", "").strip()
+                    run_id = (form.get("text") or "").replace("`", "").strip()
 
-            if not run_id:
-                return {
-                    "response_type": "in_channel",
-                    "text": "Please provide a run_id.\nUsage: `/ingest <run_id>`"
-                }
+                    if not run_id:
+                        return {
+                            "response_type": "in_channel",
+                            "text": "Please provide a run_id.\nUsage: `/ingest <run_id>`"
+                        }
 
-            response_url = form.get("response_url")
-            background_tasks.add_task(ingest_and_reply, channel_id, run_id, response_url)
+                    response_url = form.get("response_url")
+                    background_tasks.add_task(ingest_and_reply, channel_id, run_id, response_url)
 
-            return {
-                "response_type": "in_channel",
-                "text": f"Starting ingestion for `{run_id}`..."
-            }
-
+                    return {
+                        "response_type": "in_channel",
+                        "text": f"Starting ingestion for `{run_id}`..."
+                    }
         # ---------- /state ----------
         if command == "/state":
-            run_id = (text or "").replace("`", "").strip()
+                    run_id = (text or "").replace("`", "").strip()
 
-            if not run_id:
-                return {
-                    "response_type": "in_channel",
-                    "text": "Please provide a run_id."
-                }
+                    if not run_id:
+                        return {
+                            "response_type": "in_channel",
+                            "text": "Please provide a run_id."
+                        }
 
-            response_url = form.get("response_url")
-            background_tasks.add_task(check_state_and_reply, run_id, response_url)
+                    response_url = form.get("response_url")
+                    background_tasks.add_task(check_state_and_reply, run_id, response_url)
 
-            return {
-                "response_type": "in_channel",
-                "text": f"Checking status for `{run_id}`..."
-            }
-
-        # ---------- /sync_slack ----------
-        if command == "/sync_slack":
-            response_url = form.get("response_url")
-            background_tasks.add_task(
-                sync_slack_and_reply,
-                channel_id, response_url
-            )
-            return {
-                "response_type": "in_channel",
-                "text": "Syncing Slack history for this channel..."
-            }
-
-
+                    return {
+                        "response_type": "in_channel",
+                        "text": f"Checking status for `{run_id}`..."
+                    }
 # ───────────────────────────────────────
 # EVENT PROCESSOR
 # ───────────────────────────────────────
-
 def check_status_background(channel_id, run_id):
     try:
         supabase = get_supabase_client()
@@ -468,11 +413,11 @@ def ingest_background(channel_id, run_id):
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(full_text)
 
-        # 4️⃣ Ingest into Supabase
+        # 4️⃣Ingest into Supabase (CORRECT CALL)
         ingest_single_file(
             file_path=file_path,
-            username=channel_id,
-            run_id=run_id
+            username=channel_id,   # Slack channel = user
+            run_id=run_id          # Unique meeting id
         )
 
         # 5️⃣ Update meeting status
@@ -488,41 +433,24 @@ def ingest_background(channel_id, run_id):
             channel=channel_id,
             text=f"Ingestion failed:\n{str(e)}"
         )
-
+        
 def process_event(event: dict):
     if not event:
         return
 
-    # ── 1. Skip system subtypes ──
+    # Ignore bot messages
+    # Ignore bot messages and message edits/deletes
+    if event.get("bot_id"):
+        return
+
     if event.get("subtype") in [
-        "bot_message", "message_changed", "message_deleted",
-        "thread_broadcast", "channel_join", "channel_leave",
-        "channel_purpose", "channel_topic",
+        "bot_message",
+        "message_changed",
+        "message_deleted",
+        "thread_broadcast"
     ]:
         return
 
-    # ── 2. Skip system join/leave text messages ──
-    text_raw = (event.get("text") or "").strip()
-    if any(phrase in text_raw for phrase in [
-        "has been added to",
-        "joined the channel",
-        "left the channel",
-        "MMA AGENT has joined",
-        "joined #",
-    ]):
-        return
-
-    # ── 3. Store bot replies, skip bot commands ──
-    if event.get("bot_id"):
-        bot_text = (event.get("text") or "").strip()
-        bot_channel = event.get("channel")
-        bot_name = event.get("username") or "MMA AGENT"
-        if bot_text and bot_channel:
-            try:
-                store_slack_message(bot_channel, bot_name, bot_text)
-            except Exception as e:
-                print(f"[SLACK STORE BOT] Failed: {e}")
-        return
 
     event_id = event.get("event_ts")
     if not event_id:
@@ -542,31 +470,34 @@ def process_event(event: dict):
     slack_user_id = event.get("user")
     channel_id = event.get("channel")
     text = (event.get("text") or "").strip()
-
     # Ignore blank messages
     if not text:
         return
 
+
     # Remove bot mention formatting
     if event_type == "app_mention":
+        # Remove bot mention
         text = re.sub(r"<@[^>]+>", "", text).strip()
+
+        # Ignore pure mention (no command)
         if text == "":
             return
+
 
     if not slack_user_id or not channel_id:
         return
 
-    # ── AUTO-STORE every incoming Slack message ──
+    # ── Store every user message into today's chunk immediately ──
     try:
         store_slack_message(channel_id, slack_user_id, text)
     except Exception as e:
-        print(f"[SLACK STORE] Failed: {e}")
+        print(f"[SLACK STORE USER] Failed: {e}")
 
-    # In public channels → only respond if bot is mentioned
+    # In public channels, respond only if bot is mentioned
     if event.get("channel_type") == "channel":
         if "<@" not in (event.get("text") or ""):
             return
-
     handle_user_message(slack_user_id, channel_id, text)
 
 def start_meeting_background(channel_id, video_url):
@@ -575,6 +506,7 @@ def start_meeting_background(channel_id, video_url):
 
         run_id = hf_service.start_pipeline(video_url)
 
+        # Get user
         user = supabase.get_user_by_username(channel_id)
         if not user:
             user = supabase.create_user(channel_id)
@@ -583,6 +515,7 @@ def start_meeting_background(channel_id, video_url):
 
         meeting_name = f"meeting_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
+        # Store in DB
         supabase.create_meeting({
             "meeting_name": meeting_name,
             "user_id": user_id,
@@ -593,7 +526,7 @@ def start_meeting_background(channel_id, video_url):
 
         slack_client.chat_postMessage(
             channel=channel_id,
-            text=f"Meeting started!\nRun ID: `{run_id}`\nUse `/state` to check progress."
+            text=f" Meeting started!\nRun ID: `{run_id}`\nUse `/state` to check progress."
         )
 
     except Exception as e:
@@ -601,8 +534,6 @@ def start_meeting_background(channel_id, video_url):
             channel=channel_id,
             text=f"Failed to start meeting:\n{str(e)}"
         )
-
-
 # ───────────────────────────────────────
 # USER HANDLER
 # ───────────────────────────────────────
@@ -623,62 +554,32 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
 
     session = SLACK_SESSIONS.get(channel_id)
 
+
     # ----------------------------------------
-    # CREATE OR RESTORE SESSION (Per Channel)
+    # CREATE SESSION IF NOT EXISTS (Per Channel)
     # ----------------------------------------
+# ----------------------------------------
+# CREATE SESSION IF NOT EXISTS (Per Channel)
+# ----------------------------------------
     if session is None:
-
-        # ── Check if a session already exists in Supabase for this channel ──
-        # This handles Vercel restarts where in-memory SLACK_SESSIONS is wiped
-        try:
-            existing = supabase.client.table("sessions") \
-                .select("session_id") \
-                .eq("user_id", user_id) \
-                .order("created_at", desc=True) \
-                .limit(1) \
-                .execute()
-        except Exception:
-            existing = None
-
-        if existing and existing.data:
-            # ── RESTORE: reuse existing session after restart ──
-            sid = existing.data[0]["session_id"]
-            is_new = False
-            print(f"[SESSION] Restored session {sid} for {channel_id}")
-        else:
-            # ── NEW: genuinely new channel ──
-            sid = f"{channel_id}_slack_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
-            supabase.create_session(sid, user_id)
-            is_new = True
-            print(f"[SESSION] Created new session {sid} for {channel_id}")
+        sid = f"{channel_id}_slack_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+        supabase.create_session(sid, user_id)
 
         SLACK_SESSIONS[channel_id] = {
             "user_id": user_id,
             "session_id": sid,
         }
 
-        session = SLACK_SESSIONS[channel_id]
+        send_message(channel_id, " New session started for this channel.")
 
-        # Only announce on genuinely new channels
-
-        # ── AUTO-INGEST Slack history if this channel has never been indexed ──
-        try:
-            if not supabase.get_slack_ingestion_status(channel_id):
-                threading.Thread(
-                    target=ingest_slack_history,
-                    args=(channel_id,),
-                    daemon=True
-                ).start()
-                print(f"[AUTO-INGEST] Started Slack history ingest for {channel_id}")
-        except Exception as e:
-            print(f"[AUTO-INGEST] Failed to start: {e}")
+        return  # STOP HERE — do not continue to Q&A
 
     # ----------------------------------------
     # EXIT
     # ----------------------------------------
     if text.lower().strip() == "exit":
         del SLACK_SESSIONS[channel_id]
-        send_message(channel_id, "Session ended.")
+        send_message(channel_id, "Session ended")
         return
 
     # ----------------------------------------
@@ -693,8 +594,11 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
             return
 
         video_url = parts[1]
+
         send_message(channel_id, "Starting meeting pipeline...")
+
         run_id = hf_service.start_pipeline(video_url)
+
         session["current_run_id"] = run_id
 
         send_message(
@@ -731,10 +635,12 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
 
         result = hf_service.fetch_result(run_id)
 
+        # CASE 1: Still Running
         if result["state"] == "running":
             send_message(channel_id, "Pipeline is still running...")
             return
 
+        # CASE 2: Completed
         if result["state"] == "completed":
             send_message(channel_id, "Output received. Processing transcript...")
 
@@ -745,12 +651,12 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
             )
 
             ingest_single_file(
-                file_path=txt_path,
-                username=channel_id,
-                run_id=run_id
-            )
+            file_path=txt_path,
+            username=channel_id,
+            run_id=run_id
+        )
 
-            send_message(channel_id, "Meeting processed and stored successfully.")
+            send_message(channel_id, " Meeting processed and stored successfully.")
             return
 
         send_message(channel_id, "Unexpected pipeline response.")
@@ -758,18 +664,10 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
 
     # ----------------------------------------
     # NORMAL QUESTION FLOW
-    # Flow:
-    # 1. chat_answer_node → checks current session's chat_turns in Supabase
-    #    → if answer found in chat history → answer directly (fast)
-    #    → if not → go to retrieval
-    # 2. retrieve_chunks_node → vector + BM25 search over:
-    #    → slack chunks (daily messages for this channel)
-    #    → transcript chunks (ingested meeting recordings)
-    # 3. Answer generated from retrieved context
     # ----------------------------------------
     try:
         initial_state = {
-            "user_id": session["user_id"],
+            "user_id": session["user_id"],   #  Channel-based user
             "session_id": session["session_id"],
             "question": text,
             "decision": None,
@@ -795,19 +693,25 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
         if not answer or answer.strip() == SAFE_ABSTAIN:
             send_message(
                 channel_id,
-                "Sorry, I couldn't find a clear answer for that."
+                "Sorry  I couldn’t find a clear answer in the meeting transcript."
             )
             return
 
         send_message(channel_id, answer)
 
-    except Exception as e:
-        print(f"[HANDLE ERROR] {e}")
+        # ── Store bot answer directly into today's chunk ──
+        # Do NOT rely on Slack's event loop — it's async and can miss messages.
+        # Storing here guarantees the full Q&A pair is in the chunk immediately.
+        try:
+            store_slack_message(channel_id, "MMA_AGENT_BOT", f"[MMA AGENT]: {answer}")
+        except Exception as e:
+            print(f"[SLACK STORE BOT DIRECT] Failed: {e}")
+
+    except Exception:
         send_message(
             channel_id,
-            "Something went wrong while processing your question."
+            " Something went wrong while processing your question."
         )
-
 # ───────────────────────────────────────
 # SLACK SEND
 # ───────────────────────────────────────

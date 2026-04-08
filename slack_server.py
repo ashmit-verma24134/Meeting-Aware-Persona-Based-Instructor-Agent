@@ -41,7 +41,7 @@ hf_service = HFAPIService()
 # SLACK MESSAGE AUTO-STORE (Real-time RAG)
 # ───────────────────────────────────────
 
-def store_slack_message(channel_id: str, user_id: str, text: str):
+def store_slack_message(channel_id: str, user_id: str, text: str, display_name: str = None):
     """
     Append a live incoming Slack message to today's daily chunk.
     If today's chunk doesn't exist yet, create it.
@@ -84,15 +84,16 @@ def store_slack_message(channel_id: str, user_id: str, text: str):
     # ── Today's date key ──
     today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
     # Resolve display name
-    try:
-        user_info = slack_client.users_info(user=user_id)
-        display_name = (
-            user_info["user"]["profile"].get("display_name")
-            or user_info["user"]["profile"].get("real_name")
-            or user_id
-        )
-    except Exception:
-        display_name = user_id
+    if not display_name:
+        try:
+            user_info = slack_client.users_info(user=user_id)
+            display_name = (
+                user_info["user"]["profile"].get("display_name")
+                or user_info["user"]["profile"].get("real_name")
+                or user_id
+            )
+        except Exception:
+            display_name = user_id
 
     formatted_line = f"[{display_name}]: {text}"
 
@@ -524,7 +525,7 @@ def process_event(event: dict):
             try:
                 # Store the bot's response so it can be retrieved as context later
                 bot_name = event.get("username") or "MMA AGENT"
-                store_slack_message(channel_id, bot_id, text_raw)
+                store_slack_message(channel_id, bot_id, text_raw, display_name=bot_name)
                 print(f"[SLACK STORE BOT] Saved bot answer to memory: {text_raw[:50]}...")
             except Exception as e:
                 print(f"[SLACK STORE BOT] Failed to store: {e}")

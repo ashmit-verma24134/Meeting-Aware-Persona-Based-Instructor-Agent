@@ -117,7 +117,6 @@ def query_understanding_node(state: MeetingState):
     # -----------------------------------
     # Extract analysis safely
     # -----------------------------------
-    state["ignore"] = bool(analysis.get("ignore", False))
 
     state["standalone_query"] = analysis.get(
         "standalone_query",
@@ -794,12 +793,6 @@ def action_summary_node(state: MeetingState):
         if isinstance(c.get("meeting_id"), str)
     }
 
-
-    if len(meeting_ids) != 1:
-        state["final_answer"] = SAFE_ABSTAIN
-        state["method"] = "action_mixed_meetings"
-        return state
-
     context = "\n\n".join(
         c["text"] for c in retrieved if isinstance(c.get("text"), str)
     )[:12000]
@@ -999,8 +992,8 @@ Answer:"""
         sim_threshold = 0.10
         print("[THRESHOLD] Date question → 0.10")
     elif q_words_set & FACTUAL_KEYS:
-        sim_threshold = 0.25
-        print("[THRESHOLD] Factual question → 0.25")
+        sim_threshold = 0.15
+        print("[THRESHOLD] Factual question → 0.15")
     elif q_words_set & GENERAL_KEYS:
         sim_threshold = 0.18
         print("[THRESHOLD] General question → 0.18")
@@ -1389,34 +1382,29 @@ def finalize_node(state: MeetingState):
     state["path"].append("finalize")
 
     supabase = get_supabase_client()
-
     decision = state.get("decision")
     method = state.get("method", "")
 
-    # -----------------------------------
-    # CHAT-ONLY ANSWER
-    # -----------------------------------
+    # ── CHAT-ONLY ANSWER ──
     if decision == Decision.CHAT_ONLY:
         answer = state.get("final_answer") or SAFE_ABSTAIN
 
-        if answer != SAFE_ABSTAIN:
-            supabase.save_chat_turn(
-                session_id=state["session_id"],
-                user_id=state["user_id"],
-                question=state["question"],
-                answer=answer,
-                source="chat",
-                meeting_id=None,
-                method=method,
-                time_scope=None,
-            )
+        # Always save — even failed answers — so chat history builds up
+        supabase.save_chat_turn(
+            session_id=state["session_id"],
+            user_id=state["user_id"],
+            question=state["question"],
+            answer=answer,
+            source="chat",        # ← hardcoded, not a variable
+            meeting_id=None,      # ← hardcoded, not a variable
+            method=method,
+            time_scope=None,
+        )
 
         state["final_answer"] = answer
-        return state
+        return state             # ← correct indent inside the if block
 
-    # -----------------------------------
-    # RETRIEVAL / SYSTEM ANSWER
-    # -----------------------------------
+    # ── RETRIEVAL / SYSTEM ANSWER ──
     existing_final = state.get("final_answer")
     if existing_final == SAFE_ABSTAIN:
         existing_final = None
@@ -1431,31 +1419,22 @@ def finalize_node(state: MeetingState):
 
     source = "system"
 
-    # Extract meeting_id (UUID-safe)
     meeting_id = None
     retrieved = state.get("retrieved_chunks")
-
-    if (
-        isinstance(retrieved, list)
-        and retrieved
-        and isinstance(retrieved[0], dict)
-    ):
+    if isinstance(retrieved, list) and retrieved and isinstance(retrieved[0], dict):
         meeting_id = retrieved[0].get("meeting_id")
 
-    # -----------------------------------
-    # Save to Supabase
-    # -----------------------------------
-    if answer != SAFE_ABSTAIN:
-        supabase.save_chat_turn(
-            session_id=state["session_id"],
-            user_id=state["user_id"],
-            question=state["question"],
-            answer=answer,
-            source=source,
-            meeting_id=meeting_id,
-            method=method,
-            time_scope=state.get("time_scope"),
-        )
+    # Always save — even SAFE_ABSTAIN — so chat history builds up
+    supabase.save_chat_turn(
+        session_id=state["session_id"],
+        user_id=state["user_id"],
+        question=state["question"],
+        answer=answer,
+        source=source,
+        meeting_id=meeting_id,
+        method=method,
+        time_scope=state.get("time_scope"),
+    )
 
     state["final_answer"] = answer
     return state

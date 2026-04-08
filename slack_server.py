@@ -51,7 +51,7 @@ def store_slack_message(channel_id: str, user_id: str, text: str, display_name: 
     from services.embedding_api import get_embedding
     from datetime import datetime, timezone
 
-    if not text or len(text.strip()) < 10:
+    if not text or not text.strip():          # ← correct
         return
     # Clean Slack mention formatting
     text = re.sub(r'<@[^>]+>', '', text).strip()
@@ -778,6 +778,7 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
             "decision": None,
             "standalone_query": text,
             "confidence": None,
+            "is_hunting_for_exact_value": False,
             "temporal_constraint": None,
             "domain_constraint": None,
             "retrieved_chunks": [],
@@ -795,7 +796,20 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
         result = meeting_graph.invoke(initial_state)
         answer = result.get("final_answer")
 
-        if not answer or answer.strip() == SAFE_ABSTAIN:
+        ABSTAIN = SAFE_ABSTAIN
+
+        if not answer or answer.strip() == ABSTAIN:
+            # Even on SAFE_ABSTAIN: store a record so the graph knows
+            # "this question was already tried and had no answer"
+            try:
+                store_slack_message(
+                    channel_id=channel_id,
+                    user_id="bot",
+                    text=f"[No answer found for: {text}]",
+                    display_name="MMA AGENT",
+                )
+            except Exception:
+                pass
             send_message(
                 channel_id,
                 "Sorry, I couldn't find a clear answer for that."

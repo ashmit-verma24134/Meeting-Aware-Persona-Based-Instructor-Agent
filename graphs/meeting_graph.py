@@ -24,6 +24,7 @@ class MeetingState(TypedDict):
     decision: Decision
     standalone_query: str
     confidence: Optional[float]
+    is_hunting_for_exact_value: bool  # <--- ADD THIS LINE
 
     # Hard constraints (coordinator-controlled)
     temporal_constraint: Optional[str]     # "latest" | None
@@ -122,6 +123,9 @@ def query_understanding_node(state: MeetingState):
         "standalone_query",
         state["question"]
     )
+    
+    # <--- NEW AI INTENT FLAG EXTRACTED HERE --->
+    state["is_hunting_for_exact_value"] = bool(analysis.get("is_hunting_for_exact_value", False))
 
     # -----------------------------------
     # Temporal detection
@@ -297,22 +301,15 @@ def retrieve_chunks_node(state: MeetingState):
     # Vector search finds chunks semantically similar to the question
     # (e.g. someone else asking the same thing), not the answer chunk.
     # -----------------------------------
-    SPECIFIC_VALUE_PATTERNS = [
-        r'\bapp\s*id\b', r'\bapp_id\b',
-        r'\bsigning\s*secret\b', r'\bclient\s*secret\b',
-        r'\bverification\s*token\b', r'\boauth\s*token\b',
-        r'\bclient\s*id\b', r'\bapi\s*key\b',
-        r'\brun\s*id\b', r'\bwebhook\b',
-        r'\bpassword\b', r'\bcredential\b',
-        r'\bsecret\b', r'\btoken\b',
-        r'\blink\b', r'\burl\b',
-    ]
-    q_lower_sv = query_text.lower()
-    is_specific_value_query = any(
-        re.search(p, q_lower_sv) for p in SPECIFIC_VALUE_PATTERNS
-    )
+# General pattern: Catches ANY word followed by an underscore or space, 
+    # and then id, key, secret, token, etc. (e.g., github id, stripe_key, aws secret)
+# -----------------------------------
+    # DETECT SPECIFIC VALUE QUERY
+    # -----------------------------------
+    is_specific_value_query = state.get("is_hunting_for_exact_value", False)
+    
     if is_specific_value_query:
-        print(f"[SPECIFIC VALUE] Detected — BM25 will dominate, skipping expansion")
+        print(f"[SPECIFIC VALUE] LLM Detected Exact Value Search — BM25 will dominate")
 
     # -----------------------------------
     # QUERY EXPANSION — skip for specific value queries

@@ -489,7 +489,7 @@ def retrieve_chunks_node(state: MeetingState):
     # -----------------------------------
     q_words = set(_re.findall(r'\b\w{2,}\b', q_text)) # <--- Changed {3,} to {2,}
 
-        for chunk in clean_chunks:
+    for chunk in clean_chunks:
         chunk_words = set(_re.findall(r'\b\w{2,}\b', chunk.get("text", "").lower())) # <--- Changed {3,} to {2,}        keyword_overlap = len(q_words & chunk_words)
         chunk["rerank_score"] = chunk["similarity"] + (0.05 * keyword_overlap)
 
@@ -585,7 +585,8 @@ def retrieve_chunks_node(state: MeetingState):
 
         for chunk in clean_chunks:
             if chunk.get("source") == "slack":
-                chunk_words = set(_re.findall(r'\b\w{2,}\b', chunk.get("text", "").lower())) # <--- Changed {3,} to {2,}                hits = len(q_words & chunk_words)
+                chunk_words = set(_re.findall(r'\b\w{2,}\b', chunk.get("text", "").lower())) # <--- Changed {3,} to {2,}                
+                hits = len(q_words & chunk_words)
                 if hits >= 2:
                     chunk["similarity"] += 0.15 * hits
                     boosted = True

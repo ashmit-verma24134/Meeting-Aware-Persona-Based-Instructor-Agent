@@ -493,57 +493,61 @@ def process_event(event: dict):
     if not event:
         return
 
-    # ── 1. Skip system subtypes ──
-    if event.get("subtype") in [
-        "message_changed", "message_deleted",
-        "thread_broadcast", "channel_join", "channel_leave",
-        "channel_purpose", "channel_topic",
-    ]:
-        return
-
-    # ── 2. Skip system join/leave text messages ──
+    # 1. Get basic event data
     text_raw = (event.get("text") or "").strip()
-    if any(phrase in text_raw for phrase in [
-        "has been added to",
-        "joined the channel",
-        "left the channel",
-        "MMA AGENT has joined",
-        "joined #",
-    ]):
-        return
+    channel_id = event.get("channel")
+    event_type = event.get("type")
+    subtype = event.get("subtype")
+    bot_id = event.get("bot_id")
 
-    # ── 3. Store bot replies, skip bot commands ──
-# ── 3. Store bot replies, skip bot commands ──
-# ── 3. Store bot replies, skip bot commands ──
-    if event.get("bot_id"):
-        bot_text = (event.get("text") or "").strip()
-        bot_channel = event.get("channel")
-        bot_name = event.get("username") or "MMA AGENT"
+    # ──────────────────────────────────────────────────────────
+    # 2. HANDLE BOT MESSAGES (Store answers in RAG memory)
+    # ──────────────────────────────────────────────────────────
+    if bot_id:
+        # Check if this is a "real" answer we want to remember
+        noise_phrases = [
+            "Syncing Slack history", 
+            "Pipeline starting", 
+            "Pipeline not finished yet",
+            "Checking status for",
+            "Sorry, I couldn't find a clear answer",
+            "Something went wrong",
+            "joined the channel"
+        ]
         
-        if bot_text and bot_channel:
-            # PRO-TIP: Prevent the bot from memorizing noise or failures
-            noise_phrases = [
-                "Syncing Slack history", 
-                "Pipeline starting", 
-                "Pipeline not finished yet",
-                "Checking status for",
-                "Sorry, I couldn't find a clear answer", # Don't learn failures
-                "Something went wrong"
-            ]
-            
-            # Skip if it's just a status update
-            if any(phrase in bot_text for phrase in noise_phrases):
-                print(f"[SLACK SKIP] Skipping bot status/failure: {bot_text[:30]}...")
+        if text_raw and channel_id:
+            # Skip noise/status updates
+            if any(phrase in text_raw for phrase in noise_phrases):
+                print(f"[SLACK SKIP] Bot status/noise ignored: {text_raw[:30]}...")
                 return
 
             try:
-                # Store the actual answer for future RAG retrieval
-                store_slack_message(bot_channel, bot_name, bot_text)
-                print(f"[SLACK STORE BOT] Saved bot answer: {bot_text[:50]}...")
+                # Store the bot's response so it can be retrieved as context later
+                bot_name = event.get("username") or "MMA AGENT"
+                store_slack_message(channel_id, bot_id, text_raw)
+                print(f"[SLACK STORE BOT] Saved bot answer to memory: {text_raw[:50]}...")
             except Exception as e:
-                print(f"[SLACK STORE BOT] Failed: {e}")
+                print(f"[SLACK STORE BOT] Failed to store: {e}")
+        
+        # IMPORTANT: Always exit after handling bot events so the bot doesn't 
+        # try to "reply" to itself and cause an infinite loop.
         return
 
+    # ──────────────────────────────────────────────────────────
+    # 3. FILTER SYSTEM MESSAGES (For Human users only now)
+    # ──────────────────────────────────────────────────────────
+    if subtype in [
+        "message_changed", "message_deleted", "thread_broadcast", 
+        "channel_join", "channel_leave", "channel_purpose", "channel_topic"
+    ]:
+        return
+
+    if any(phrase in text_raw for phrase in ["has been added to", "joined #"]):
+        return
+
+    # ──────────────────────────────────────────────────────────
+    # 4. DUPLICATE PROTECTION
+    # ──────────────────────────────────────────────────────────
     event_id = event.get("event_ts")
     if not event_id:
         return
@@ -555,40 +559,35 @@ def process_event(event: dict):
         if len(PROCESSED_EVENTS) > 10_000:
             PROCESSED_EVENTS.clear()
 
-    event_type = event.get("type")
+    # ──────────────────────────────────────────────────────────
+    # 5. HUMAN MESSAGE HANDLING
+    # ──────────────────────────────────────────────────────────
     if event_type not in ["message", "app_mention"]:
         return
 
     slack_user_id = event.get("user")
-    channel_id = event.get("channel")
-    text = (event.get("text") or "").strip()
-
-    # Ignore blank messages
-    if not text:
+    if not slack_user_id or not channel_id or not text_raw:
         return
 
-    # Remove bot mention formatting
-    if event_type == "app_mention":
-        text = re.sub(r"<@[^>]+>", "", text).strip()
-        if text == "":
-            return
-
-    if not slack_user_id or not channel_id:
-        return
-
-    # ── AUTO-STORE every incoming Slack message ──
+    # AUTO-STORE Human message for RAG
     try:
-        store_slack_message(channel_id, slack_user_id, text)
+        store_slack_message(channel_id, slack_user_id, text_raw)
     except Exception as e:
-        print(f"[SLACK STORE] Failed: {e}")
+        print(f"[SLACK STORE HUMAN] Failed: {e}")
 
-    # In public channels → only respond if bot is mentioned
-    if event.get("channel_type") == "channel":
-        if "<@" not in (event.get("text") or ""):
-            return
+    # Respond logic: if DM (im) or if bot is mentioned in public channel
+    is_public = event.get("channel_type") == "channel"
+    is_mention = "<@" in (event.get("text") or "") or event_type == "app_mention"
 
-    handle_user_message(slack_user_id, channel_id, text)
+    if is_public and not is_mention:
+        return
 
+    # Clean text of bot mentions before processing logic
+    clean_text = re.sub(r"<@[^>]+>", "", text_raw).strip()
+    if clean_text:
+        handle_user_message(slack_user_id, channel_id, clean_text)
+
+        
 def start_meeting_background(channel_id, video_url):
     try:
         supabase = get_supabase_client()

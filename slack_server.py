@@ -495,7 +495,7 @@ def process_event(event: dict):
 
     # ── 1. Skip system subtypes ──
     if event.get("subtype") in [
-        "bot_message", "message_changed", "message_deleted",
+        "message_changed", "message_deleted",
         "thread_broadcast", "channel_join", "channel_leave",
         "channel_purpose", "channel_topic",
     ]:
@@ -514,13 +514,14 @@ def process_event(event: dict):
 
     # ── 3. Store bot replies, skip bot commands ──
 # ── 3. Store bot replies, skip bot commands ──
+# ── 3. Store bot replies, skip bot commands ──
     if event.get("bot_id"):
         bot_text = (event.get("text") or "").strip()
         bot_channel = event.get("channel")
         bot_name = event.get("username") or "MMA AGENT"
         
         if bot_text and bot_channel:
-            # PRO-TIP: List phrases you DON'T want the bot to memorize
+            # PRO-TIP: Prevent the bot from memorizing noise or failures
             noise_phrases = [
                 "Syncing Slack history", 
                 "Pipeline starting", 
@@ -530,16 +531,17 @@ def process_event(event: dict):
                 "Something went wrong"
             ]
             
-            # If the bot message contains any noise, skip storing it
+            # Skip if it's just a status update
             if any(phrase in bot_text for phrase in noise_phrases):
+                print(f"[SLACK SKIP] Skipping bot status/failure: {bot_text[:30]}...")
                 return
 
             try:
-                # If it's a real answer, store it so it can be retrieved later
+                # Store the actual answer for future RAG retrieval
                 store_slack_message(bot_channel, bot_name, bot_text)
-                print(f"[SLACK STORE BOT] Saved bot answer to memory: {bot_text[:50]}...")
+                print(f"[SLACK STORE BOT] Saved bot answer: {bot_text[:50]}...")
             except Exception as e:
-                print(f"[SLACK STORE BOT] Failed to store bot message: {e}")
+                print(f"[SLACK STORE BOT] Failed: {e}")
         return
 
     event_id = event.get("event_ts")

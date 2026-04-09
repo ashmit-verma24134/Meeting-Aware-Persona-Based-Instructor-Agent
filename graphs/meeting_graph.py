@@ -599,8 +599,8 @@ def retrieve_chunks_node(state: MeetingState):
                     for j, line in enumerate(lines):
                         line_words = set(_re.findall(r'\b\w{2,}\b', line.lower())) # <--- Changed {3,} to {2,}
                         if len(q_words & line_words) >= 1:
-                            start = max(0, j - 2)
-                            end = min(len(lines), j + 4)
+                            start = max(0, j - 5)
+                            end = min(len(lines), j + 15)
                             for k in range(start, end):
                                 if k not in seen:
                                     relevant.append(lines[k])
@@ -918,7 +918,7 @@ def generate_with_confidence(
 
     print("Light lexical overlap:", overlap)
 
-    if overlap >= 1:
+    if overlap >= 3:
         return answer, 0.6
 
     # If LLM answered but overlap is weak,
@@ -1017,7 +1017,13 @@ Answer:"""
         reverse=True
     )
 
-    MAX_CONTEXT_CHUNKS = 3
+    PEOPLE_KEYS = {"who", "people", "person", "team", "members", "mentioned", "name"}
+    if q_words_set & PEOPLE_KEYS:
+        MAX_CONTEXT_CHUNKS = 6
+    elif q_words_set & DATE_KEYS:
+        MAX_CONTEXT_CHUNKS = 8
+    else:
+        MAX_CONTEXT_CHUNKS = 3
     selected_chunks = sorted_chunks[:MAX_CONTEXT_CHUNKS]
 
     print(f"\nChunks passed to LLM: {len(selected_chunks)}")
@@ -1154,6 +1160,10 @@ def chat_answer_node(state: MeetingState):
         "summarize", "summary", "overview", "highlights", "takeaways",
         "what happened", "what was discussed", "what did we discuss",
         "summarise", "give me a summary", "latest meeting",
+        "what sources", "how does", "what does", "limitations",
+        "what kind", "what are", "how can", "why does", "who are",
+        "what is the role", "splitting", "chunking", "performance",
+        "retrieval", "what all", "how many", "what were", "what was used",
     ]
     q_lower = state["question"].lower()
     if any(k in q_lower for k in FORCE_RETRIEVAL_KEYS):
@@ -1511,7 +1521,6 @@ graph.add_node("decide_source", decide_source_node)
 graph.add_node("chunk_answer", chunk_answer_node)
 graph.add_node("meeting_summary", meeting_summary_node)
 graph.add_node("action_summary", action_summary_node)
-graph.add_node("verify", verification_node)
 graph.add_node("finalize", finalize_node)
 
 graph.set_entry_point("query")
@@ -1546,10 +1555,7 @@ graph.add_conditional_edges(
 
 graph.add_edge("meeting_summary", "finalize")
 graph.add_edge("action_summary", "finalize")
-
-# llm_verify disabled — 8B model too unreliable as verifier
-graph.add_edge("chunk_answer", "verify")
-graph.add_edge("verify", "finalize")
+graph.add_edge("chunk_answer", "finalize")  # verify removed — 8B too unreliable as verifier
 
 graph.add_edge("finalize", END)
 

@@ -1,68 +1,98 @@
 [00:00:00]
-Local (no Gemini) summary for slides frame. Utterances: [00:00:00-00:00:01][0] What we actually | [00:00:03-00:00:04][0] what have you understood? | [00:00:18-00:00:19][1] So | [00:00:23-00:00:24][0] let me | [00:00:27-00:00:31][0] show you what one of the recordings which I | [00:00:32-00:00:33][0] downloaded. | [00:00:33-00:00:34][0] So | [00:00:36-00:00:38][0] let me share my screen. Content: SLIDES keyframe. OCR extracted on-screen text (top lines): G | Gautam Shroff
+Local (no Gemini) summary for slides frame. Utterances: [00:00:00-00:00:00][0] So so | [00:00:01-00:00:07][0] the email is able to answer from the Slack history very well from your transcripts and from the meeting too. Content: SLIDES keyframe. OCR extracted on-screen text (top lines): A | Ashmit Verma
 
-[00:00:46]
-Local (no Gemini) summary for slides frame. Utterances: [00:00:43-00:00:47][0] So I'm showing you I downloaded this recording | [00:00:47-00:00:48][0] from | [00:00:48-00:00:49][0] you and AI. Right? Content: SLIDES keyframe. OCR extracted on-screen text (top lines): Chrome | File | Edit | History | Tab | C | Mon 5 Jan 11:59AM | Help | View | Bookmarks | Profiles | Window | Google Meet | ~pofy-iri | Meet | mxi- | https:Ilmeet google com/mxi-pofy-iri | School | Meta-Learning Sih | Anvil | Build Web A | CSE643 A | Workspace admin_ | Gautam Shroff (You; presenting; annotating) | Stop presenting
+[00:00:03]
+Local (no Gemini) summary for code frame. Utterances: [00:00:00-00:00:00][0] So so | [00:00:01-00:00:07][0] the email is able to answer from the Slack history very well from your transcripts and from the meeting too. | [00:00:08-00:00:09][0] And as | [00:00:09-00:00:10][0] you can see, like Content: CODE keyframe. OCR extracted on-screen text (top lines): X+ | Datalab | prolect-monltoring-agent | 0 Channels | G | Recording | Gautam Shroff | Gautam Shroff has started | recording | Search
 
-[00:00:49]
-The speaker is discussing a recording and iCap segments while the screen shows a demo with the text 'Bring the call back here', indicating a shift in the presentation from the Google Meet screen to this new demo screen.
+[00:00:11]
+The speaker discusses answering specific dates while the on-screen text displays 'La', 'Datalab', 'prolect-monltoring-akent', 'Beneral', 'G', 'Ashmit Verma', 'Gautam Shroff', 'Pankajy', 'HahUv', '04', and 'Search', with a picture visible in the layout regions.
 
-[00:01:00]
-The speaker says 'I'll just I downloaded one of them. Right? One minute.' while a Finder window is open on the screen, displaying various files and folders, including TypeScript files and videos, and a Google Meet window with picture-in-picture mode enabled.
+[00:00:16]
+Local (no Gemini) summary for code frame. Utterances: [00:00:11-00:00:19][0] also, you can answer on the specific dates, like, what happened on twenty third March. Like, I have just connected that to the Sunrise function. | [00:00:20-00:00:21][0] So it would be summarizing | [00:00:21-00:00:30][0] the chunk of the twenty third March in the Slack history. And it it is, like, able to answer, like, 90 to 95% of the Content: CODE keyframe. OCR extracted on-screen text (top lines): 4 Gemini | Datalab | prolect-monltoring-apent | Channels | G | Ashmit Verma | Gautam Shroff | Search
 
-[00:01:07]
-The speaker says 'I'll just I downloaded one of them. Right?', 'One minute.', and 'Say let's say this one. Right? Mhmm.' while the screen shows a Finder window with various files and folders, including TypeScript files and videos, and a Google Meet window with picture-in-picture mode enabled, and the screen is being shared.
+[00:00:27]
+The speaker discusses a chunk of the twenty third March in the Slack history and its ability to answer questions, while the screen displays a picture with various text lines including 'Datalab', 'prolect-monltoring-akent', and names like 'Ashmit Verma' and 'Gautam Shroff', with some changes from the previous frame.
+
+[00:00:30]
+Local (no Gemini) summary for code frame. Utterances: [00:00:21-00:00:30][0] the chunk of the twenty third March in the Slack history. And it it is, like, able to answer, like, 90 to 95% of the | [00:00:46-00:00:48][0] put the top charts, | [00:00:48-00:00:51][0] like, in that specific term, it is answering good. But | [00:00:52-00:00:59][0] as it goes to the bottom of the term, like, for that specific date, so it is not answering for that thing. Content: CODE keyframe. OCR extracted on-screen text (top lines): 4 Gemini | La | Datalab | prolect-monltoring-apent | 0 Channels | agent | G | Ashmit Verma | Gautam Shroff | Search
+
+[00:00:59]
+The speaker discusses a specific date and term, while the screen shows various text lines including 'La', 'Datalab', and names like 'Ashmit Verma' and 'Gautam Shroff', with some changes from the previous frame.
+
+[00:01:02]
+As the speaker says 'I can divide then' and 'that can get two specific things', the screen displays a list of items including 'La', 'Datalab', 'prolect-monltoring-akent', and names such as 'Ashmit Verma', 'Gautam Shroff', and 'Pankajy', with some changes in the text lines compared to the previous frame.
+
+[00:01:08]
+Local (no Gemini) summary for code frame. Utterances: [00:01:04-00:01:07][0] that can get two specific things. | [00:01:07-00:01:10][0] Otherwise, is answering, like, from the meeting too. Content: CODE keyframe. OCR extracted on-screen text (top lines): 4 Gemini | Datalab | prolect-monltoring-apent | Channels | agent | Ashmit Verma | Gautam Shroff | Search
 
 [00:01:11]
-The speaker says 'Say let's say this one. Right? Mhmm.' and 'So this is a recording. Oops. Why is it not showing?' while the screen shows a Finder window with various files and a Google Meet window with picture-in-picture mode enabled, and the screen is being shared.
+As the speaker says 'It', the screen shows a list of names including Ashmit Verma, Gautam Shroff, and Pankajy, along with options like 'Invite people', 'Trending videos', and 'Search', with a number '467026' visible, possibly related to the meeting context.
 
 [00:01:14]
-The speaker says 'So this is a recording. Oops. Why is it not showing?' while the screen displays the name 'Gautam Shroff' in a text region.
+The speaker said 'It' in the previous time frame, and the current frame displays a similar view with a list of names including Ashmit Verma and Gautam Shroff, along with options like 'Invite people', 'Trending videos', and 'Search', and the number '467026' visible on the screen.
 
 [00:01:17]
-{'description': "The demo screen still displays 'Gautam Shroff' with a picture and text regions, while the speakers discuss a recording issue on the laptop."}
-
-[00:01:20]
-{'description': "The speaker is navigating through the laptop display, showing the Google Meet screen with various menu options and settings. The text 'Edit', 'Q 8', and 'System Settings' are visible on the screen. The speaker says 'One sec. One sec.' and 'Display.' while the other speaker mentions 'It's here on the laptop.'"}
+The current frame displays a list of names including Ashmit Verma and Gautam Shroff, and options like 'Trending ndeos' and 'Search' are visible, with no new utterances attributed to any speaker.
 
 [00:01:25]
-{'speaker': 'Unknown', 'utterance': 'Display.', 'timestamp': '00:01:22-00:01:23', 'visible_text': ['Edit', 'Mon 5 Jan 12*O0PM', 'System Settings', 'Q', 'File', 'View', 'Window', 'Help', 'Google Meet', '~pofy-iri', 'Meet', 'mxi-', 'Displays', 'School', '88', 'Search', 'Gautam Shroff', 'ICAPP', 'sarthak23490@iiitd.ac in', 'Stop presenting', 'Apple ID', 'Wi-Fi', 'Home', 'Built-in Display', 'Benq PD3225U', 'Arrange _', 'Bluetooth', 'My Application', 'Network', 'Main display', 'Use as', 'My Project Tasks', 'VPN', '1800 * 1169', 'My Course Tasks', '1512 * 982 (Default)', 'Notifications', '1352 * 878', 'Sound', 'Logout', '1147 * 745', 'Focus', '1024 * 665', '~google com', 'meet.', 'G', 'Show all resolutions', 'Screen Time', 'Gautam Shroff (You; pres _', 'Brightness', 'General', 'Appearance', 'Automatically adjust brightness', 'G', 'Accessibility', 'A', 'True Tone', 'Gautam Shroff', 'Automatically adapt display t0 make colours appear consistent in different', 'Control Centre', 'ambient lighting conditions;', 'Siri & Spotlight', 'Agrim Jindal', 'Gautam Shr_.', 'Apple XDR Display (P3-1600 nits)', 'Preset', 'Privacy & Security', 'Refresh rate', 'ProMotion', 'Desktop & Dock', 'Night Shift_', 'Displays', 'Wallpaper', 'Screen Saver', '0', '12.00 PM', 'mxi-pofy-iri', 'meet google com is sharing your screen_', 'Stop sharing', 'Hide'], 'layout_regions': ['Picture', 'Page-footer'], 'changes': 'low similarity to previous frame, new text and layout regions appeared'}
+{'description': "The current frame shows a list of names including Ashmit Verma and Gautam Shroff, and options like 'Search' are visible. Speaker 1 mentions that it is not completely running, while speaker 0 states that only a glimpse API is being run."}
 
-[00:01:29]
-{'speaker_0': ['Okay.', 'So you can see this. Right?'], 'visible_context': "The screen shows 'G' and 'Gautam Shroff' with a picture and text regions, which is different from the previous frame."}
+[00:01:38]
+The speaker says that only a glimpse API is being run on the local, and the screen shows a picture with the text 'Gautam Shrof' and 'G' visible.
 
-[00:01:32]
-{'summary': "The speaker is discussing a recording of one of the classmates, with the text 'G' and 'Gautam Shroff' visible on the screen, and the layout regions remaining largely unchanged from the previous frame."}
+[00:01:42]
+The speaker says 'on the local' and 'So' while a picture with the text 'La', 'ambodding-api', 'G', 'Ashmit Verma', 'Gautam Shroff', 'Command Prompt', 'Search', and '467026' is visible on the screen.
 
 [00:01:48]
-{'description': "The speaker is discussing something while the screen shows various options and text, including 'QuickTimo Playcr', 'New Delhi', and 'Gautam Shroff'. The speaker mentions 'he's going through the whole thing' and 'he's opening this'. The screen also displays 'video call is being recc' and 'recording', indicating a video call is in progress."}
+A speaker says 'now' as the frame displays a picture with various text including 'La', 'Datalab', 'prolect-monltoring-akent', 'G', 'Ashmit Verma', 'ICAPP Accrt', 'Gautam Shroff', 'Pankajy', 'ICAPP Arcnt', 'Sop', '1746 PV', 'Search', and '467026'.
 
-[00:01:53]
-The speaker is discussing a situation where someone is opening something and the LLM has no clue what's going on, while the screen shows a picture with a small header containing the text 'G'.
+[00:01:52]
+The speaker says 'now' and 'the' while a picture with the text 'La', 'Datalab', 'prolect-monltoring-aeent', 'G', 'Ashmit Verma', 'Gautam Shroff', 'Pankajy', 'Invite peoole', 'Sop', '1746 PV', 'Search', and '467026' is visible on the screen, showing slight changes from the previous frame.
 
-[00:02:01]
-The speaker mentions that later on, he also shows a demo of some kind, while the frame shows a picture region with a small page header region containing the text 'G', with minimal visible text and no noticeable changes from the previous keyframe.
+[00:01:55]
+Local (no Gemini) summary for code frame. Utterances: [00:01:53-00:01:54][1] the Content: CODE keyframe. OCR extracted on-screen text (top lines): X+ | La | Datalab | prolect-monltoring-agent | Drals $ sent | Channels | G | Ashmit Verma | Gautam Shroff | Pankajy | IU | Search
 
-[00:02:04]
-Local (no Gemini) summary for slides frame. Utterances: [00:02:02-00:02:05][0] a demo of some kind. Right? They he does all this. | [00:02:05-00:02:07][0] Right. And Content: SLIDES keyframe. OCR extracted on-screen text (top lines): QuickTimo Playcr | Edit | View | Window | File | Help | New Delhi | 168 | play_720p.Mpa | Demonstration 0f chatbot | School | Mostly Sunny | functionality | cidoct | Stop presenting | ling | let sessionid | crypto randOrUID | localstorage setiten | sessionid) | ct | session on page load: | console | const | ethoda
+[00:01:58]
+Local (no Gemini) summary for code frame. Utterances: [00:01:59-00:02:02][1] it will the entire Slack history is going to be Yes, sir. | [00:02:03-00:02:11][0] Who said what, etcetera, etcetera. The sign in secret was the first thing that you have sent in the Slack. So it is, like, | [00:02:11-00:02:15][0] accessing all the Slack history, and this is the question from Content: CODE keyframe. OCR extracted on-screen text (top lines): X+ | La | Datalab | prolect-monltoring-agent | Channels | G | Ashmit Verma | Gautam Shroff | Pankajy | - | Search
 
-[00:02:07]
-As the speaker talks about a demo, the screen shows a picture region and a page header with the text 'G', indicating a change in visual content from the previous slide.
+[00:02:13]
+Local (no Gemini) summary for code frame. Utterances: [00:02:03-00:02:11][0] Who said what, etcetera, etcetera. The sign in secret was the first thing that you have sent in the Slack. So it is, like, | [00:02:11-00:02:15][0] accessing all the Slack history, and this is the question from | [00:02:16-00:02:21][0] one specific date. And the this is the coming from the transcript and meeting side. Content: CODE keyframe. OCR extracted on-screen text (top lines): X+ | La | Datalab | prolect-monltoring-agent | heads | Hudules | Channels | G | Ashmit Verma | Gautam Shroff | Search
 
-[00:02:20]
-The speaker is discussing a demo given by someone, and the current frame shows a picture and the name 'Gautam Shroff', indicating a possible connection between the speaker's utterance and the visual content.
+[00:02:19]
+The speaker discusses a specific date from the transcript and meeting side, while the screen displays text including 'La', 'Datalab', and names like 'Ashmit Verma' and 'Gautam Shroff', along with options like 'Invite peoole' and 'Search'.
 
-[00:02:23]
-The speaker is discussing a demo that was given and recorded, while the current frame shows a chat session with a patient chatbot, displaying a conversation about stomach issues and headaches. The menu bar at the top suggests that the chat session is part of a larger application or platform.
+[00:02:22]
+The speaker is discussing a specific date and chat response while the screen displays a picture with text lines including 'La', 'Datalab', 'prolect-monltoring-aeent', 'Dalts', 'sent', 'G', 'Ashmit Verma', 'Gautam Shroff', 'Pankajy', 'Invite peoole', 'Sop', 'Search', and '467026'.
 
-[00:02:26]
-The speaker is discussing a demo, mentioning that it's not for the course, while the screen shows a chat session with a patient chatbot, displaying text such as 'Tve been experiencing in my stomach and neadaches'. The speaker is also talking about using LLM to generate ground truth and extracting text from frames.
+[00:02:25]
+Local (no Gemini) summary for code frame. Utterances: [00:02:22-00:02:25][0] And then it is answering from the chat too, | [00:02:25-00:02:27][0] like, in session. Yeah. | [00:02:28-00:02:29][1] K. | [00:02:30-00:02:31][1] So Content: CODE keyframe. OCR extracted on-screen text (top lines): X+ | La | Datalab | prolect-monltoring-agent | heads | Drals $ sent | Channels | G | Ashmit Verma | Gautam Shroff | Pankajy | Search
 
-[00:14:25]
-{'summary': 'The speaker discusses the meeting duration, model training, and text extraction from frames using Blip and Clip models, while the screen displays a Google Meet session with a menu bar and various text elements.'}
+[00:02:33]
+Local (no Gemini) summary for code frame. Utterances: [00:02:30-00:02:31][1] So | [00:02:35-00:02:39][1] there are two ways one can kind of use this. Right? Yeah. | [00:02:40-00:02:45][1] One. It it can use by using our DNS API and without that Without just the Slack history | [00:02:45-00:02:54][0] also. You just need to run the same Slack command, and then it would be taking to all the history, and then we break and just ask them to all that. Now | [00:02:54-00:02:58][1] that is one. Yeah. That is one. Now the question is this. Content: CODE keyframe. OCR extracted on-screen text (top lines): X+ | La | Datalab | prolect-monltoring-agent | heads | Drals $ sent | Channels | G | Ashmit Verma | Gautam Shroff | Pankajy | Search
 
-[00:16:32]
-{'description': "The screen shows a Google Meet session with a menu bar and various text elements. A notification 'Something in the Meet tab needs your attention' is visible. The video call is being recorded, as indicated by the notification 'This video call is being recorded; If you want t0 end'. Picture-in-picture mode is enabled."}
+[00:03:04]
+The frame shows a picture with various text lines, including names and actions, and has a size of 1760x990 pixels. The on-screen text includes 'La', 'Datalab', 'prolect-monltoring-aeent', 'Ashmit Verma', 'Gautam Shroff', 'Pankajy', 'Invite peoole', '10 minutes', 'Pospona', 'Update', 'Search'.
 
-[00:16:38]
-Local (no Gemini) summary for none frame. Utterances: No assigned utterances for this keyframe. Content: NONE keyframe. OCR text not available.
+[00:03:09]
+{'description': "The current frame displays a picture with text lines including 'La', 'Datalab', 'prolect-monltoring-aeent', names of individuals such as 'Ashmit Verma', 'Gautam Shroff', and actions like 'Search'. The speaker is discussing the best way to use something, mentioning that people are using it without them being there, and that people come first. They also mention that there is some discussion happening and that they have a project with a student and an AI on the platform."}
+
+[00:04:47]
+{'visual_context': "a picture with text lines displaying 'G'", 'content_description': "the screen shows a picture with 'G' as the visible text"}
+
+[00:04:50]
+{'summary': "The frame shows a picture with text lines, including 'La', 'Stop', 'presenting', 'G', 'You are presenting', 'Gautam Shroff', 'G', 'Share just', 'tob Or', 'Stop presenting', 'A', 'A', 'Gautam Shroff', 'Agrim Jindal', 'Ashmit Verma', '8', 'Project Monitoring Agent', 'Sop', 'Search'. The picture region has a confidence of 0.9001947641372681."}
+
+[00:04:53]
+Local (no Gemini) summary for slides frame. Utterances: [00:05:04-00:05:07][1] So what I've got is a couple of things deployed. | [00:05:09-00:05:17][1] So I have a AI deployed. I can I can deploy it on Slack also? Okay. Yeah. It I just give it work to do. It does it. It's like an intern. | [00:05:18-00:05:19][1] Okay. It's like OpenClock. | [00:05:20-00:05:23][1] Okay. It's like you've heard about it. Right? Okay. So you've heard of OpenClock? | [00:05:24-00:05:27][1] No. You know? You've heard? Mhmm. | [00:05:27-00:05:28][2] Work. Work. | [00:05:29-00:05:33][1] So this is an AI agent which is running on my server. Right? | [00:05:34-00:05:35][1] Running on my Content: SLIDES keyframe. OCR extracted on-screen text (top lines): G | Gautam Shroff
+
+[00:07:31]
+{'description': "The speaker says 'I' while 'Gautam Shrofi' is displayed on the screen, with a picture and text regions visible."}
+
+[00:07:34]
+The speaker is discussing the future of development, where agents will be used to assist in tasks, and humans will focus on high-level decisions and reviews, while the on-screen text displays a list of names, dates, and keywords, including 'La', 'Datalab', 'Ashmit Verma', and 'Gautam Shroff', with a picture and text visible on the screen.
+
+[00:22:09]
+The speaker is discussing the possibility of VIP models while the picture-in-picture is open due to screen sharing, with on-screen text suggesting to bring the call back.
+
+[00:22:13]
+Local (no Gemini) summary for slides frame. Utterances: [00:22:11-00:22:21][1] I'm sure they are. If there are models, you test them. Right? Yeah. Then if they are endpoints, let me sign up and just like we pay for API, works on do have any API for this? | [00:22:22-00:22:26][1] And we'll set up an account and get that done. Right? Right. Then | [00:22:27-00:22:29][1] the whole thing is one | [00:22:29-00:22:33][1] running system. And I will have a couple of students this summer | [00:22:33-00:22:35][1] Yeah. For | [00:22:35-00:22:37][1] other projects, and we'll test it'll be tested, | [00:22:38-00:22:39][1] really. | [00:22:40-00:22:41][1] That's the goal. Content: SLIDES keyframe. OCR extracted on-screen text (top lines): G | Gautam Shroff

@@ -322,6 +322,7 @@ def retrieve_chunks_node(state: MeetingState):
         "extraction": "extraction parsing reading OCR",
         "recording": "recording video demo presentation",
         "pipeline": "pipeline process workflow system",
+        "compared": "compared like similar analogy intern openclock",
         "agenda": "agenda plan goals topics",
         "summary": "summary overview highlights recap",
         "chatbot": "chatbot bot assistant",

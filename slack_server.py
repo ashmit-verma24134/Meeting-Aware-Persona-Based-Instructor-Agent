@@ -472,11 +472,6 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
             "user_id": user_id,
             "session_id": sid,
         }
-
-        send_message(channel_id, " New session started for this channel.")
-
-        return  # STOP HERE — do not continue to Q&A
-
     # ----------------------------------------
     # EXIT
     # ----------------------------------------

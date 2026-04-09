@@ -11,3 +11,6 @@ PIPELINE_BASE_URL=http://localhost:8080
 HF_TOKEN=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
 
 HF_EMBED_URL=https://ashmit24134-embedding-api.hf.space/embed
+
+VERCEL_URL=https://meeting-aware-persona-based-instructor-agent-k9bv-hty4bt968.vercel.app
+SLACK_CHANNEL_ID=C0A7NDFJHEU

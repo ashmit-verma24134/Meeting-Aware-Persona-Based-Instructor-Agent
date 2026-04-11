@@ -17,7 +17,8 @@ load_dotenv()
 
 # ── Config ──
 VERCEL_URL = os.getenv("VERCEL_URL", "https://your-app.vercel.app")
-CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")  # add this to your .env
+CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
+BYPASS_TOKEN = os.getenv("VERCEL_AUTOMATION_BYPASS_SECRET")  # add this to .env
 INTERVAL_MINUTES = 5  # change to 60 or 120 for production
 
 def trigger_heartbeat():
@@ -25,6 +26,7 @@ def trigger_heartbeat():
         response = requests.post(
             f"{VERCEL_URL}/heartbeat",
             json={"channel_id": CHANNEL_ID},
+            headers={"x-vercel-protection-bypass": BYPASS_TOKEN} if BYPASS_TOKEN else {},
             timeout=10
         )
         print(f"[CRON] Heartbeat triggered → {response.status_code} {response.json()}")

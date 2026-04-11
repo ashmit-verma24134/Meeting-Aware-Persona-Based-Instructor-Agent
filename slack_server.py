@@ -153,7 +153,7 @@ def start_and_reply(channel_id, video_url, response_url):
 
 def sync_slack_and_reply(channel_id, response_url):
     try:
-        ingest_slack_history(channel_id=channel_id)
+        ingest_slack_history(channel_id=channel_id , limit = 5000)
         http_requests.post(response_url, json={
             "response_type": "in_channel",
             "text": "Slack history synced!"

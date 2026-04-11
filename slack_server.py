@@ -49,6 +49,11 @@ EVENT_LOCK = Lock()
 
 STAGE_ACTIVE = "ACTIVE"
 
+# ── Heartbeat cooldown tracker (in-memory) ──
+# Prevents duplicate messages if cron + manual curl fire at same time
+_LAST_HEARTBEAT = {}  # channel_id → datetime
+HEARTBEAT_COOLDOWN_MINUTES = 4
+
 
 def ingest_and_reply(channel_id, run_id, response_url):
     try:
@@ -472,6 +477,11 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
             "user_id": user_id,
             "session_id": sid,
         }
+
+        send_message(channel_id, " New session started for this channel.")
+
+        return  # STOP HERE — do not continue to Q&A
+
     # ----------------------------------------
     # EXIT
     # ----------------------------------------
@@ -616,8 +626,6 @@ def health():
 # ───────────────────────────────────────
 # HEARTBEAT — Proactive Supervisor
 # Called by cron job every X minutes
-# Reviews recent activity and posts
-# next steps to the channel as ICAPP Agent
 # ───────────────────────────────────────
 
 HEARTBEAT_COMPRESSION_PROMPT = """
@@ -667,15 +675,20 @@ RULES:
 
 
 def run_heartbeat(channel_id: str):
-    """
-    Core heartbeat logic — fetch recent context, compress if needed,
-    run supervisor prompt, post to Slack channel.
-    """
     from groq import Groq as _Groq
+    from datetime import timedelta
     groq_client = _Groq(api_key=os.getenv("GROQ_API_KEY"))
     supabase = get_supabase_client()
 
     print(f"[HEARTBEAT] Running for channel: {channel_id}")
+
+    # ── Cooldown check — skip if fired too recently ──
+    now = datetime.utcnow()
+    last = _LAST_HEARTBEAT.get(channel_id)
+    if last and (now - last) < timedelta(minutes=HEARTBEAT_COOLDOWN_MINUTES):
+        print(f"[HEARTBEAT] Skipping — last fired {(now-last).seconds}s ago, cooldown={HEARTBEAT_COOLDOWN_MINUTES}min")
+        return
+    _LAST_HEARTBEAT[channel_id] = now
 
     # ── 1. Get user for this channel ──
     user = supabase.get_user_by_username(channel_id)
@@ -699,9 +712,8 @@ def run_heartbeat(channel_id: str):
                 .order("created_at", desc=True) \
                 .limit(5) \
                 .execute()
-
             if result.data:
-                chunks = list(reversed(result.data))  # chronological order
+                chunks = list(reversed(result.data))
                 slack_chunks_text = "\n\n".join(
                     c["chunk_text"] for c in chunks if c.get("chunk_text")
                 )
@@ -712,14 +724,12 @@ def run_heartbeat(channel_id: str):
     # ── 4. Fetch last 20 chat turns ──
     chat_turns_text = ""
     try:
-        # Get most recent session for this user
         session_result = supabase.client.table("sessions") \
             .select("session_id") \
             .eq("user_id", user_id) \
             .order("created_at", desc=True) \
             .limit(1) \
             .execute()
-
         if session_result.data:
             session_id = session_result.data[0]["session_id"]
             turns = supabase.get_recent_chat_turns(session_id=session_id, limit=20)
@@ -738,7 +748,6 @@ def run_heartbeat(channel_id: str):
             .order("created_at", desc=True) \
             .limit(3) \
             .execute()
-
         if transcript_result.data:
             chunks = list(reversed(transcript_result.data))
             transcript_text = "\n\n".join(
@@ -776,17 +785,14 @@ def run_heartbeat(channel_id: str):
         try:
             compress_response = groq_client.chat.completions.create(
                 model="llama-3.1-8b-instant",
-                messages=[{
-                    "role": "user",
-                    "content": HEARTBEAT_COMPRESSION_PROMPT.format(raw_context=raw_context)
-                }],
+                messages=[{"role": "user", "content": HEARTBEAT_COMPRESSION_PROMPT.format(raw_context=raw_context)}],
                 temperature=0.0,
                 max_tokens=600,
             )
             context_for_supervisor = compress_response.choices[0].message.content.strip()
             print(f"[HEARTBEAT] Compressed to {len(context_for_supervisor.split())} words")
         except Exception as e:
-            print(f"[HEARTBEAT] Compression failed: {e} — using raw context truncated")
+            print(f"[HEARTBEAT] Compression failed: {e} — truncating")
             context_for_supervisor = " ".join(raw_context.split()[:2000])
     else:
         context_for_supervisor = raw_context
@@ -795,25 +801,19 @@ def run_heartbeat(channel_id: str):
     try:
         supervisor_response = groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
-            messages=[{
-                "role": "user",
-                "content": HEARTBEAT_SUPERVISOR_PROMPT.format(context=context_for_supervisor)
-            }],
+            messages=[{"role": "user", "content": HEARTBEAT_SUPERVISOR_PROMPT.format(context=context_for_supervisor)}],
             temperature=0.2,
             max_tokens=300,
         )
         supervisor_message = supervisor_response.choices[0].message.content.strip()
-        print(f"[HEARTBEAT] Supervisor message generated: {supervisor_message[:80]}...")
+        print(f"[HEARTBEAT] Message: {supervisor_message[:80]}...")
     except Exception as e:
         print(f"[HEARTBEAT] Supervisor prompt failed: {e}")
         return
 
     # ── 9. Post to Slack ──
     try:
-        slack_client.chat_postMessage(
-            channel=channel_id,
-            text=supervisor_message
-        )
+        slack_client.chat_postMessage(channel=channel_id, text=supervisor_message)
         print(f"[HEARTBEAT] Posted to channel {channel_id}")
     except Exception as e:
         print(f"[HEARTBEAT] Slack post failed: {e}")
@@ -824,17 +824,14 @@ async def heartbeat(request: Request, background_tasks: BackgroundTasks):
     """
     POST /heartbeat
     Body: { "channel_id": "C0123456789" }
-    Called by cron job every 5 minutes (increase later).
+    Called by cron every 30 minutes (5 mins for testing).
     """
     try:
         body = await request.json()
         channel_id = body.get("channel_id")
-
         if not channel_id:
             return {"status": "error", "message": "channel_id required"}
-
         background_tasks.add_task(run_heartbeat, channel_id)
         return {"status": "ok", "message": f"Heartbeat triggered for {channel_id}"}
-
     except Exception as e:
         return {"status": "error", "message": str(e)}

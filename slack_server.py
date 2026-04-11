@@ -571,6 +571,7 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
             "decision": None,
             "standalone_query": text,
             "confidence": None,
+            "is_hunting_for_exact_value": False,
             "temporal_constraint": None,
             "domain_constraint": None,
             "retrieved_chunks": [],

@@ -375,6 +375,35 @@ class SupabaseService:
 
         return lines
 
+    def get_recent_chat_turns_by_user(
+        self,
+        user_id: str,
+        limit: int = 20
+    ) -> List[str]:
+
+        response = (
+            self.client.table("chat_turns")
+            .select("question, answer")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+
+        rows = response.data or []
+        rows = list(reversed(rows)) # Reverse to put it back into chronological order
+
+        lines = []
+        for r in rows:
+            if r.get("question"):
+                lines.append(f"User: {r['question']}")
+            if r.get("answer"):
+                lines.append(f"AI: {r['answer']}")
+
+        return lines
+
+        return lines
+
     def append_live_chat_to_slack_chunk(self, user_id: str, question: str, answer: str):
         from services.embedding_api import get_embedding
         from datetime import datetime

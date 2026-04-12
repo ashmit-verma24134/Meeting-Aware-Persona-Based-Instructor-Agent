@@ -773,19 +773,11 @@ def run_heartbeat(channel_id: str):
     summary_chat_turns = 0
     chat_turns_text = ""
     try:
-        session_result = supabase.client.table("sessions") \
-            .select("session_id") \
-            .eq("user_id", user_id) \
-            .order("id", desc=True) \
-            .limit(1) \
-            .execute()
-        if session_result.data:
-            session_id = session_result.data[0]["session_id"]
-            turns = supabase.get_recent_chat_turns(session_id=session_id, limit=20)
-            if turns:
-                chat_turns_text = "\n".join(turns)
-                summary_chat_turns = len(turns)
-                print(f"[HEARTBEAT] Chat context preview: {chat_turns_text[:50]}...", flush=True)
+        turns = supabase.get_recent_chat_turns_by_user(user_id=user_id, limit=20)
+        if turns:
+            chat_turns_text = "\n".join(turns)
+            summary_chat_turns = len(turns)
+            print(f"[HEARTBEAT] Chat context preview: {chat_turns_text[:50]}...", flush=True)
     except Exception as e:
         print(f"[HEARTBEAT] Chat turns fetch failed: {e}", flush=True)
 

@@ -396,6 +396,33 @@ def retrieve_chunks_node(state: MeetingState):
         results = []
 
     if not results:
+        # FALLBACK: If it's a summary/latest query, prime it with the latest meeting's first chunk
+        q_lower = query_text.lower()
+        if any(w in q_lower for w in ["summary", "summarize", "highlights", "overview", "recap", "latest", "most recent"]):
+            print(f"[RETRIEVE] Search returned 0, but detected summary intent. Attempting Force-Fetch...")
+            try:
+                recent_m = supabase.get_latest_meeting_by_user(state["user_id"])
+                if recent_m:
+                    # Get the first chunk to act as a seed
+                    seed_resp = supabase.client.table("chunks") \
+                        .select("*") \
+                        .eq("meeting_id", recent_m["id"]) \
+                        .order("chunk_index", desc=False) \
+                        .limit(1) \
+                        .execute()
+                    if seed_resp.data:
+                        results = [{
+                            "meeting_id": recent_m["id"],
+                            "chunk_index": 0,
+                            "chunk_text": seed_resp.data[0]["chunk_text"],
+                            "similarity": 0.5, # Dummy score to pass filters
+                            "source": seed_resp.data[0].get("source", "transcript")
+                        }]
+                        print(f"[RETRIEVE] Force-Fetch success: Seeded meeting {recent_m['id']}")
+            except Exception as e:
+                print(f"[RETRIEVE] Force-Fetch failed: {e}")
+
+    if not results:
         state["retrieved_chunks"] = []
         state["_all_meeting_indices"] = []
         state["meeting_indices"] = []

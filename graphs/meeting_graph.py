@@ -184,18 +184,28 @@ def meeting_summary_node(state: MeetingState):
         state["context_extended"] = False
         return state
 
-    # ── Keep ONLY transcript chunks for summary ──
-    # Slack chunks contain Q&A history which pollutes the summary
-    transcript_chunks = [
-        c for c in retrieved
-        if c.get("source", "transcript") == "transcript"
-    ]
+    supabase = get_supabase_client()
+    
+    # Check if this is a slack request or a transcript request
+    source_type = "transcript"
+    # To determine if it's a slack request, check if original retrieved chunks are purely slack
+    slack_chunks = [c for c in retrieved if c.get("source") == "slack"]
+    if len(slack_chunks) > len(retrieved) / 2:
+        source_type = "slack"
+        
+    first_meeting_id = retrieved[0].get("meeting_id")
 
-    # Fallback to all chunks if no transcript chunks found
-    if not transcript_chunks:
-        transcript_chunks = retrieved
-
-    first_meeting_id = transcript_chunks[0].get("meeting_id")
+    # If it's a transcript request, we strongly prefer finding the absolute latest meeting
+    if source_type == "transcript":
+        recent_meetings = supabase.client.table("meetings") \
+            .select("id") \
+            .eq("user_id", state.get("user_id")) \
+            .not_.like("meeting_name", "slack_%") \
+            .order("created_at", desc=True) \
+            .limit(1) \
+            .execute()
+        if recent_meetings.data:
+            first_meeting_id = recent_meetings.data[0]["id"]
 
     if not first_meeting_id:
         state["final_answer"] = SAFE_ABSTAIN
@@ -203,11 +213,15 @@ def meeting_summary_node(state: MeetingState):
         state["context_extended"] = False
         return state
 
-    meeting_chunks = [
-        c for c in transcript_chunks
-        if c.get("meeting_id") == first_meeting_id
-        and isinstance(c.get("text"), str)
-    ]
+    # Now dynamically fetch 40 sequential chunks (~8000 words) from this meeting
+    db_chunks_resp = supabase.client.table("chunks") \
+        .select("*") \
+        .eq("meeting_id", first_meeting_id) \
+        .order("chunk_index", desc=False) \
+        .limit(40) \
+        .execute()
+        
+    meeting_chunks = db_chunks_resp.data or []
 
     if not meeting_chunks:
         state["final_answer"] = SAFE_ABSTAIN
@@ -215,18 +229,11 @@ def meeting_summary_node(state: MeetingState):
         state["context_extended"] = False
         return state
 
-    meeting_chunks = sorted(
-        meeting_chunks,
-        key=lambda c: c.get("chunk_index", 0)
-    )
-
     context = "\n\n".join(
-        c["text"] for c in meeting_chunks
+        c.get("chunk_text", "") for c in meeting_chunks
     )[:12000]
 
-    is_slack_summary = False
-    if meeting_chunks and meeting_chunks[0].get("source") == "slack":
-        is_slack_summary = True
+    is_slack_summary = (source_type == "slack")
 
     if is_slack_summary:
         prompt = f"""

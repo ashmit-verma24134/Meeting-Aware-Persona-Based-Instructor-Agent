@@ -423,7 +423,7 @@ class SupabaseService:
 
         meeting_id = meeting["id"]
         today_date = datetime.now().strftime("%Y-%m-%d")
-        new_text_to_append = f"[{user_id}]: {question}\n[MMA AGENT]: {answer}\n"
+        new_text_to_append = f"[User]: {question}\n[MMA AGENT]: {answer}\n"
         
         # Get the most recent slack chunk for this meeting
         recent_chunk_resp = self.client.table("chunks") \

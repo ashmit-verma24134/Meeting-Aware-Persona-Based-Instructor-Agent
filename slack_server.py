@@ -731,6 +731,7 @@ def run_heartbeat(channel_id: str):
     print(f"[HEARTBEAT] Slack meeting found: {meeting is not None} | name={meeting_name}")
 
     # ── 3. Fetch last 2 dates of slack chunks ──
+    summary_slack_chunks_count = 0
     slack_chunks_text = ""
     if meeting:
         try:
@@ -741,7 +742,7 @@ def run_heartbeat(channel_id: str):
                 .order("id", desc=True) \
                 .limit(50) \
                 .execute()
-            print(f"[HEARTBEAT] Slack chunks fetched: {len(result.data) if result.data else 0}")
+            print(f"[HEARTBEAT] Slack chunks fetched from DB: {len(result.data) if result.data else 0}", flush=True)
             if result.data:
                 collected_chunks = []
                 import re
@@ -761,13 +762,15 @@ def run_heartbeat(channel_id: str):
                         
                 chunks = list(reversed(collected_chunks)) # Re-chronologize
                 slack_chunks_text = "\n\n".join(chunks)
-                print(f"[HEARTBEAT] Slack context preview: {slack_chunks_text[:300]}")
+                summary_slack_chunks_count = len(chunks)
+                print(f"[HEARTBEAT] Slack context preview: {slack_chunks_text[:50]}...", flush=True)
         except Exception as e:
-            print(f"[HEARTBEAT] Slack chunks fetch failed: {e}")
+            print(f"[HEARTBEAT] Slack chunks fetch failed: {e}", flush=True)
     else:
-        print(f"[HEARTBEAT] No slack meeting record — slack chunks SKIPPED")
+        print(f"[HEARTBEAT] No slack meeting record — slack chunks SKIPPED", flush=True)
 
     # ── 4. Fetch last 20 chat turns ──
+    summary_chat_turns = 0
     chat_turns_text = ""
     try:
         session_result = supabase.client.table("sessions") \
@@ -776,24 +779,23 @@ def run_heartbeat(channel_id: str):
             .order("id", desc=True) \
             .limit(1) \
             .execute()
-        print(f"[HEARTBEAT] Sessions found: {len(session_result.data) if session_result.data else 0}")
         if session_result.data:
             session_id = session_result.data[0]["session_id"]
-            print(f"[HEARTBEAT] Using session: {session_id}")
             turns = supabase.get_recent_chat_turns(session_id=session_id, limit=20)
-            print(f"[HEARTBEAT] Chat turns count: {len(turns) if turns else 0}")
             if turns:
                 chat_turns_text = "\n".join(turns)
-                print(f"[HEARTBEAT] Chat context preview: {chat_turns_text[:300]}")
+                summary_chat_turns = len(turns)
+                print(f"[HEARTBEAT] Chat context preview: {chat_turns_text[:50]}...", flush=True)
     except Exception as e:
-        print(f"[HEARTBEAT] Chat turns fetch failed: {e}")
+        print(f"[HEARTBEAT] Chat turns fetch failed: {e}", flush=True)
 
     # ── 5. Fetch last 2 transcript meetings ──
+    summary_transcript_metrics = 0
     transcript_text = ""
     try:
         recent_meetings = supabase.get_recent_meetings(user_id=user_id, limit=2)
         if not recent_meetings:
-            print("[HEARTBEAT] No recent transcript meetings found.")
+            print("[HEARTBEAT] No recent transcript meetings found.", flush=True)
         else:
             meeting_parts = []
             for rm in recent_meetings:
@@ -811,11 +813,19 @@ def run_heartbeat(channel_id: str):
                     meeting_parts.append(f"[Meeting: {rm.get('meeting_name', 'Unknown')}]\n{meeting_text}")
             
             transcript_text = "\n\n".join(meeting_parts)
-            print(f"[HEARTBEAT] Transcript context meetings: {len(meeting_parts)}")
+            summary_transcript_metrics = len(meeting_parts)
     except Exception as e:
-        print(f"[HEARTBEAT] Transcript fetch failed: {e}")
+        print(f"[HEARTBEAT] Transcript fetch failed: {e}", flush=True)
 
     # ── 6. Combine ──
+
+    print("\n" + "="*50, flush=True)
+    print("🚀 HEARTBEAT FETCH SUMMARY 🚀", flush=True)
+    print(f"✅ Slack Chunks Fetched: {summary_slack_chunks_count} (spanning 2 dates max)", flush=True)
+    print(f"✅ Transcript Meetings Included: {summary_transcript_metrics}", flush=True)
+    print(f"✅ Chat Turns Fetched: {summary_chat_turns}", flush=True)
+    print("="*50 + "\n", flush=True)
+
     raw_parts = []
     if slack_chunks_text:
         raw_parts.append(f"=== RECENT SLACK ACTIVITY ===\n{slack_chunks_text}")
@@ -824,10 +834,8 @@ def run_heartbeat(channel_id: str):
     if transcript_text:
         raw_parts.append(f"=== LATEST MEETING ===\n{transcript_text}")
 
-    print(f"[HEARTBEAT] Sources used: slack={'YES' if slack_chunks_text else 'NO'} | chat={'YES' if chat_turns_text else 'NO'} | transcript={'YES' if transcript_text else 'NO'}")
-
     if not raw_parts:
-        print("[HEARTBEAT] No context found, posting default message.")
+        print("[HEARTBEAT] No context found, posting default message.", flush=True)
         slack_client.chat_postMessage(
             channel=channel_id,
             text="No activity detected. What is blocking you and when will it be resolved?"

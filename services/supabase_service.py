@@ -375,6 +375,82 @@ class SupabaseService:
 
         return lines
 
+    def append_live_chat_to_slack_chunk(self, user_id: str, question: str, answer: str):
+        from services.embedding_api import get_embedding
+        from datetime import datetime
+        
+        meeting_name = f"slack_{user_id}"
+        meeting = self.get_meeting_by_name(meeting_name)
+        if not meeting:
+            # Create synthetic slack meeting if it doesn't exist yet
+            insert_resp = self.client.table("meetings").insert({
+                "meeting_name": meeting_name,
+                "user_id": user_id,
+                "status": "completed"
+            }).execute()
+            if not insert_resp.data:
+                return
+            meeting = insert_resp.data[0]
+
+        meeting_id = meeting["id"]
+        today_date = datetime.now().strftime("%Y-%m-%d")
+        new_text_to_append = f"[{user_id}]: {question}\n[MMA AGENT]: {answer}\n"
+        
+        # Get the most recent slack chunk for this meeting
+        recent_chunk_resp = self.client.table("chunks") \
+            .select("*") \
+            .eq("meeting_id", meeting_id) \
+            .eq("source", "slack") \
+            .order("chunk_index", desc=True) \
+            .limit(1) \
+            .execute()
+            
+        recent_chunk = recent_chunk_resp.data[0] if recent_chunk_resp.data else None
+        
+        needs_new_chunk = True
+        
+        if recent_chunk and recent_chunk.get("chunk_text"):
+            text = recent_chunk["chunk_text"]
+            # Check if it was created/tagged for today
+            if f"--- {today_date} ---" in text:
+                current_words = len(text.split())
+                new_words = len(new_text_to_append.split())
+                if current_words + new_words <= 300:
+                    needs_new_chunk = False
+                    updated_text = text + "\n" + new_text_to_append
+                    
+                    # Embed and update
+                    try:
+                        new_embedding = get_embedding(updated_text)
+                        self.client.table("chunks").update({
+                            "chunk_text": updated_text,
+                            "embedding": new_embedding
+                        }).eq("id", recent_chunk["id"]).execute()
+                        print("[AUTO-EMBED] Appended live chat to existing chunk.")
+                    except Exception as e:
+                        print(f"[AUTO-EMBED] Failed to update: {e}")
+                    return
+
+        if needs_new_chunk:
+            # Create a completely new chunk
+            next_idx = 0
+            if recent_chunk:
+                next_idx = recent_chunk.get("chunk_index", -1) + 1
+            
+            new_chunk_text = f"--- {today_date} ---\n\n{new_text_to_append}"
+            try:
+                new_embedding = get_embedding(new_chunk_text)
+                self.client.table("chunks").insert({
+                    "meeting_id": meeting_id,
+                    "chunk_index": next_idx,
+                    "chunk_text": new_chunk_text,
+                    "embedding": new_embedding,
+                    "source": "slack"
+                }).execute()
+                print("[AUTO-EMBED] Created new live chat chunk.")
+            except Exception as e:
+                print(f"[AUTO-EMBED] Failed to insert new chunk: {e}")
+
 
 # =========================================================
 # GLOBAL SUPABASE SINGLETON

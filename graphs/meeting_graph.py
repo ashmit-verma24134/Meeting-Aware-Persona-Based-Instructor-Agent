@@ -1464,6 +1464,11 @@ def finalize_node(state: MeetingState):
             method=method,
             time_scope=None,
         )
+        
+        try:
+            supabase.append_live_chat_to_slack_chunk(state["user_id"], state["question"], answer)
+        except Exception as e:
+            print(f"Auto-embed live chat failed: {e}")
 
         state["final_answer"] = answer
         return state             # ← correct indent inside the if block
@@ -1499,6 +1504,11 @@ def finalize_node(state: MeetingState):
         method=method,
         time_scope=state.get("time_scope"),
     )
+    
+    try:
+        supabase.append_live_chat_to_slack_chunk(state["user_id"], state["question"], answer)
+    except Exception as e:
+        print(f"Auto-embed live chat failed: {e}")
 
     state["final_answer"] = answer
     return state

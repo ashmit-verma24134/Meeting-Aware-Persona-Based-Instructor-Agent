@@ -730,7 +730,7 @@ def run_heartbeat(channel_id: str):
     meeting = supabase.get_meeting_by_name(meeting_name)
     print(f"[HEARTBEAT] Slack meeting found: {meeting is not None} | name={meeting_name}")
 
-    # ── 3. Fetch last 5 slack chunks ──
+    # ── 3. Fetch last 2 dates of slack chunks ──
     slack_chunks_text = ""
     if meeting:
         try:
@@ -739,14 +739,28 @@ def run_heartbeat(channel_id: str):
                 .eq("meeting_id", meeting["id"]) \
                 .eq("source", "slack") \
                 .order("id", desc=True) \
-                .limit(5) \
+                .limit(50) \
                 .execute()
-            print(f"[HEARTBEAT] Slack chunks count: {len(result.data) if result.data else 0}")
+            print(f"[HEARTBEAT] Slack chunks fetched: {len(result.data) if result.data else 0}")
             if result.data:
-                chunks = list(reversed(result.data))
-                slack_chunks_text = "\n\n".join(
-                    c["chunk_text"] for c in chunks if c.get("chunk_text")
-                )
+                collected_chunks = []
+                import re
+                date_pattern = re.compile(r'---\s*(\d{4}-\d{2}-\d{2})\s*---')
+                seen_dates = set()
+                
+                for c in result.data:
+                    text = c.get("chunk_text", "")
+                    if text:
+                        match = date_pattern.search(text)
+                        if match:
+                            date_str = match.group(1)
+                            seen_dates.add(date_str)
+                            if len(seen_dates) > 2:
+                                break
+                        collected_chunks.append(text)
+                        
+                chunks = list(reversed(collected_chunks)) # Re-chronologize
+                slack_chunks_text = "\n\n".join(chunks)
                 print(f"[HEARTBEAT] Slack context preview: {slack_chunks_text[:300]}")
         except Exception as e:
             print(f"[HEARTBEAT] Slack chunks fetch failed: {e}")
@@ -774,22 +788,30 @@ def run_heartbeat(channel_id: str):
     except Exception as e:
         print(f"[HEARTBEAT] Chat turns fetch failed: {e}")
 
-    # ── 5. Fetch last 3 transcript chunks ──
+    # ── 5. Fetch last 2 transcript meetings ──
     transcript_text = ""
     try:
-        transcript_result = supabase.client.table("chunks") \
-            .select("chunk_text, created_at") \
-            .eq("source", "transcript") \
-            .order("created_at", desc=True) \
-            .limit(3) \
-            .execute()
-        print(f"[HEARTBEAT] Transcript chunks count: {len(transcript_result.data) if transcript_result.data else 0}")
-        if transcript_result.data:
-            chunks = list(reversed(transcript_result.data))
-            transcript_text = "\n\n".join(
-                c["chunk_text"] for c in chunks if c.get("chunk_text")
-            )
-            print(f"[HEARTBEAT] Transcript context preview: {transcript_text[:300]}")
+        recent_meetings = supabase.get_recent_meetings(user_id=user_id, limit=2)
+        if not recent_meetings:
+            print("[HEARTBEAT] No recent transcript meetings found.")
+        else:
+            meeting_parts = []
+            for rm in recent_meetings:
+                transcript_result = supabase.client.table("chunks") \
+                    .select("chunk_text") \
+                    .eq("meeting_id", rm["id"]) \
+                    .eq("source", "transcript") \
+                    .order("id", desc=True) \
+                    .limit(5) \
+                    .execute()
+                
+                if transcript_result.data:
+                    chunks = list(reversed(transcript_result.data))
+                    meeting_text = "\n\n".join(c["chunk_text"] for c in chunks if c.get("chunk_text"))
+                    meeting_parts.append(f"[Meeting: {rm.get('meeting_name', 'Unknown')}]\n{meeting_text}")
+            
+            transcript_text = "\n\n".join(meeting_parts)
+            print(f"[HEARTBEAT] Transcript context meetings: {len(meeting_parts)}")
     except Exception as e:
         print(f"[HEARTBEAT] Transcript fetch failed: {e}")
 
@@ -816,7 +838,7 @@ def run_heartbeat(channel_id: str):
     word_count = len(raw_context.split())
     print(f"[HEARTBEAT] Raw context word count: {word_count}")
 
-    if word_count > 2000:
+    if word_count > 10000:
         print("[HEARTBEAT] Context too big — compressing first...")
         try:
             compress_response = groq_client.chat.completions.create(
@@ -829,7 +851,7 @@ def run_heartbeat(channel_id: str):
             print(f"[HEARTBEAT] Compressed to {len(context_for_supervisor.split())} words")
         except Exception as e:
             print(f"[HEARTBEAT] Compression failed: {e} — truncating")
-            context_for_supervisor = " ".join(raw_context.split()[:2000])
+            context_for_supervisor = " ".join(raw_context.split()[:10000])
     else:
         context_for_supervisor = raw_context
 

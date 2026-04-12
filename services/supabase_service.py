@@ -75,6 +75,24 @@ class SupabaseService:
             return result.data[0]
         return None
 
+    def get_recent_meetings(self, user_id: str, limit: int = 2) -> List[Dict]:
+        result = (
+            self.client.table("meetings")
+            .select("*")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .limit(limit + 5)
+            .execute()
+        )
+        meetings = []
+        if result.data:
+            for m in result.data:
+                if not m["meeting_name"].startswith("slack_"):
+                    meetings.append(m)
+                if len(meetings) == limit:
+                    break
+        return meetings
+
     def get_meeting_by_name(self, meeting_name: str) -> Optional[Dict]:
         response = (
             self.client

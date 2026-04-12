@@ -171,20 +171,54 @@ def query_understanding_node(state: MeetingState):
     return state
 
 
-
 def meeting_summary_node(state: MeetingState):
-
+ 
     state["path"].append("meeting_summary")
-
+ 
     retrieved = state.get("retrieved_chunks", [])
-
+ 
+    supabase = get_supabase_client()
+ 
+    # If no chunks retrieved — still try to summarize from DB directly
     if not retrieved:
+        try:
+            recent = supabase.client.table("meetings") \
+                .select("id") \
+                .eq("user_id", state.get("user_id")) \
+                .not_.like("meeting_name", "slack_%") \
+                .order("created_at", desc=True) \
+                .limit(1) \
+                .execute()
+            if recent.data:
+                mid = recent.data[0]["id"]
+                db_chunks = supabase.client.table("chunks") \
+                    .select("chunk_text, chunk_index") \
+                    .eq("meeting_id", mid) \
+                    .eq("source", "transcript") \
+                    .order("chunk_index", desc=False) \
+                    .limit(40) \
+                    .execute()
+                if db_chunks.data:
+                    context = "\n\n".join(
+                        c["chunk_text"] for c in db_chunks.data if c.get("chunk_text")
+                    )[:12000]
+                    response = client.chat.completions.create(
+                        model="llama-3.1-8b-instant",
+                        messages=[{"role": "user", "content": f"Summarize this meeting transcript in 3-5 bullet points covering Goals, Agenda, Decisions, Action items:\n\n{context}"}],
+                        temperature=0.2,
+                        max_tokens=300,
+                    )
+                    state["final_answer"] = response.choices[0].message.content.strip()
+                    state["method"] = "summary_direct_db"
+                    state["context_extended"] = False
+                    return state
+        except Exception as e:
+            print(f"[SUMMARY] Direct DB fallback failed: {e}")
+ 
         state["final_answer"] = SAFE_ABSTAIN
         state["method"] = "summary_no_evidence"
         state["context_extended"] = False
         return state
-
-    supabase = get_supabase_client()
     
     # Check if this is a slack request or a transcript request
     source_type = "transcript"
@@ -194,7 +228,7 @@ def meeting_summary_node(state: MeetingState):
         source_type = "slack"
         
     first_meeting_id = retrieved[0].get("meeting_id")
-
+ 
     # If it's a transcript request, we strongly prefer finding the absolute latest meeting
     if source_type == "transcript":
         recent_meetings = supabase.client.table("meetings") \
@@ -206,13 +240,13 @@ def meeting_summary_node(state: MeetingState):
             .execute()
         if recent_meetings.data:
             first_meeting_id = recent_meetings.data[0]["id"]
-
+ 
     if not first_meeting_id:
         state["final_answer"] = SAFE_ABSTAIN
         state["method"] = "summary_no_meeting_id"
         state["context_extended"] = False
         return state
-
+ 
     # Now dynamically fetch 40 sequential chunks (~8000 words) from this meeting
     query = supabase.client.table("chunks") \
         .select("*") \
@@ -224,67 +258,67 @@ def meeting_summary_node(state: MeetingState):
     db_chunks_resp = query.order("chunk_index", desc=False).limit(40).execute()
         
     meeting_chunks = db_chunks_resp.data or []
-
+ 
     print(f"[SUMMARY NODE] Fetched {len(meeting_chunks)} sequential chunks for meeting {first_meeting_id}")
-
+ 
     if not meeting_chunks:
         state["final_answer"] = SAFE_ABSTAIN
         state["method"] = "summary_empty_meeting"
         state["context_extended"] = False
         return state
-
+ 
     context = "\n\n".join(
         c.get("chunk_text", "") for c in meeting_chunks
     )[:12000]
-
+ 
     is_slack_summary = (source_type == "slack")
-
+ 
     if is_slack_summary:
         prompt = f"""
 You are a professional project assistant summarizing a Slack chat.
-
+ 
 RULES:
 - Use ONLY the provided chat fragments.
 - Do NOT assume decisions unless explicitly stated.
 - If information is unclear, omit it.
 - Focus strictly on what was discussed in the provided text.
-
+ 
 TASK:
 Summarize the chat with 3-5 bullet points covering:
 • Main topics discussed
 • Decisions made (if any)
 • Action items or next steps (if any)
 • Key blockers or questions raised
-
+ 
 CHAT FRAGMENTS:
 {context}
-
+ 
 SUMMARY:
 """.strip()
     else:
         prompt = f"""
 You are a professional project assistant summarizing a meeting.
-
+ 
 RULES:
 - Use ONLY the provided transcript fragments.
 - Do NOT assume decisions unless explicitly stated.
 - If information is unclear, omit it.
 - Do NOT include bare timestamps like [00:15:30] in your answer unless you also know the calendar date.
 - Do NOT include Slack messages, run IDs, or chat history in the summary.
-
+ 
 TASK:
 Summarize the meeting with 3–5 bullet points covering:
 • Goals
 • Agenda
 • Decisions
 • Action items
-
+ 
 TRANSCRIPT FRAGMENTS:
 {context}
-
+ 
 SUMMARY:
 """.strip()
-
+ 
     try:
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
@@ -298,18 +332,11 @@ SUMMARY:
         print(f"Summary Error: {e}")
         state["final_answer"] = SAFE_ABSTAIN
         state["method"] = "summary_error"
-
+ 
     state["context_extended"] = False
     return state
 
-
-# ==============================
-# GLOBAL VECTOR MODEL + SUPABASE
-# ==============================
-
 _SUPABASE_CLIENT = None
-
-
 
 
 def get_supabase_client():
@@ -820,8 +847,8 @@ def post_retrieve_router(state: MeetingState):
     sq = state.get("standalone_query", "").lower()
 
     SUMMARY_KEYS = {
-        "summary", "summarize", "overview",
-        "highlights", "takeaways"
+        "summary", "summarize", "summarise", "overview",
+        "highlights", "takeaways", "summarize the", "summarise the"
     }
 
     ACTION_KEYS = {

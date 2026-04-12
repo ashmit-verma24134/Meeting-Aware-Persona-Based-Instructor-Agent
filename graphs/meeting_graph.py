@@ -656,6 +656,32 @@ def retrieve_chunks_node(state: MeetingState):
             print("Latest meeting fetch failed:", e)
 
     # -----------------------------------
+    # CONTEXT EXPANSION (+/- 2 chunks)
+    # -----------------------------------
+    expanded_chunks_map = {}
+    target_indices_by_meeting = {}
+
+    for c in clean_chunks:
+        mid = c["meeting_id"]
+        if mid not in target_indices_by_meeting:
+            target_indices_by_meeting[mid] = []
+        target_indices_by_meeting[mid].append(c["chunk_index"])
+        expanded_chunks_map[f"{mid}_{c['chunk_index']}"] = c  # Keep original
+
+    for mid, indices in target_indices_by_meeting.items():
+        try:
+            adj_chunks = supabase.get_adjacent_chunks(meeting_id=mid, chunk_indices=indices, window=2)
+            for ac in adj_chunks:
+                key = f"{ac['meeting_id']}_{ac['chunk_index']}"
+                if key not in expanded_chunks_map:
+                    expanded_chunks_map[key] = ac
+        except Exception as e:
+            print(f"[CONTEXT EXPAND] Failed for meeting {mid}: {e}")
+
+    clean_chunks = list(expanded_chunks_map.values())
+    state["context_extended"] = True
+
+    # -----------------------------------
     # Sort by transcript order
     # -----------------------------------
     clean_chunks = sorted(

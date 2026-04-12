@@ -142,6 +142,38 @@ class SupabaseService:
         if not response.data:
             raise Exception("Chunk insert failed")
 
+    def get_adjacent_chunks(self, meeting_id: str, chunk_indices: List[int], window: int = 2) -> List[Dict]:
+        """Fetch adjacent chunks (+/- window) for a given set of matched chunk indices."""
+        if not chunk_indices:
+            return []
+            
+        all_needed = set()
+        for idx in chunk_indices:
+            for j in range(idx - window, idx + window + 1):
+                if j >= 0:
+                    all_needed.add(j)
+                    
+        response = (
+            self.client
+            .table("chunks")
+            .select("*")
+            .eq("meeting_id", meeting_id)
+            .in_("chunk_index", list(all_needed))
+            .execute()
+        )
+        # Format similarly to how chunks are expected down the line
+        clean_chunks = []
+        for row in (response.data or []):
+            if isinstance(row.get("chunk_index"), int) and isinstance(row.get("chunk_text"), str):
+                clean_chunks.append({
+                    "meeting_id": row["meeting_id"],
+                    "chunk_index": row["chunk_index"],
+                    "text": row["chunk_text"],
+                    "similarity": 0.0,  # Neighboring chunks start with base low similarity
+                    "source": row.get("source", "transcript"),
+                })
+        return clean_chunks
+
     # =========================================================
     # VECTOR SEARCH
     # =========================================================

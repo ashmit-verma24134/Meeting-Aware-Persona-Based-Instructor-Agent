@@ -869,7 +869,23 @@ def run_heartbeat(channel_id: str):
         return
 
     try:
-        slack_client.chat_postMessage(channel=channel_id, text=supervisor_message)
+        # Use Block Kit to force Slack to render this as an isolated bubble every time
+        slack_client.chat_postMessage(
+            channel=channel_id,
+            text="Project Status Update", # Notification fallback text
+            blocks=[
+                {
+                    "type": "divider"
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"🔔 *PROACTIVE CHECK-IN*\n\n{supervisor_message}"
+                    }
+                }
+            ]
+        )
         print(f"[HEARTBEAT] Posted to channel {channel_id}")
     except Exception as e:
         print(f"[HEARTBEAT] Slack post failed: {e}")

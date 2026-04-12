@@ -214,14 +214,18 @@ def meeting_summary_node(state: MeetingState):
         return state
 
     # Now dynamically fetch 40 sequential chunks (~8000 words) from this meeting
-    db_chunks_resp = supabase.client.table("chunks") \
+    query = supabase.client.table("chunks") \
         .select("*") \
-        .eq("meeting_id", first_meeting_id) \
-        .order("chunk_index", desc=False) \
-        .limit(40) \
-        .execute()
+        .eq("meeting_id", first_meeting_id)
+        
+    if source_type == "transcript":
+        query = query.eq("source", "transcript")
+        
+    db_chunks_resp = query.order("chunk_index", desc=False).limit(40).execute()
         
     meeting_chunks = db_chunks_resp.data or []
+
+    print(f"[SUMMARY NODE] Fetched {len(meeting_chunks)} sequential chunks for meeting {first_meeting_id}")
 
     if not meeting_chunks:
         state["final_answer"] = SAFE_ABSTAIN

@@ -498,10 +498,11 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
         sid = f"{channel_id}_slack_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
         supabase.create_session(sid, user_id)
 
-        SLACK_SESSIONS[channel_id] = {
+        session = {
             "user_id": user_id,
             "session_id": sid,
         }
+        SLACK_SESSIONS[channel_id] = session
 
 
 
@@ -631,7 +632,9 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
 
         send_message(channel_id, answer)
 
-    except Exception:
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         send_message(
             channel_id,
             " Something went wrong while processing your question."

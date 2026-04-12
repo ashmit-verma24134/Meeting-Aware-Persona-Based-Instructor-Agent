@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request, BackgroundTasks
 from graphs.meeting_graph import meeting_graph
 from services.hf_api_service import HFAPIService
+from scripts.ingest_slack_to_supabase import ingest_slack_history
 
 
 # ───────────────────────────────────────
@@ -48,6 +49,11 @@ PROCESSED_EVENTS = set()
 EVENT_LOCK = Lock()
 
 STAGE_ACTIVE = "ACTIVE"
+
+# ── Heartbeat cooldown tracker (in-memory) ──
+# Prevents duplicate messages if cron + manual curl fire at same time
+_LAST_HEARTBEAT = {}  # channel_id → datetime
+HEARTBEAT_COOLDOWN_MINUTES = 4
 
 
 def ingest_and_reply(channel_id, run_id, response_url):
@@ -145,6 +151,19 @@ def start_and_reply(channel_id, video_url, response_url):
 # ───────────────────────────────────────
 
 
+def sync_slack_and_reply(channel_id, response_url):
+    try:
+        ingest_slack_history(channel_id=channel_id,5000)
+        http_requests.post(response_url, json={
+            "response_type": "in_channel",
+            "text": "Slack history synced!"
+        })
+    except Exception as e:
+        http_requests.post(response_url, json={
+            "response_type": "in_channel",
+            "text": f"Sync failed: {str(e)}"
+        })
+
 @app.post("/slack/events")
 async def slack_events(request: Request, background_tasks: BackgroundTasks):
     content_type = request.headers.get("content-type", "")
@@ -228,6 +247,17 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
                         "response_type": "in_channel",
                         "text": f"Checking status for `{run_id}`..."
                     }
+        # ---------- /sync_slack ----------
+        if command == "/sync_slack":
+            response_url = form.get("response_url")
+            background_tasks.add_task(
+                sync_slack_and_reply,
+                channel_id, response_url
+            )
+            return {
+                "response_type": "in_channel",
+                "text": "Syncing Slack history for this channel..."
+            }
 # ───────────────────────────────────────
 # EVENT PROCESSOR
 # ───────────────────────────────────────
@@ -472,6 +502,9 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
             "user_id": user_id,
             "session_id": sid,
         }
+
+
+
     # ----------------------------------------
     # EXIT
     # ----------------------------------------
@@ -571,7 +604,6 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
             "decision": None,
             "standalone_query": text,
             "confidence": None,
-            "is_hunting_for_exact_value": False,
             "temporal_constraint": None,
             "domain_constraint": None,
             "retrieved_chunks": [],
@@ -582,6 +614,7 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
             "candidate_answer": None,
             "final_answer": None,
             "method": "",
+            "is_hunting_for_exact_value": False,
             "context_extended": False,
             "path": [],
         }
@@ -617,8 +650,6 @@ def health():
 # ───────────────────────────────────────
 # HEARTBEAT — Proactive Supervisor
 # Called by cron job every X minutes
-# Reviews recent activity and posts
-# next steps to the channel as ICAPP Agent
 # ───────────────────────────────────────
 
 HEARTBEAT_COMPRESSION_PROMPT = """
@@ -668,26 +699,33 @@ RULES:
 
 
 def run_heartbeat(channel_id: str):
-    """
-    Core heartbeat logic — fetch recent context, compress if needed,
-    run supervisor prompt, post to Slack channel.
-    """
     from groq import Groq as _Groq
+    from datetime import timedelta
     groq_client = _Groq(api_key=os.getenv("GROQ_API_KEY"))
     supabase = get_supabase_client()
 
     print(f"[HEARTBEAT] Running for channel: {channel_id}")
 
-    # ── 1. Get user for this channel ──
+    # ── Cooldown check ──
+    now = datetime.utcnow()
+    last = _LAST_HEARTBEAT.get(channel_id)
+    if last and (now - last) < timedelta(minutes=HEARTBEAT_COOLDOWN_MINUTES):
+        print(f"[HEARTBEAT] Skipping — last fired {(now-last).seconds}s ago, cooldown={HEARTBEAT_COOLDOWN_MINUTES}min")
+        return
+    _LAST_HEARTBEAT[channel_id] = now
+
+    # ── 1. Get user ──
     user = supabase.get_user_by_username(channel_id)
     if not user:
         print(f"[HEARTBEAT] No user found for channel {channel_id}, skipping.")
         return
     user_id = user["id"]
+    print(f"[HEARTBEAT] User found: {user_id}")
 
-    # ── 2. Get slack meeting id for this channel ──
+    # ── 2. Get slack meeting ──
     meeting_name = f"slack_{channel_id}"
     meeting = supabase.get_meeting_by_name(meeting_name)
+    print(f"[HEARTBEAT] Slack meeting found: {meeting is not None} | name={meeting_name}")
 
     # ── 3. Fetch last 5 slack chunks ──
     slack_chunks_text = ""
@@ -697,36 +735,39 @@ def run_heartbeat(channel_id: str):
                 .select("chunk_text, created_at") \
                 .eq("meeting_id", meeting["id"]) \
                 .eq("source", "slack") \
-                .order("created_at", desc=True) \
+                .order("id", desc=True) \
                 .limit(5) \
                 .execute()
-
+            print(f"[HEARTBEAT] Slack chunks count: {len(result.data) if result.data else 0}")
             if result.data:
-                chunks = list(reversed(result.data))  # chronological order
+                chunks = list(reversed(result.data))
                 slack_chunks_text = "\n\n".join(
                     c["chunk_text"] for c in chunks if c.get("chunk_text")
                 )
-                print(f"[HEARTBEAT] Fetched {len(result.data)} slack chunks")
+                print(f"[HEARTBEAT] Slack context preview: {slack_chunks_text[:300]}")
         except Exception as e:
             print(f"[HEARTBEAT] Slack chunks fetch failed: {e}")
+    else:
+        print(f"[HEARTBEAT] No slack meeting record — slack chunks SKIPPED")
 
     # ── 4. Fetch last 20 chat turns ──
     chat_turns_text = ""
     try:
-        # Get most recent session for this user
         session_result = supabase.client.table("sessions") \
             .select("session_id") \
             .eq("user_id", user_id) \
-            .order("created_at", desc=True) \
+            .order("id", desc=True) \
             .limit(1) \
             .execute()
-
+        print(f"[HEARTBEAT] Sessions found: {len(session_result.data) if session_result.data else 0}")
         if session_result.data:
             session_id = session_result.data[0]["session_id"]
+            print(f"[HEARTBEAT] Using session: {session_id}")
             turns = supabase.get_recent_chat_turns(session_id=session_id, limit=20)
+            print(f"[HEARTBEAT] Chat turns count: {len(turns) if turns else 0}")
             if turns:
                 chat_turns_text = "\n".join(turns)
-                print(f"[HEARTBEAT] Fetched {len(turns)} chat turns")
+                print(f"[HEARTBEAT] Chat context preview: {chat_turns_text[:300]}")
     except Exception as e:
         print(f"[HEARTBEAT] Chat turns fetch failed: {e}")
 
@@ -739,17 +780,17 @@ def run_heartbeat(channel_id: str):
             .order("created_at", desc=True) \
             .limit(3) \
             .execute()
-
+        print(f"[HEARTBEAT] Transcript chunks count: {len(transcript_result.data) if transcript_result.data else 0}")
         if transcript_result.data:
             chunks = list(reversed(transcript_result.data))
             transcript_text = "\n\n".join(
                 c["chunk_text"] for c in chunks if c.get("chunk_text")
             )
-            print(f"[HEARTBEAT] Fetched {len(transcript_result.data)} transcript chunks")
+            print(f"[HEARTBEAT] Transcript context preview: {transcript_text[:300]}")
     except Exception as e:
         print(f"[HEARTBEAT] Transcript fetch failed: {e}")
 
-    # ── 6. Combine all context ──
+    # ── 6. Combine ──
     raw_parts = []
     if slack_chunks_text:
         raw_parts.append(f"=== RECENT SLACK ACTIVITY ===\n{slack_chunks_text}")
@@ -757,6 +798,8 @@ def run_heartbeat(channel_id: str):
         raw_parts.append(f"=== RECENT Q&A WITH BOT ===\n{chat_turns_text}")
     if transcript_text:
         raw_parts.append(f"=== LATEST MEETING ===\n{transcript_text}")
+
+    print(f"[HEARTBEAT] Sources used: slack={'YES' if slack_chunks_text else 'NO'} | chat={'YES' if chat_turns_text else 'NO'} | transcript={'YES' if transcript_text else 'NO'}")
 
     if not raw_parts:
         print("[HEARTBEAT] No context found, posting default message.")
@@ -767,8 +810,6 @@ def run_heartbeat(channel_id: str):
         return
 
     raw_context = "\n\n".join(raw_parts)
-
-    # ── 7. Compress if too big (> 2000 words) ──
     word_count = len(raw_context.split())
     print(f"[HEARTBEAT] Raw context word count: {word_count}")
 
@@ -777,47 +818,37 @@ def run_heartbeat(channel_id: str):
         try:
             compress_response = groq_client.chat.completions.create(
                 model="llama-3.1-8b-instant",
-                messages=[{
-                    "role": "user",
-                    "content": HEARTBEAT_COMPRESSION_PROMPT.format(raw_context=raw_context)
-                }],
+                messages=[{"role": "user", "content": HEARTBEAT_COMPRESSION_PROMPT.format(raw_context=raw_context)}],
                 temperature=0.0,
                 max_tokens=600,
             )
             context_for_supervisor = compress_response.choices[0].message.content.strip()
             print(f"[HEARTBEAT] Compressed to {len(context_for_supervisor.split())} words")
         except Exception as e:
-            print(f"[HEARTBEAT] Compression failed: {e} — using raw context truncated")
+            print(f"[HEARTBEAT] Compression failed: {e} — truncating")
             context_for_supervisor = " ".join(raw_context.split()[:2000])
     else:
         context_for_supervisor = raw_context
 
-    # ── 8. Run supervisor prompt ──
     try:
         supervisor_response = groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
-            messages=[{
-                "role": "user",
-                "content": HEARTBEAT_SUPERVISOR_PROMPT.format(context=context_for_supervisor)
-            }],
+            messages=[{"role": "user", "content": HEARTBEAT_SUPERVISOR_PROMPT.format(context=context_for_supervisor)}],
             temperature=0.2,
             max_tokens=300,
         )
         supervisor_message = supervisor_response.choices[0].message.content.strip()
-        print(f"[HEARTBEAT] Supervisor message generated: {supervisor_message[:80]}...")
+        print(f"[HEARTBEAT] Message generated: {supervisor_message[:80]}...")
     except Exception as e:
         print(f"[HEARTBEAT] Supervisor prompt failed: {e}")
         return
 
-    # ── 9. Post to Slack ──
     try:
-        slack_client.chat_postMessage(
-            channel=channel_id,
-            text=supervisor_message
-        )
+        slack_client.chat_postMessage(channel=channel_id, text=supervisor_message)
         print(f"[HEARTBEAT] Posted to channel {channel_id}")
     except Exception as e:
         print(f"[HEARTBEAT] Slack post failed: {e}")
+
 
 
 @app.post("/heartbeat")
@@ -825,17 +856,15 @@ async def heartbeat(request: Request, background_tasks: BackgroundTasks):
     """
     POST /heartbeat
     Body: { "channel_id": "C0123456789" }
-    Called by cron job every 5 minutes (increase later).
+    Called by cron every 30 minutes (5 mins for testing).
     """
     try:
         body = await request.json()
         channel_id = body.get("channel_id")
-
         if not channel_id:
             return {"status": "error", "message": "channel_id required"}
-
         background_tasks.add_task(run_heartbeat, channel_id)
         return {"status": "ok", "message": f"Heartbeat triggered for {channel_id}"}
-
     except Exception as e:
         return {"status": "error", "message": str(e)}
+

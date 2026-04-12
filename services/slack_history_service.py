@@ -137,6 +137,58 @@ class SlackHistoryService:
         return chunks
 
     # ─────────────────────────────────────
+    # Build text pieces split by word limit
+    # ─────────────────────────────────────
+    def messages_to_small_chunks(self, messages: list[dict], max_words: int = 300) -> list[dict]:
+        """
+        Group messages by calendar date (UTC), then split into smaller chunks (under max_words).
+        Each chunk starts with the date header to preserve date filtering.
+        """
+        daily = defaultdict(list)
+
+        for msg in messages:
+            ts = msg.get("timestamp", "")
+            try:
+                dt = datetime.fromtimestamp(float(ts), tz=timezone.utc)
+                date_key = dt.strftime("%Y-%m-%d")
+            except Exception:
+                date_key = "unknown"
+
+            user = msg.get("user", "unknown")
+            text = msg.get("text", "")
+            daily[date_key].append(f"[{user}]: {text}")
+
+        chunks = []
+        for date in sorted(daily.keys()):
+            current_messages = []
+            current_words = 0
+
+            for msg_line in daily[date]:
+                words_in_msg = len(msg_line.split())
+                if current_words + words_in_msg > max_words and current_messages:
+                    # Finalize current chunk
+                    chunk_text = f"--- {date} ---\n" + "\n\n".join(current_messages)
+                    chunks.append({
+                        "date": date,
+                        "text": chunk_text,
+                    })
+                    current_messages = []
+                    current_words = 0
+                
+                current_messages.append(msg_line)
+                current_words += words_in_msg
+
+            # Append the remainder
+            if current_messages:
+                chunk_text = f"--- {date} ---\n" + "\n\n".join(current_messages)
+                chunks.append({
+                    "date": date,
+                    "text": chunk_text,
+                })
+
+        return chunks
+
+    # ─────────────────────────────────────
     # Build full text blob (kept for compatibility)
     # ─────────────────────────────────────
 

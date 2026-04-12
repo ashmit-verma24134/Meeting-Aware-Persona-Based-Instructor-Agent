@@ -224,7 +224,34 @@ def meeting_summary_node(state: MeetingState):
         c["text"] for c in meeting_chunks
     )[:12000]
 
-    prompt = f"""
+    is_slack_summary = False
+    if meeting_chunks and meeting_chunks[0].get("source") == "slack":
+        is_slack_summary = True
+
+    if is_slack_summary:
+        prompt = f"""
+You are a professional project assistant summarizing a Slack chat.
+
+RULES:
+- Use ONLY the provided chat fragments.
+- Do NOT assume decisions unless explicitly stated.
+- If information is unclear, omit it.
+- Focus strictly on what was discussed in the provided text.
+
+TASK:
+Summarize the chat with 3-5 bullet points covering:
+• Main topics discussed
+• Decisions made (if any)
+• Action items or next steps (if any)
+• Key blockers or questions raised
+
+CHAT FRAGMENTS:
+{context}
+
+SUMMARY:
+""".strip()
+    else:
+        prompt = f"""
 You are a professional project assistant summarizing a meeting.
 
 RULES:

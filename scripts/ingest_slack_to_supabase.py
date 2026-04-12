@@ -40,14 +40,14 @@ def ingest_slack_history(channel_id: str, limit: int = 500):
 
     print(f"[SLACK INGEST] Fetched {len(messages)} messages")
 
-    # ── Group into daily chunks ──
-    daily_chunks = slack_service.messages_to_daily_chunks(messages)
+    # ── Group into small chunks ──
+    small_chunks = slack_service.messages_to_small_chunks(messages, max_words=300)
 
-    if not daily_chunks:
-        print("[SLACK INGEST] No daily chunks generated. Skipping.")
+    if not small_chunks:
+        print("[SLACK INGEST] No chunks generated. Skipping.")
         return
 
-    print(f"[SLACK INGEST] {len(daily_chunks)} daily chunks (one per day)")
+    print(f"[SLACK INGEST] {len(small_chunks)} small chunks generated")
 
     # ── Ensure user exists ──
     user = supabase.get_user_by_username(channel_id)
@@ -76,13 +76,13 @@ def ingest_slack_history(channel_id: str, limit: int = 500):
         print("[SLACK INGEST] Created new slack meeting record.")
 
     # ── Upsert raw transcript (full text blob for reference) ──
-    full_text = "\n\n".join(c["text"] for c in daily_chunks)
+    full_text = "\n\n".join(c["text"] for c in small_chunks)
     supabase.upsert_transcript(meeting_id, full_text)
 
-    # ── Embed each daily chunk and insert ──
+    # ── Embed each chunk and insert ──
     chunk_rows = []
 
-    for idx, chunk in enumerate(daily_chunks):
+    for idx, chunk in enumerate(small_chunks):
         embedding_text = chunk["text"]
         embedding = get_embedding(embedding_text)
 
@@ -94,11 +94,11 @@ def ingest_slack_history(channel_id: str, limit: int = 500):
             "source": "slack",
         })
 
-        print(f"[SLACK INGEST] Embedded day {chunk['date']} (chunk {idx})")
+        print(f"[SLACK INGEST] Embedded chunk {idx} for date {chunk.get('date', 'unknown')}")
 
     if chunk_rows:
         supabase.insert_chunks(chunk_rows)
-        print(f"[SLACK INGEST] Inserted {len(chunk_rows)} daily chunks.")
+        print(f"[SLACK INGEST] Inserted {len(chunk_rows)} small chunks.")
 
     print("[SLACK INGEST] Done.")
 

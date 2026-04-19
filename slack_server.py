@@ -54,7 +54,7 @@ STAGE_ACTIVE = "ACTIVE"
 
 # ── Heartbeat cooldown tracker (in-memory) ──
 _LAST_HEARTBEAT = {}  # channel_id → datetime
-HEARTBEAT_COOLDOWN_MINUTES = 4
+HEARTBEAT_COOLDOWN_MINUTES = 0
 
 
 def ingest_and_reply(channel_id, run_id, response_url):
@@ -169,8 +169,9 @@ def sync_slack_and_reply(channel_id, response_url):
 @app.post("/slack/events")
 async def slack_events(request: Request, background_tasks: BackgroundTasks):
     # ── Ignore Slack retries to prevent double responses on slow processing ──
+    from fastapi.responses import JSONResponse
     if request.headers.get("x-slack-retry-num"):
-        return {"status": "ok"}
+        return JSONResponse({"status": "ok"}, headers={"X-Slack-No-Retry": "1"})
 
     content_type = request.headers.get("content-type", "")
 
@@ -390,7 +391,7 @@ def process_event(event: dict):
     ]:
         return
 
-    event_id = event.get("event_ts") or event.get("client_msg_id")
+    event_id = event.get("client_msg_id") or event.get("event_ts")
     if not event_id:
         return
 
@@ -952,4 +953,120 @@ async def heartbeat_get(background_tasks: BackgroundTasks):
         print("[HEARTBEAT GET] SLACK_CHANNEL_ID env var not set!")
         return {"status": "error", "message": "SLACK_CHANNEL_ID env var not set"}
     background_tasks.add_task(run_heartbeat, channel_id)
-    return {"status": "ok", "message": f"Heartbeat triggered for {channel_id}"}
+    return {"status": "ok", "message": f"Heartbeat triggered for {channel_id}"}# ─────────────────────────────────────────────────────────────────
+# PASTE THIS BLOCK INTO slack_server.py, right before the final line:
+# meeting_graph = graph.compile()
+# (or at the bottom of slack_server.py after all the route definitions)
+# ─────────────────────────────────────────────────────────────────
+
+@app.get("/debug")
+async def debug_retrieval():
+    """
+    GET /debug
+    Checks every layer of the retrieval pipeline and reports what's broken.
+    Call this from browser: https://your-app.vercel.app/debug
+    """
+    import traceback
+    report = {}
+
+    # 1. Check env vars
+    report["env"] = {
+        "SUPABASE_URL": bool(os.getenv("SUPABASE_URL")),
+        "SUPABASE_SERVICE_ROLE_KEY": bool(os.getenv("SUPABASE_SERVICE_ROLE_KEY")),
+        "GROQ_API_KEY": bool(os.getenv("GROQ_API_KEY")),
+        "HF_EMBED_URL": bool(os.getenv("HF_EMBED_URL")),
+        "SLACK_BOT_TOKEN": bool(os.getenv("SLACK_BOT_TOKEN")),
+        "SLACK_CHANNEL_ID": bool(os.getenv("SLACK_CHANNEL_ID")),
+    }
+
+    # 2. Check Supabase connection + tables
+    try:
+        supabase = get_supabase_client()
+        users = supabase.client.table("users").select("id").limit(1).execute()
+        report["supabase_users_table"] = "OK"
+        report["supabase_users_count"] = len(users.data)
+    except Exception as e:
+        report["supabase_users_table"] = f"ERROR: {e}"
+
+    try:
+        meetings = supabase.client.table("meetings").select("id, meeting_name, user_id").limit(5).execute()
+        report["supabase_meetings"] = [m["meeting_name"] for m in (meetings.data or [])]
+    except Exception as e:
+        report["supabase_meetings"] = f"ERROR: {e}"
+
+    try:
+        chunks = supabase.client.table("chunks").select("id, meeting_id, source").limit(5).execute()
+        report["supabase_chunks_sample"] = chunks.data
+    except Exception as e:
+        report["supabase_chunks"] = f"ERROR: {e}"
+
+    # 3. Check embedding API
+    try:
+        from services.embedding_api import get_embedding
+        emb = get_embedding("test query hello world")
+        report["embedding_api"] = f"OK — dim={len(emb)}"
+    except Exception as e:
+        report["embedding_api"] = f"ERROR: {e}"
+
+    # 4. Check match_chunks_by_user RPC
+    try:
+        from services.embedding_api import get_embedding
+        test_emb = get_embedding("what happened in the meeting")
+        # Get first user_id from DB
+        users_resp = supabase.client.table("users").select("id").limit(1).execute()
+        if users_resp.data:
+            test_user_id = users_resp.data[0]["id"]
+            rpc_result = supabase.client.rpc(
+                "match_chunks_by_user",
+                {
+                    "query_embedding": test_emb,
+                    "match_count": 3,
+                    "filter_user_id": test_user_id
+                }
+            ).execute()
+            report["rpc_match_chunks_by_user"] = f"OK — returned {len(rpc_result.data or [])} chunks"
+        else:
+            report["rpc_match_chunks_by_user"] = "SKIP — no users in DB"
+    except Exception as e:
+        report["rpc_match_chunks_by_user"] = f"ERROR: {e}"
+
+    # 5. Check match_chunks_bm25 RPC
+    try:
+        users_resp = supabase.client.table("users").select("id").limit(1).execute()
+        if users_resp.data:
+            test_user_id = users_resp.data[0]["id"]
+            bm25_result = supabase.client.rpc(
+                "match_chunks_bm25",
+                {
+                    "query_text": "meeting pipeline model",
+                    "filter_user_id": test_user_id,
+                    "match_count": 3
+                }
+            ).execute()
+            report["rpc_match_chunks_bm25"] = f"OK — returned {len(bm25_result.data or [])} chunks"
+        else:
+            report["rpc_match_chunks_bm25"] = "SKIP — no users in DB"
+    except Exception as e:
+        report["rpc_match_chunks_bm25"] = f"ERROR: {e}"
+
+    # 6. Check slack_events table (dedup)
+    try:
+        supabase.client.table("slack_events").select("event_id").limit(1).execute()
+        report["slack_events_table"] = "OK"
+    except Exception as e:
+        report["slack_events_table"] = f"MISSING — run: CREATE TABLE slack_events (event_id TEXT PRIMARY KEY, created_at TIMESTAMPTZ DEFAULT NOW()); | Error: {e}"
+
+    # 7. Check Groq
+    try:
+        from groq import Groq
+        g = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        resp = g.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": "Say OK"}],
+            max_tokens=5
+        )
+        report["groq"] = f"OK — {resp.choices[0].message.content.strip()}"
+    except Exception as e:
+        report["groq"] = f"ERROR: {e}"
+
+    return report

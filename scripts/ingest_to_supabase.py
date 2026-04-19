@@ -3,30 +3,20 @@ import re
 from dotenv import load_dotenv
 from services.embedding_api import get_embedding
 from services.supabase_service import SupabaseService
-from scripts.embedding_utils import build_embedding_text
 
 load_dotenv()
 
 # ===================================================
 # KEYFRAME CHUNKING
-# Split transcript by [HH:MM:SS] timestamp markers
-# Each keyframe = one semantically coherent chunk
 # ===================================================
 
 def chunk_by_keyframe(text: str) -> list[dict]:
-    """
-    Split transcript into keyframe chunks.
-    Each chunk = one [timestamp] block.
-    Returns list of {text, timestamp_start, topic, speaker} dicts.
-    """
-    # Match lines starting with [HH:MM:SS] or [HH:MM:SS.ms]
     pattern = re.compile(r'(\[\d{2}:\d{2}:\d{2}(?:\.\d+)?\])')
     parts = pattern.split(text)
 
     chunks = []
     i = 0
 
-    # parts = ['', '[00:00:00]', 'content...', '[00:00:46]', 'content...', ...]
     while i < len(parts):
         if pattern.match(parts[i]):
             timestamp = parts[i].strip("[]")
@@ -36,14 +26,11 @@ def chunk_by_keyframe(text: str) -> list[dict]:
             if not content:
                 continue
 
-            # Extract speaker from content if present
-            # Format: "[U0AANT5PPPH]: text" or "The speaker says..."
             speaker = None
             speaker_match = re.match(r'^\[([^\]]+)\]:\s*', content)
             if speaker_match:
                 speaker = speaker_match.group(1)
 
-            # Extract topic — first 6 words of content as a label
             words = content.split()
             topic = " ".join(words[:6]) if words else ""
 
@@ -56,7 +43,6 @@ def chunk_by_keyframe(text: str) -> list[dict]:
         else:
             i += 1
 
-    # Fallback: if no timestamps found, use word-level chunking
     if not chunks:
         print("[CHUNK] No timestamps found — falling back to word-level chunking")
         words = text.split()
@@ -75,20 +61,27 @@ def chunk_by_keyframe(text: str) -> list[dict]:
 
 
 # ===================================================
-# DYNAMIC GOAL EVOLUTION
+# DYNAMIC GOAL EVOLUTION — CUMULATIVE VERSION
+#
+# How it works:
+# 1. Fetches ALL past transcript meeting chunks for this user (not just latest)
+# 2. Takes a sample from each meeting (first 5 chunks = ~context window friendly)
+# 3. Passes: [current goal] + [all past meetings summary] + [new meeting text]
+# 4. LLM rebuilds the goal intelligently from full project history
+# 5. Upserts back into the goal_{user_uuid} chunk
 # ===================================================
 
-def update_dynamic_project_goal(supabase, user_uuid: str, new_meeting_text: str):
+def update_dynamic_project_goal(supabase: SupabaseService, user_uuid: str, new_meeting_text: str):
     try:
         from groq import Groq
-        import os
-        
+
         goal_meeting_name = f"goal_{user_uuid}"
         goal_meeting = supabase.get_meeting_by_name(goal_meeting_name)
-        
+
         current_goal = ""
         goal_meeting_id = None
-        
+
+        # ── Get or create goal meeting record ──
         if not goal_meeting:
             gm = supabase.create_meeting({
                 "meeting_name": goal_meeting_name,
@@ -106,34 +99,111 @@ def update_dynamic_project_goal(supabase, user_uuid: str, new_meeting_text: str)
                 .limit(1).execute()
             if res.data:
                 current_goal = res.data[0]["chunk_text"]
-                
-        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        
+
+        print(f"[GOAL TRACKER] Current goal length: {len(current_goal)} chars")
+
+        # ── Fetch ALL past transcript meetings for this user ──
+        # We pull up to 10 past meetings, take first 5 chunks each
+        # This gives the LLM the full project arc, not just one meeting
+        all_past_meetings_text = ""
+        try:
+            all_meetings_res = supabase.client.table("meetings") \
+                .select("id, meeting_name, created_at") \
+                .eq("user_id", user_uuid) \
+                .not_.like("meeting_name", "slack_%") \
+                .not_.like("meeting_name", "goal_%") \
+                .order("created_at", desc=False) \
+                .limit(10) \
+                .execute()
+
+            meeting_parts = []
+            if all_meetings_res.data:
+                for m in all_meetings_res.data:
+                    # Take first 5 chunks per meeting (early chunks = most context-rich)
+                    chunks_res = supabase.client.table("chunks") \
+                        .select("chunk_text, chunk_index") \
+                        .eq("meeting_id", m["id"]) \
+                        .eq("source", "transcript") \
+                        .order("chunk_index", desc=False) \
+                        .limit(5) \
+                        .execute()
+
+                    if chunks_res.data:
+                        meeting_chunk_text = "\n".join(
+                            c["chunk_text"] for c in chunks_res.data if c.get("chunk_text")
+                        )
+                        meeting_name = m.get("meeting_name", "Unknown")
+                        meeting_date = (m.get("created_at") or "")[:10]  # YYYY-MM-DD
+                        meeting_parts.append(
+                            f"[Meeting: {meeting_name} | Date: {meeting_date}]\n{meeting_chunk_text}"
+                        )
+
+            if meeting_parts:
+                all_past_meetings_text = "\n\n---\n\n".join(meeting_parts)
+                print(f"[GOAL TRACKER] Loaded {len(meeting_parts)} past meetings for goal synthesis")
+
+        except Exception as e:
+            print(f"[GOAL TRACKER] Past meetings fetch failed (continuing with new text only): {e}")
+
+        # ── Build the prompt with full history ──
+        groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+        # If context is too large, trim past meetings to avoid token overflow
+        combined_history = all_past_meetings_text
+        if len(combined_history.split()) > 6000:
+            # Take first 6000 words — covers most project arcs
+            combined_history = " ".join(combined_history.split()[:6000]) + "\n[...earlier meetings truncated...]"
+
         prompt = f"""
-You are the master project tracker. 
-You must update the overall PROJECT GOAL document based on a new meeting.
+You are the master project tracker for a student capstone project.
 
-CURRENT GOAL:
-{current_goal if current_goal else "No previous goal. This is the first meeting."}
+Your job is to synthesize ONE authoritative, up-to-date PROJECT GOAL document.
+This document must reflect the FULL arc of the project — from first meeting to now.
 
-NEW MEETING TRANSCRIPT:
-{new_meeting_text[:8000]}
+---
 
-TASK:
-Write the updated PROJECT GOAL. Keep it concise, authoritative, and strictly focus on the overarching goals, major technical decisions, and current scope. 
-If the new meeting reveals a pivot or new requirement, update the goal accordingly.
-Do NOT just summarize the meeting. Update the GOAL state. Max 250 words.
-"""
-        response = client.chat.completions.create(
+PREVIOUS GOAL (may be empty for first ingestion):
+{current_goal if current_goal else "No previous goal recorded yet. This is the first synthesis."}
+
+---
+
+ALL PAST MEETING CONTENT (full project history, oldest first):
+{combined_history if combined_history else "No previous meetings found."}
+
+---
+
+NEWEST MEETING (just ingested, most recent):
+{new_meeting_text[:4000]}
+
+---
+
+YOUR TASK:
+Write the updated PROJECT GOAL document. It must:
+1. CAPTURE the core technical objective of the project (what are they building?)
+2. LIST the major technical decisions made so far (tools, models, architecture)
+3. DESCRIBE the current scope and any pivots or changes from original plan
+4. NOTE what has been completed vs what is still in progress
+5. Be written as a living document — authoritative, present-tense, dense
+6. Max 300 words. Every word earns its place.
+
+DO NOT just summarize the latest meeting.
+DO NOT repeat things already noted — evolve and update the goal state.
+Write as if you are the project's single source of truth.
+""".strip()
+
+        response = groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
-            messages=[{"role": "user", "content": prompt.strip()}],
-            temperature=0.2,
-            max_tokens=300
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=400
         )
-        
+
         new_goal = response.choices[0].message.content.strip()
+        print(f"[GOAL TRACKER] New goal generated ({len(new_goal)} chars): {new_goal[:100]}...")
+
+        # ── Embed and upsert ──
         emb = get_embedding(new_goal)
-        
+
         supabase.client.table("chunks").upsert([{
             "meeting_id": goal_meeting_id,
             "chunk_index": 0,
@@ -141,11 +211,12 @@ Do NOT just summarize the meeting. Update the GOAL state. Max 250 words.
             "embedding": emb,
             "source": "transcript"
         }], on_conflict="meeting_id,chunk_index").execute()
-        
-        print(f"[GOAL TRACKER] Dynamic goal updated successfully. Length: {len(new_goal)} chars")
-        
+
+        print(f"[GOAL TRACKER] Goal updated successfully from {len((all_past_meetings_text or '').split())} words of history.")
+
     except Exception as e:
         print(f"[GOAL TRACKER] Failed to update dynamic goal: {e}")
+
 
 # ===================================================
 # CORE INGEST LOGIC
@@ -168,20 +239,15 @@ def ingest_single_file(file_path: str, username: str, run_id: str):
 
     supabase = SupabaseService()
 
-    # ================= USER =================
-
+    # ── User ──
     user = supabase.get_user_by_username(username)
-
     if not user:
         print(f"Creating new user: {username}")
         user = supabase.create_user(username)
-
     user_uuid = user["id"]
 
-    # ================= MEETING (BY RUN_ID) =================
-
+    # ── Meeting ──
     meeting = supabase.get_meeting_by_run_id(run_id)
-
     if meeting:
         meeting_id = meeting["id"]
         print("Meeting already exists. Reusing.")
@@ -196,30 +262,28 @@ def ingest_single_file(file_path: str, username: str, run_id: str):
         meeting_id = meeting["id"]
         print("Meeting created.")
 
-    # ================= TRANSCRIPT =================
-
+    # ── Transcript ──
     if not supabase.transcript_exists(meeting_id):
         supabase.upsert_transcript(meeting_id, text)
         print("Transcript inserted.")
     else:
         print("Transcript already exists.")
 
-    # ================= CHUNKS =================
-
+    # ── Chunks ──
     if supabase.chunks_exist(meeting_id):
         print("Chunks already exist. Skipping embedding.")
+        # Still update goal even if chunks exist — new meeting was ingested
+        print("Updating dynamic project goal (chunks existed)...")
+        update_dynamic_project_goal(supabase, user_uuid, text)
         return
 
-    # Split by keyframe timestamps
     keyframe_chunks = chunk_by_keyframe(text)
     print(f"Generated {len(keyframe_chunks)} keyframe chunks.")
 
     chunk_rows = []
-
     for idx, kf in enumerate(keyframe_chunks):
         chunk_text = kf["text"]
         embedding = get_embedding(chunk_text)
-
         chunk_rows.append({
             "meeting_id": meeting_id,
             "chunk_index": idx,
@@ -235,26 +299,25 @@ def ingest_single_file(file_path: str, username: str, run_id: str):
         supabase.insert_chunks(chunk_rows)
         print(f"Inserted {len(chunk_rows)} keyframe chunks.")
 
-    # ------ DYNAMIC GOAL UPDATE ------
-    print("Updating dynamic project goal...")
+    # ── Goal update AFTER chunks are inserted so this meeting's chunks are visible ──
+    print("Updating dynamic project goal from full history...")
     update_dynamic_project_goal(supabase, user_uuid, text)
 
     print("Single file ingestion completed.")
 
 
-# ==============================================
+# ===================================================
 # MAIN RUNNER
-# ==============================================
+# ===================================================
 
 if __name__ == "__main__":
-
     username = "test_user"
     DATA_DIR = "."
 
     files = [f for f in os.listdir(DATA_DIR) if f.endswith(".txt")]
     print(f"Found {len(files)} meeting files")
 
-    for file in files:
+    for file in sorted(files):  # sorted = chronological order matters for goal
         run_id = os.path.splitext(file)[0]
         ingest_single_file(
             file_path=os.path.join(DATA_DIR, file),

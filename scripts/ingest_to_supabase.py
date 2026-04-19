@@ -207,7 +207,7 @@ Write as if you are the project's single source of truth.
             "chunk_index": 0,
             "chunk_text": new_goal,
             "embedding": emb,
-            "source": "transcript"
+            "source": "goal"
         }], on_conflict="meeting_id,chunk_index").execute()
 
         print(f"[GOAL TRACKER] Goal updated successfully.")

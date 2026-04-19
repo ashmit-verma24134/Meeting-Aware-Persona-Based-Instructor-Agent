@@ -75,6 +75,79 @@ def chunk_by_keyframe(text: str) -> list[dict]:
 
 
 # ===================================================
+# DYNAMIC GOAL EVOLUTION
+# ===================================================
+
+def update_dynamic_project_goal(supabase, user_uuid: str, new_meeting_text: str):
+    try:
+        from groq import Groq
+        import os
+        
+        goal_meeting_name = f"goal_{user_uuid}"
+        goal_meeting = supabase.get_meeting_by_name(goal_meeting_name)
+        
+        current_goal = ""
+        goal_meeting_id = None
+        
+        if not goal_meeting:
+            gm = supabase.create_meeting({
+                "meeting_name": goal_meeting_name,
+                "user_id": user_uuid,
+                "channel_id": "goal_tracker",
+                "run_id": f"goal_{user_uuid}",
+                "status": "ingested"
+            })
+            goal_meeting_id = gm["id"]
+        else:
+            goal_meeting_id = goal_meeting["id"]
+            res = supabase.client.table("chunks") \
+                .select("chunk_text") \
+                .eq("meeting_id", goal_meeting_id) \
+                .limit(1).execute()
+            if res.data:
+                current_goal = res.data[0]["chunk_text"]
+                
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        
+        prompt = f"""
+You are the master project tracker. 
+You must update the overall PROJECT GOAL document based on a new meeting.
+
+CURRENT GOAL:
+{current_goal if current_goal else "No previous goal. This is the first meeting."}
+
+NEW MEETING TRANSCRIPT:
+{new_meeting_text[:8000]}
+
+TASK:
+Write the updated PROJECT GOAL. Keep it concise, authoritative, and strictly focus on the overarching goals, major technical decisions, and current scope. 
+If the new meeting reveals a pivot or new requirement, update the goal accordingly.
+Do NOT just summarize the meeting. Update the GOAL state. Max 250 words.
+"""
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt.strip()}],
+            temperature=0.2,
+            max_tokens=300
+        )
+        
+        new_goal = response.choices[0].message.content.strip()
+        emb = get_embedding(new_goal)
+        
+        supabase.client.table("chunks").upsert([{
+            "meeting_id": goal_meeting_id,
+            "chunk_index": 0,
+            "chunk_text": new_goal,
+            "embedding": emb,
+            "source": "transcript"
+        }], on_conflict="meeting_id,chunk_index").execute()
+        
+        print(f"[GOAL TRACKER] Dynamic goal updated successfully. Length: {len(new_goal)} chars")
+        
+    except Exception as e:
+        print(f"[GOAL TRACKER] Failed to update dynamic goal: {e}")
+
+# ===================================================
 # CORE INGEST LOGIC
 # ===================================================
 
@@ -161,6 +234,10 @@ def ingest_single_file(file_path: str, username: str, run_id: str):
     if chunk_rows:
         supabase.insert_chunks(chunk_rows)
         print(f"Inserted {len(chunk_rows)} keyframe chunks.")
+
+    # ------ DYNAMIC GOAL UPDATE ------
+    print("Updating dynamic project goal...")
+    update_dynamic_project_goal(supabase, user_uuid, text)
 
     print("Single file ingestion completed.")
 

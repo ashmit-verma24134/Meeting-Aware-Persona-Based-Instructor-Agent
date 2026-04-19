@@ -19,7 +19,7 @@ load_dotenv()
 VERCEL_URL = os.getenv("VERCEL_URL", "https://your-app.vercel.app")
 CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
 BYPASS_TOKEN = os.getenv("VERCEL_AUTOMATION_BYPASS_SECRET")  # add this to .env
-INTERVAL_MINUTES = 5  # change to 60 or 120 for production
+INTERVAL_MINUTES = 1  # change to 60 or 120 for production
 
 def trigger_heartbeat():
     try:

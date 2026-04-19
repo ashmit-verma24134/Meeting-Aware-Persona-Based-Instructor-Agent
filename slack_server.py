@@ -166,6 +166,10 @@ def sync_slack_and_reply(channel_id, response_url):
 
 @app.post("/slack/events")
 async def slack_events(request: Request, background_tasks: BackgroundTasks):
+    # Ignore Slack retries to prevent double responses on slow processing
+    if request.headers.get("x-slack-retry-num"):
+        return {"status": "ok"}
+
     content_type = request.headers.get("content-type", "")
 
 
@@ -643,7 +647,9 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
 # SLACK SEND
 # ───────────────────────────────────────
 
-def send_message(channel_id: str, text: str):
+d decisions, questions asked,
+answers given, what was built, what failed, what was planned.
+ef send_message(channel_id: str, text: str):
     slack_client.chat_postMessage(channel=channel_id, text=text)
 
 @app.get("/")
@@ -660,9 +666,7 @@ You are summarizing recent project activity.
 
 Summarize everything into the most important points.
 Preserve ALL specific details — credentials, run IDs,
-file names, commands, errors, decisions, questions asked,
-answers given, what was built, what failed, what was planned.
-
+file names, commands, errors,
 The summary must be accurate and dense — nothing important should be lost.
 Output as bullet points. Max 300 words.
 
@@ -678,16 +682,10 @@ PROJECT CONTEXT:
 {context}
 
 YOUR TASK:
-1. STATUS (1 sentence): What has the student actually shipped or completed recently?
-   If nothing concrete — say so bluntly.
-
-2. GAP (1 sentence): What was supposed to be done but isn't? Be direct.
-
-3. NEXT STEPS (2-3 bullet points): What MUST be done today. No fluff.
-   Use exact names — files, functions, features — from the context.
-
-4. DEADLINE QUESTION (1 sentence): Ask them when exactly it will be done.
-   Not "are you working on it" — ask for a specific time/date commitment.
+1. GOAL PROGRESS (1 sentence): Based on the Current Project Goal, has the student moved significantly closer to it? Be highly critical.
+2. STATUS (1 sentence): What has the student actually shipped or completed recently? If nothing concrete — say so bluntly.
+3. NEXT STEPS (1-2 bullet points): What MUST be done today to finish the current goal. No fluff. Use exact names — files, functions, features — from the context.
+4. DEADLINE QUESTION (1 sentence): Explicitly ask them how close they are to reaching the current goal, and when it will be done.
 
 RULES:
 - Address student as "you" directly, no softening
@@ -696,8 +694,8 @@ RULES:
 - NEVER mention Slack, chunks, embeddings, or any system internals
 - NEVER praise unless something was genuinely shipped
 - If nothing happened recently, say exactly:
-  "No activity detected. What is blocking you and when will it be resolved?"
-- Max 120 words. Every word must earn its place.
+  "No activity detected. Are you abandoning the active project goal? What is blocking you and when will it be resolved?"
+- Max 150 words. Every word must earn its place.
 """.strip()
 
 
@@ -809,6 +807,29 @@ def run_heartbeat(channel_id: str):
     except Exception as e:
         print(f"[HEARTBEAT] Transcript fetch failed: {e}", flush=True)
 
+    # ── 5b. Fetch Evolving Project Goal ──
+    goal_text = ""
+    try:
+        goal_meeting_name = f"goal_{user_id}"
+        goal_meeting_res = supabase.client.table("meetings") \
+            .select("id") \
+            .eq("meeting_name", goal_meeting_name) \
+            .limit(1) \
+            .execute()
+        
+        if goal_meeting_res.data:
+            goal_m = goal_meeting_res.data[0]
+            goal_chunks = supabase.client.table("chunks") \
+                .select("chunk_text") \
+                .eq("meeting_id", goal_m["id"]) \
+                .limit(1) \
+                .execute()
+            
+            if goal_chunks.data:
+                goal_text = goal_chunks.data[0].get("chunk_text", "")
+    except Exception as e:
+        print(f"[HEARTBEAT] Goal fetch failed: {e}", flush=True)
+
     # ── 6. Combine ──
 
     print("\n" + "="*50, flush=True)
@@ -816,9 +837,12 @@ def run_heartbeat(channel_id: str):
     print(f"✅ Slack Chunks Fetched: {summary_slack_chunks_count} (spanning 2 dates max)", flush=True)
     print(f"✅ Transcript Meetings Included: {summary_transcript_metrics}", flush=True)
     print(f"✅ Chat Turns Fetched: {summary_chat_turns}", flush=True)
+    print(f"✅ Goal Extracted: {'Yes' if goal_text else 'No'}", flush=True)
     print("="*50 + "\n", flush=True)
 
     raw_parts = []
+    if goal_text:
+        raw_parts.append(f"=== CURRENT PROJECT GOAL ===\n{goal_text}")
     if slack_chunks_text:
         raw_parts.append(f"=== RECENT SLACK ACTIVITY ===\n{slack_chunks_text}")
     if chat_turns_text:

@@ -61,12 +61,15 @@ def chunk_by_keyframe(text: str) -> list[dict]:
 
 
 # ===================================================
-# DYNAMIC GOAL EVOLUTION — CUMULATIVE VERSION
+# DYNAMIC GOAL EVOLUTION
+#
+# Called ONLY from ingest_slack_to_supabase.py (on /sync_slack).
+# NOT called on meeting ingest — goal reflects Slack activity, not raw transcripts.
 #
 # How it works:
-# 1. Fetches ALL past transcript meeting chunks for this user (not just latest)
-# 2. Takes a sample from each meeting (first 5 chunks = ~context window friendly)
-# 3. Passes: [current goal] + [all past meetings summary] + [new meeting text]
+# 1. Fetches ALL past transcript meeting chunks for this user
+# 2. Takes a sample from each meeting (first 5 chunks)
+# 3. Passes: [current goal] + [all past meetings] + [recent slack text]
 # 4. LLM rebuilds the goal intelligently from full project history
 # 5. Upserts back into the goal_{user_uuid} chunk
 # ===================================================
@@ -103,8 +106,6 @@ def update_dynamic_project_goal(supabase: SupabaseService, user_uuid: str, new_m
         print(f"[GOAL TRACKER] Current goal length: {len(current_goal)} chars")
 
         # ── Fetch ALL past transcript meetings for this user ──
-        # We pull up to 10 past meetings, take first 5 chunks each
-        # This gives the LLM the full project arc, not just one meeting
         all_past_meetings_text = ""
         try:
             all_meetings_res = supabase.client.table("meetings") \
@@ -119,7 +120,6 @@ def update_dynamic_project_goal(supabase: SupabaseService, user_uuid: str, new_m
             meeting_parts = []
             if all_meetings_res.data:
                 for m in all_meetings_res.data:
-                    # Take first 5 chunks per meeting (early chunks = most context-rich)
                     chunks_res = supabase.client.table("chunks") \
                         .select("chunk_text, chunk_index") \
                         .eq("meeting_id", m["id"]) \
@@ -133,7 +133,7 @@ def update_dynamic_project_goal(supabase: SupabaseService, user_uuid: str, new_m
                             c["chunk_text"] for c in chunks_res.data if c.get("chunk_text")
                         )
                         meeting_name = m.get("meeting_name", "Unknown")
-                        meeting_date = (m.get("created_at") or "")[:10]  # YYYY-MM-DD
+                        meeting_date = (m.get("created_at") or "")[:10]
                         meeting_parts.append(
                             f"[Meeting: {meeting_name} | Date: {meeting_date}]\n{meeting_chunk_text}"
                         )
@@ -145,13 +145,11 @@ def update_dynamic_project_goal(supabase: SupabaseService, user_uuid: str, new_m
         except Exception as e:
             print(f"[GOAL TRACKER] Past meetings fetch failed (continuing with new text only): {e}")
 
-        # ── Build the prompt with full history ──
+        # ── Build the prompt ──
         groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-        # If context is too large, trim past meetings to avoid token overflow
         combined_history = all_past_meetings_text
         if len(combined_history.split()) > 6000:
-            # Take first 6000 words — covers most project arcs
             combined_history = " ".join(combined_history.split()[:6000]) + "\n[...earlier meetings truncated...]"
 
         prompt = f"""
@@ -172,7 +170,7 @@ ALL PAST MEETING CONTENT (full project history, oldest first):
 
 ---
 
-NEWEST MEETING (just ingested, most recent):
+RECENT SLACK ACTIVITY (latest team communication):
 {new_meeting_text[:4000]}
 
 ---
@@ -186,7 +184,7 @@ Write the updated PROJECT GOAL document. It must:
 5. Be written as a living document — authoritative, present-tense, dense
 6. Max 300 words. Every word earns its place.
 
-DO NOT just summarize the latest meeting.
+DO NOT just summarize the latest Slack messages.
 DO NOT repeat things already noted — evolve and update the goal state.
 Write as if you are the project's single source of truth.
 """.strip()
@@ -212,7 +210,7 @@ Write as if you are the project's single source of truth.
             "source": "transcript"
         }], on_conflict="meeting_id,chunk_index").execute()
 
-        print(f"[GOAL TRACKER] Goal updated successfully from {len((all_past_meetings_text or '').split())} words of history.")
+        print(f"[GOAL TRACKER] Goal updated successfully.")
 
     except Exception as e:
         print(f"[GOAL TRACKER] Failed to update dynamic goal: {e}")
@@ -272,9 +270,7 @@ def ingest_single_file(file_path: str, username: str, run_id: str):
     # ── Chunks ──
     if supabase.chunks_exist(meeting_id):
         print("Chunks already exist. Skipping embedding.")
-        # Still update goal even if chunks exist — new meeting was ingested
-        print("Updating dynamic project goal (chunks existed)...")
-        update_dynamic_project_goal(supabase, user_uuid, text)
+        # Goal is NOT updated here — only /sync_slack updates the goal
         return
 
     keyframe_chunks = chunk_by_keyframe(text)
@@ -299,10 +295,7 @@ def ingest_single_file(file_path: str, username: str, run_id: str):
         supabase.insert_chunks(chunk_rows)
         print(f"Inserted {len(chunk_rows)} keyframe chunks.")
 
-    # ── Goal update AFTER chunks are inserted so this meeting's chunks are visible ──
-    print("Updating dynamic project goal from full history...")
-    update_dynamic_project_goal(supabase, user_uuid, text)
-
+    # Goal is NOT updated here — only /sync_slack updates the goal
     print("Single file ingestion completed.")
 
 
@@ -317,7 +310,7 @@ if __name__ == "__main__":
     files = [f for f in os.listdir(DATA_DIR) if f.endswith(".txt")]
     print(f"Found {len(files)} meeting files")
 
-    for file in sorted(files):  # sorted = chronological order matters for goal
+    for file in sorted(files):
         run_id = os.path.splitext(file)[0]
         ingest_single_file(
             file_path=os.path.join(DATA_DIR, file),

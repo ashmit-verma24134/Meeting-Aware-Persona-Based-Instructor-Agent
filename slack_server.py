@@ -712,13 +712,7 @@ def run_heartbeat(channel_id: str):
     print(f"[HEARTBEAT] User found: {user_id}")
 
     # ── 1b. Auto-sync Slack history before generating check-in ──
-    # This ensures we always have the freshest data from Slack
-    try:
-        print(f"[HEARTBEAT] Auto-syncing Slack history for channel {channel_id}...")
-        ingest_slack_history(channel_id=channel_id, limit=500)
-        print(f"[HEARTBEAT] Slack sync complete.")
-    except Exception as e:
-        print(f"[HEARTBEAT] Slack auto-sync failed (continuing): {e}")
+    
 
     # ── 2. Get slack meeting ──
     meeting_name = f"slack_{channel_id}"

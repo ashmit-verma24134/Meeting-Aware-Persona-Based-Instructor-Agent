@@ -647,9 +647,7 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
 # SLACK SEND
 # ───────────────────────────────────────
 
-d decisions, questions asked,
-answers given, what was built, what failed, what was planned.
-ef send_message(channel_id: str, text: str):
+def send_message(channel_id: str, text: str):
     slack_client.chat_postMessage(channel=channel_id, text=text)
 
 @app.get("/")

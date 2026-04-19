@@ -87,7 +87,7 @@ class SupabaseService:
         meetings = []
         if result.data:
             for m in result.data:
-                if not m["meeting_name"].startswith("slack_"):
+                if not m["meeting_name"].startswith("slack_") and not m["meeting_name"].startswith("goal_"):
                     meetings.append(m)
                 if len(meetings) == limit:
                     break
@@ -164,13 +164,13 @@ class SupabaseService:
         """Fetch adjacent chunks (+/- window) for a given set of matched chunk indices."""
         if not chunk_indices:
             return []
-            
+
         all_needed = set()
         for idx in chunk_indices:
             for j in range(idx - window, idx + window + 1):
                 if j >= 0:
                     all_needed.add(j)
-                    
+
         response = (
             self.client
             .table("chunks")
@@ -179,7 +179,6 @@ class SupabaseService:
             .in_("chunk_index", list(all_needed))
             .execute()
         )
-        # Format similarly to how chunks are expected down the line
         clean_chunks = []
         for row in (response.data or []):
             if isinstance(row.get("chunk_index"), int) and isinstance(row.get("chunk_text"), str):
@@ -187,7 +186,7 @@ class SupabaseService:
                     "meeting_id": row["meeting_id"],
                     "chunk_index": row["chunk_index"],
                     "text": row["chunk_text"],
-                    "similarity": 0.0,  # Neighboring chunks start with base low similarity
+                    "similarity": 0.0,
                     "source": row.get("source", "transcript"),
                 })
         return clean_chunks
@@ -224,11 +223,6 @@ class SupabaseService:
         user_id: str,
         match_count: int = 20
     ) -> List[Dict[str, Any]]:
-        """
-        BM25 full-text keyword search using PostgreSQL tsvector.
-        Catches exact keyword matches that vector search misses
-        (e.g. OCR typos, rare named entities, exact phrases).
-        """
         try:
             response = self.client.rpc(
                 "match_chunks_bm25",
@@ -353,8 +347,12 @@ class SupabaseService:
         self,
         session_id: str,
         limit: int = 20
-    ) -> List[str]:
-
+    ) -> List[Dict]:
+        """
+        Returns list of {"question": str, "answer": str} dicts in chronological order.
+        FIX: Previously returned List[str] which broke query_understanding_agent and
+        chat_answer_node context building.
+        """
         response = (
             self.client.table("chat_turns")
             .select("question, answer")
@@ -366,21 +364,23 @@ class SupabaseService:
 
         rows = response.data or []
 
-        lines = []
-        for r in rows:
-            if r.get("question"):
-                lines.append(f"User: {r['question']}")
-            if r.get("answer"):
-                lines.append(f"AI: {r['answer']}")
-
-        return lines
+        return [
+            {
+                "question": r.get("question", ""),
+                "answer": r.get("answer", "")
+            }
+            for r in rows
+        ]
 
     def get_recent_chat_turns_by_user(
         self,
         user_id: str,
         limit: int = 20
     ) -> List[str]:
-
+        """
+        Returns flat list of strings for the heartbeat context.
+        Format: ["User: q", "AI: a", ...]
+        """
         response = (
             self.client.table("chat_turns")
             .select("question, answer")
@@ -391,7 +391,7 @@ class SupabaseService:
         )
 
         rows = response.data or []
-        rows = list(reversed(rows)) # Reverse to put it back into chronological order
+        rows = list(reversed(rows))  # Back to chronological order
 
         lines = []
         for r in rows:
@@ -402,16 +402,17 @@ class SupabaseService:
 
         return lines
 
-        return lines
-
     def append_live_chat_to_slack_chunk(self, user_id: str, question: str, answer: str):
         from services.embedding_api import get_embedding
         from datetime import datetime
-        
-        meeting_name = f"slack_{user_id}"
+
+        # Use channel_id-based meeting name (channel_id is stored as username in users table)
+        user_resp = self.client.table("users").select("username").eq("id", user_id).limit(1).execute()
+        channel_id = user_resp.data[0]["username"] if user_resp.data else user_id
+
+        meeting_name = f"slack_{channel_id}"
         meeting = self.get_meeting_by_name(meeting_name)
         if not meeting:
-            # Create synthetic slack meeting if it doesn't exist yet
             insert_resp = self.client.table("meetings").insert({
                 "meeting_name": meeting_name,
                 "user_id": user_id,
@@ -424,8 +425,7 @@ class SupabaseService:
         meeting_id = meeting["id"]
         today_date = datetime.now().strftime("%Y-%m-%d")
         new_text_to_append = f"[User]: {question}\n[MMA AGENT]: {answer}\n"
-        
-        # Get the most recent slack chunk for this meeting
+
         recent_chunk_resp = self.client.table("chunks") \
             .select("*") \
             .eq("meeting_id", meeting_id) \
@@ -433,22 +433,20 @@ class SupabaseService:
             .order("chunk_index", desc=True) \
             .limit(1) \
             .execute()
-            
+
         recent_chunk = recent_chunk_resp.data[0] if recent_chunk_resp.data else None
-        
+
         needs_new_chunk = True
-        
+
         if recent_chunk and recent_chunk.get("chunk_text"):
             text = recent_chunk["chunk_text"]
-            # Check if it was created/tagged for today
             if f"--- {today_date} ---" in text:
                 current_words = len(text.split())
                 new_words = len(new_text_to_append.split())
                 if current_words + new_words <= 300:
                     needs_new_chunk = False
                     updated_text = text + "\n" + new_text_to_append
-                    
-                    # Embed and update
+
                     try:
                         new_embedding = get_embedding(updated_text)
                         self.client.table("chunks").update({
@@ -461,11 +459,10 @@ class SupabaseService:
                     return
 
         if needs_new_chunk:
-            # Create a completely new chunk
             next_idx = 0
             if recent_chunk:
                 next_idx = recent_chunk.get("chunk_index", -1) + 1
-            
+
             new_chunk_text = f"--- {today_date} ---\n\n{new_text_to_append}"
             try:
                 new_embedding = get_embedding(new_chunk_text)
@@ -479,6 +476,31 @@ class SupabaseService:
                 print("[AUTO-EMBED] Created new live chat chunk.")
             except Exception as e:
                 print(f"[AUTO-EMBED] Failed to insert new chunk: {e}")
+
+    # =========================================================
+    # EVENT DEDUPLICATION (Serverless-safe)
+    # Requires table: CREATE TABLE slack_events (event_id TEXT PRIMARY KEY, created_at TIMESTAMPTZ DEFAULT NOW());
+    # =========================================================
+
+    def is_event_processed(self, event_id: str) -> bool:
+        """
+        Check + mark an event as processed atomically.
+        Returns True if already processed (duplicate), False if new (should process).
+        Uses INSERT with ON CONFLICT to make it atomic and serverless-safe.
+        Falls back gracefully if table doesn't exist.
+        """
+        try:
+            self.client.table("slack_events").insert(
+                {"event_id": event_id}
+            ).execute()
+            return False  # Successfully inserted → new event, process it
+        except Exception as e:
+            err_str = str(e)
+            if "duplicate" in err_str.lower() or "unique" in err_str.lower() or "23505" in err_str:
+                return True  # Duplicate key → already processed
+            # Table doesn't exist or other error → allow processing (fail open)
+            print(f"[EVENT DEDUP] Fallback (table missing?): {e}")
+            return False
 
 
 # =========================================================

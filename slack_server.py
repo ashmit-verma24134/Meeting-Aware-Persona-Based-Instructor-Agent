@@ -44,14 +44,15 @@ hf_service = HFAPIService()
 
 SAFE_ABSTAIN = "This was not clearly discussed in the meeting."
 
-SLACK_SESSIONS = {}  # channel_id → session info]
+SLACK_SESSIONS = {}  # channel_id → session info
+# NOTE: PROCESSED_EVENTS is kept as a local cache for within-process dedup,
+# but the primary dedup is now Supabase-based (see is_event_processed).
 PROCESSED_EVENTS = set()
 EVENT_LOCK = Lock()
 
 STAGE_ACTIVE = "ACTIVE"
 
 # ── Heartbeat cooldown tracker (in-memory) ──
-# Prevents duplicate messages if cron + manual curl fire at same time
 _LAST_HEARTBEAT = {}  # channel_id → datetime
 HEARTBEAT_COOLDOWN_MINUTES = 4
 
@@ -146,6 +147,7 @@ def start_and_reply(channel_id, video_url, response_url):
             "response_type": "in_channel",
             "text": f"Failed: {str(e)}"
         })
+
 # ───────────────────────────────────────
 # SLACK EVENTS ENDPOINT
 # ───────────────────────────────────────
@@ -166,12 +168,11 @@ def sync_slack_and_reply(channel_id, response_url):
 
 @app.post("/slack/events")
 async def slack_events(request: Request, background_tasks: BackgroundTasks):
-    # Ignore Slack retries to prevent double responses on slow processing
+    # ── Ignore Slack retries to prevent double responses on slow processing ──
     if request.headers.get("x-slack-retry-num"):
         return {"status": "ok"}
 
     content_type = request.headers.get("content-type", "")
-
 
     # ===============================
     # 1️⃣ EVENTS API (JSON)
@@ -200,57 +201,58 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
 
         # ---------- /new_meeting ----------
         if command == "/new_meeting":
-                    if not text:
-                        return {"text": "Please provide a video URL."}
+            if not text:
+                return {"text": "Please provide a video URL."}
 
-                    video_url = text.strip()
-                    response_url = form.get("response_url")
+            video_url = text.strip()
+            response_url = form.get("response_url")
 
-                    background_tasks.add_task(
-                        start_and_reply,
-                        channel_id, video_url, response_url
-                    )
+            background_tasks.add_task(
+                start_and_reply,
+                channel_id, video_url, response_url
+            )
 
-                    return {
-                        "response_type": "in_channel",
-                        "text": "Pipeline starting... Run ID will appear shortly."
-                    }
+            return {
+                "response_type": "in_channel",
+                "text": "Pipeline starting... Run ID will appear shortly."
+            }
 
         # ---------- /ingest ----------
-# ---------- /ingest ----------
         if command == "/ingest":
-                    run_id = (form.get("text") or "").replace("`", "").strip()
+            run_id = (form.get("text") or "").replace("`", "").strip()
 
-                    if not run_id:
-                        return {
-                            "response_type": "in_channel",
-                            "text": "Please provide a run_id.\nUsage: `/ingest <run_id>`"
-                        }
+            if not run_id:
+                return {
+                    "response_type": "in_channel",
+                    "text": "Please provide a run_id.\nUsage: `/ingest <run_id>`"
+                }
 
-                    response_url = form.get("response_url")
-                    background_tasks.add_task(ingest_and_reply, channel_id, run_id, response_url)
+            response_url = form.get("response_url")
+            background_tasks.add_task(ingest_and_reply, channel_id, run_id, response_url)
 
-                    return {
-                        "response_type": "in_channel",
-                        "text": f"Starting ingestion for `{run_id}`..."
-                    }
+            return {
+                "response_type": "in_channel",
+                "text": f"Starting ingestion for `{run_id}`..."
+            }
+
         # ---------- /state ----------
         if command == "/state":
-                    run_id = (text or "").replace("`", "").strip()
+            run_id = (text or "").replace("`", "").strip()
 
-                    if not run_id:
-                        return {
-                            "response_type": "in_channel",
-                            "text": "Please provide a run_id."
-                        }
+            if not run_id:
+                return {
+                    "response_type": "in_channel",
+                    "text": "Please provide a run_id."
+                }
 
-                    response_url = form.get("response_url")
-                    background_tasks.add_task(check_state_and_reply, run_id, response_url)
+            response_url = form.get("response_url")
+            background_tasks.add_task(check_state_and_reply, run_id, response_url)
 
-                    return {
-                        "response_type": "in_channel",
-                        "text": f"Checking status for `{run_id}`..."
-                    }
+            return {
+                "response_type": "in_channel",
+                "text": f"Checking status for `{run_id}`..."
+            }
+
         # ---------- /sync_slack ----------
         if command == "/sync_slack":
             response_url = form.get("response_url")
@@ -262,9 +264,14 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
                 "response_type": "in_channel",
                 "text": "Syncing Slack history for this channel..."
             }
+
+    return {"status": "ok"}
+
+
 # ───────────────────────────────────────
 # EVENT PROCESSOR
 # ───────────────────────────────────────
+
 def check_status_background(channel_id, run_id):
     try:
         supabase = get_supabase_client()
@@ -298,7 +305,6 @@ def ingest_background(channel_id, run_id):
     try:
         supabase = get_supabase_client()
 
-        # 1️⃣ Fetch HF result
         result = hf_service.fetch_result(run_id)
 
         if result["state"] != "completed":
@@ -310,7 +316,6 @@ def ingest_background(channel_id, run_id):
 
         data = result["data"]
 
-        # 🔥 SAFELY EXTRACT KEYFRAMES
         if "keyframes" in data:
             keyframes = data["keyframes"]
         elif "output" in data and "keyframes" in data["output"]:
@@ -329,13 +334,10 @@ def ingest_background(channel_id, run_id):
             )
             return
 
-        # 2️⃣ Extract ONLY combined_summary
         lines = []
-
         for frame in keyframes:
             summary = frame.get("combined_summary")
             timestamp = frame.get("timestamp")
-
             if summary:
                 lines.append(f"[{timestamp}] {summary}")
 
@@ -347,22 +349,18 @@ def ingest_background(channel_id, run_id):
             return
 
         full_text = "\n\n".join(lines)
-
-        # 3️⃣ Save transcript file
         meeting_name = f"meeting_{run_id}"
         file_path = f"{meeting_name}.txt"
 
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(full_text)
 
-        # 4️⃣Ingest into Supabase (CORRECT CALL)
         ingest_single_file(
             file_path=file_path,
-            username=channel_id,   # Slack channel = user
-            run_id=run_id          # Unique meeting id
+            username=channel_id,
+            run_id=run_id
         )
 
-        # 5️⃣ Update meeting status
         supabase.update_meeting_status(run_id, "ingested")
 
         slack_client.chat_postMessage(
@@ -375,13 +373,12 @@ def ingest_background(channel_id, run_id):
             channel=channel_id,
             text=f"Ingestion failed:\n{str(e)}"
         )
-        
+
 def process_event(event: dict):
     if not event:
         return
 
-    # Ignore bot messages
-    # Ignore bot messages and message edits/deletes
+    # ── Ignore bot messages and structural events ──
     if event.get("bot_id"):
         return
 
@@ -393,17 +390,27 @@ def process_event(event: dict):
     ]:
         return
 
-
-    event_id = event.get("event_ts")
+    event_id = event.get("event_ts") or event.get("client_msg_id")
     if not event_id:
         return
 
+    # ── LOCAL dedup (same process, handles fast duplicates) ──
     with EVENT_LOCK:
         if event_id in PROCESSED_EVENTS:
+            print(f"[DEDUP] Local: Skipping duplicate event {event_id}")
             return
         PROCESSED_EVENTS.add(event_id)
         if len(PROCESSED_EVENTS) > 10_000:
             PROCESSED_EVENTS.clear()
+
+    # ── SUPABASE dedup (cross-process, handles serverless re-invocations) ──
+    try:
+        supabase = get_supabase_client()
+        if supabase.is_event_processed(event_id):
+            print(f"[DEDUP] Supabase: Skipping duplicate event {event_id}")
+            return
+    except Exception as e:
+        print(f"[DEDUP] Supabase check failed (continuing): {e}")
 
     event_type = event.get("type")
     if event_type not in ["message", "app_mention"]:
@@ -413,24 +420,24 @@ def process_event(event: dict):
     channel_id = event.get("channel")
     text = (event.get("text") or "").strip()
 
-    # Ignore blank messages
     if not text:
         return
 
-    # KEY FIX: When bot is @mentioned in a channel, Slack sends BOTH
-    # a 'message' event AND an 'app_mention' event. Skip the 'message'
-    # type if it contains a mention — let app_mention handle it exclusively.
-    if event_type == "message" and "<@" in text and event.get("channel_type") == "channel":
+    # ── FIX: Skip message events with bot @mentions in ANY channel type ──
+    # Slack sends both 'message' AND 'app_mention' for @mentions in channels.
+    # We process only 'app_mention', so skip the duplicate 'message' event.
+    channel_type = event.get("channel_type", "")
+    if event_type == "message" and "<@" in text and channel_type in ["channel", "group", "mpim"]:
         return
 
-    # Remove bot mention formatting
+    # ── Remove bot mention formatting ──
     if event_type == "app_mention":
         text = re.sub(r"<@[^>]+>", "", text).strip()
         if text == "":
             return
 
-    # In public channels → only respond if bot is mentioned
-    if event_type == "message" and event.get("channel_type") == "channel":
+    # ── In public channels → only respond if bot is mentioned ──
+    if event_type == "message" and channel_type == "channel":
         if "<@" not in (event.get("text") or ""):
             return
 
@@ -446,7 +453,6 @@ def start_meeting_background(channel_id, video_url):
 
         run_id = hf_service.start_pipeline(video_url)
 
-        # Get user
         user = supabase.get_user_by_username(channel_id)
         if not user:
             user = supabase.create_user(channel_id)
@@ -455,7 +461,6 @@ def start_meeting_background(channel_id, video_url):
 
         meeting_name = f"meeting_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
-        # Store in DB
         supabase.create_meeting({
             "meeting_name": meeting_name,
             "user_id": user_id,
@@ -466,14 +471,16 @@ def start_meeting_background(channel_id, video_url):
 
         slack_client.chat_postMessage(
             channel=channel_id,
-            text=f" Meeting started!\nRun ID: `{run_id}`\nUse `/state` to check progress."
+            text=f"Meeting started! Run ID: `{run_id}`"
         )
 
     except Exception as e:
         slack_client.chat_postMessage(
             channel=channel_id,
-            text=f"Failed to start meeting:\n{str(e)}"
+            text=f"Failed to start: {str(e)}"
         )
+
+
 # ───────────────────────────────────────
 # USER HANDLER
 # ───────────────────────────────────────
@@ -482,11 +489,8 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
 
     supabase = get_supabase_client()
 
-    # ----------------------------------------
-    # Ensure Channel-Based User Exists
-    # ----------------------------------------
+    # ── Ensure channel-based user exists ──
     user = supabase.get_user_by_username(channel_id)
-
     if not user:
         user = supabase.create_user(channel_id)
 
@@ -494,13 +498,7 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
 
     session = SLACK_SESSIONS.get(channel_id)
 
-
-    # ----------------------------------------
-    # CREATE SESSION IF NOT EXISTS (Per Channel)
-    # ----------------------------------------
-# ----------------------------------------
-# CREATE SESSION IF NOT EXISTS (Per Channel)
-# ----------------------------------------
+    # ── Create session if not exists ──
     if session is None:
         sid = f"{channel_id}_slack_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
         supabase.create_session(sid, user_id)
@@ -511,19 +509,13 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
         }
         SLACK_SESSIONS[channel_id] = session
 
-
-
-    # ----------------------------------------
-    # EXIT
-    # ----------------------------------------
+    # ── EXIT ──
     if text.lower().strip() == "exit":
         del SLACK_SESSIONS[channel_id]
         send_message(channel_id, "Session ended")
         return
 
-    # ----------------------------------------
-    # NEW MEETING
-    # ----------------------------------------
+    # ── NEW MEETING ──
     if text.startswith("new_meeting"):
 
         parts = text.split()
@@ -546,9 +538,7 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
         )
         return
 
-    # ----------------------------------------
-    # STATUS
-    # ----------------------------------------
+    # ── STATUS ──
     if text.startswith("status"):
 
         run_id = session.get("current_run_id")
@@ -561,9 +551,7 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
         send_message(channel_id, f"Status: {state}")
         return
 
-    # ----------------------------------------
-    # PROCESS
-    # ----------------------------------------
+    # ── PROCESS ──
     if text.startswith("process"):
 
         run_id = session.get("current_run_id")
@@ -574,12 +562,10 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
 
         result = hf_service.fetch_result(run_id)
 
-        # CASE 1: Still Running
         if result["state"] == "running":
             send_message(channel_id, "Pipeline is still running...")
             return
 
-        # CASE 2: Completed
         if result["state"] == "completed":
             send_message(channel_id, "Output received. Processing transcript...")
 
@@ -590,23 +576,21 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
             )
 
             ingest_single_file(
-            file_path=txt_path,
-            username=channel_id,
-            run_id=run_id
-        )
+                file_path=txt_path,
+                username=channel_id,
+                run_id=run_id
+            )
 
-            send_message(channel_id, " Meeting processed and stored successfully.")
+            send_message(channel_id, "Meeting processed and stored successfully.")
             return
 
         send_message(channel_id, "Unexpected pipeline response.")
         return
 
-    # ----------------------------------------
-    # NORMAL QUESTION FLOW
-    # ----------------------------------------
+    # ── NORMAL QUESTION FLOW ──
     try:
         initial_state = {
-            "user_id": session["user_id"],   #  Channel-based user
+            "user_id": session["user_id"],
             "session_id": session["session_id"],
             "question": text,
             "decision": None,
@@ -633,7 +617,7 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
         if not answer or answer.strip() == SAFE_ABSTAIN:
             send_message(
                 channel_id,
-                "Sorry  I couldn’t find a clear answer in the meeting transcript."
+                "Sorry  I couldn't find a clear answer in the meeting transcript."
             )
             return
 
@@ -644,8 +628,10 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
         traceback.print_exc()
         send_message(
             channel_id,
-            " Something went wrong while processing your question."
+            "Something went wrong while processing your question."
         )
+
+
 # ───────────────────────────────────────
 # SLACK SEND
 # ───────────────────────────────────────
@@ -657,9 +643,9 @@ def send_message(channel_id: str, text: str):
 def health():
     return {"status": "meeting-agent-running"}
 
+
 # ───────────────────────────────────────
 # HEARTBEAT — Proactive Supervisor
-# Called by cron job every X minutes
 # ───────────────────────────────────────
 
 HEARTBEAT_COMPRESSION_PROMPT = """
@@ -667,7 +653,7 @@ You are summarizing recent project activity.
 
 Summarize everything into the most important points.
 Preserve ALL specific details — credentials, run IDs,
-file names, commands, errors,
+file names, commands, errors.
 The summary must be accurate and dense — nothing important should be lost.
 Output as bullet points. Max 300 words.
 
@@ -683,19 +669,19 @@ PROJECT CONTEXT:
 {context}
 
 YOUR TASK:
-1. GOAL PROGRESS (1 sentence): Based on the Current Project Goal, has the student moved significantly closer to it? Be highly critical.
-2. STATUS (1 sentence): What has the student actually shipped or completed recently? If nothing concrete — say so bluntly.
-3. NEXT STEPS (1-2 bullet points): What MUST be done today to finish the current goal. No fluff. Use exact names — files, functions, features — from the context.
-4. DEADLINE QUESTION (1 sentence): Explicitly ask them how close they are to reaching the current goal, and when it will be done.
+1. GOAL PROGRESS (1 sentence): Look at the CURRENT PROJECT GOAL. Compare it to what has actually been done recently (from Slack activity and latest meetings). Be highly critical — has the student actually moved closer to the goal, or just been busy without progress?
+2. STATUS (1 sentence): What concrete thing has the student shipped or completed? If nothing is done — say so bluntly.
+3. NEXT STEPS (1–2 bullet points): What MUST be done TODAY to advance toward the current goal. Name exact files, functions, or features from the context.
+4. GOAL PROXIMITY (1 sentence): Directly ask — "How close are you to completing [specific goal from context]? When exactly will it be done?"
 
 RULES:
-- Address student as "you" directly, no softening
+- Address student directly as "you". No softening.
 - Short sentences. No filler words.
-- NEVER say "based on the context" or "according to the transcript"
-- NEVER mention Slack, chunks, embeddings, or any system internals
-- NEVER praise unless something was genuinely shipped
-- If nothing happened recently, say exactly:
-  "No activity detected. Are you abandoning the active project goal? What is blocking you and when will it be resolved?"
+- NEVER say "based on the context" or "according to the transcript".
+- NEVER mention Slack, chunks, embeddings, or any system internals.
+- NEVER praise unless something was genuinely shipped.
+- If nothing new has happened since the last check-in, say:
+  "No new activity detected. Are you blocked on the current goal? What is stopping you and when will it be resolved?"
 - Max 150 words. Every word must earn its place.
 """.strip()
 
@@ -724,6 +710,15 @@ def run_heartbeat(channel_id: str):
     user_id = user["id"]
     print(f"[HEARTBEAT] User found: {user_id}")
 
+    # ── 1b. Auto-sync Slack history before generating check-in ──
+    # This ensures we always have the freshest data from Slack
+    try:
+        print(f"[HEARTBEAT] Auto-syncing Slack history for channel {channel_id}...")
+        ingest_slack_history(channel_id=channel_id, limit=500)
+        print(f"[HEARTBEAT] Slack sync complete.")
+    except Exception as e:
+        print(f"[HEARTBEAT] Slack auto-sync failed (continuing): {e}")
+
     # ── 2. Get slack meeting ──
     meeting_name = f"slack_{channel_id}"
     meeting = supabase.get_meeting_by_name(meeting_name)
@@ -744,10 +739,9 @@ def run_heartbeat(channel_id: str):
             print(f"[HEARTBEAT] Slack chunks fetched from DB: {len(result.data) if result.data else 0}", flush=True)
             if result.data:
                 collected_chunks = []
-                import re
                 date_pattern = re.compile(r'---\s*(\d{4}-\d{2}-\d{2})\s*---')
                 seen_dates = set()
-                
+
                 for c in result.data:
                     text = c.get("chunk_text", "")
                     if text:
@@ -758,8 +752,8 @@ def run_heartbeat(channel_id: str):
                             if len(seen_dates) > 2:
                                 break
                         collected_chunks.append(text)
-                        
-                chunks = list(reversed(collected_chunks)) # Re-chronologize
+
+                chunks = list(reversed(collected_chunks))
                 slack_chunks_text = "\n\n".join(chunks)
                 summary_slack_chunks_count = len(chunks)
                 print(f"[HEARTBEAT] Slack context preview: {slack_chunks_text[:50]}...", flush=True)
@@ -794,21 +788,24 @@ def run_heartbeat(channel_id: str):
                     .select("chunk_text") \
                     .eq("meeting_id", rm["id"]) \
                     .eq("source", "transcript") \
-                    .order("id", desc=True) \
-                    .limit(5) \
+                    .order("chunk_index", desc=False) \
+                    .limit(8) \
                     .execute()
-                
+
                 if transcript_result.data:
-                    chunks = list(reversed(transcript_result.data))
-                    meeting_text = "\n\n".join(c["chunk_text"] for c in chunks if c.get("chunk_text"))
+                    meeting_text = "\n\n".join(
+                        c["chunk_text"] for c in transcript_result.data if c.get("chunk_text")
+                    )
                     meeting_parts.append(f"[Meeting: {rm.get('meeting_name', 'Unknown')}]\n{meeting_text}")
-            
+
             transcript_text = "\n\n".join(meeting_parts)
             summary_transcript_metrics = len(meeting_parts)
     except Exception as e:
         print(f"[HEARTBEAT] Transcript fetch failed: {e}", flush=True)
 
     # ── 5b. Fetch Evolving Project Goal ──
+    # The goal is built from ALL past meetings and updated on each new meeting ingestion.
+    # It represents the accumulated understanding of the project's overall objective.
     goal_text = ""
     try:
         goal_meeting_name = f"goal_{user_id}"
@@ -817,7 +814,7 @@ def run_heartbeat(channel_id: str):
             .eq("meeting_name", goal_meeting_name) \
             .limit(1) \
             .execute()
-        
+
         if goal_meeting_res.data:
             goal_m = goal_meeting_res.data[0]
             goal_chunks = supabase.client.table("chunks") \
@@ -825,31 +822,33 @@ def run_heartbeat(channel_id: str):
                 .eq("meeting_id", goal_m["id"]) \
                 .limit(1) \
                 .execute()
-            
+
             if goal_chunks.data:
                 goal_text = goal_chunks.data[0].get("chunk_text", "")
+                print(f"[HEARTBEAT] Goal loaded: {goal_text[:80]}...", flush=True)
+        else:
+            print(f"[HEARTBEAT] No goal record found for user {user_id}", flush=True)
     except Exception as e:
         print(f"[HEARTBEAT] Goal fetch failed: {e}", flush=True)
 
     # ── 6. Combine ──
-
     print("\n" + "="*50, flush=True)
     print("🚀 HEARTBEAT FETCH SUMMARY 🚀", flush=True)
     print(f"✅ Slack Chunks Fetched: {summary_slack_chunks_count} (spanning 2 dates max)", flush=True)
     print(f"✅ Transcript Meetings Included: {summary_transcript_metrics}", flush=True)
     print(f"✅ Chat Turns Fetched: {summary_chat_turns}", flush=True)
-    print(f"✅ Goal Extracted: {'Yes' if goal_text else 'No'}", flush=True)
+    print(f"✅ Goal Extracted: {'Yes — ' + goal_text[:60] if goal_text else 'No'}", flush=True)
     print("="*50 + "\n", flush=True)
 
     raw_parts = []
     if goal_text:
         raw_parts.append(f"=== CURRENT PROJECT GOAL ===\n{goal_text}")
+    if transcript_text:
+        raw_parts.append(f"=== LATEST 2 MEETINGS ===\n{transcript_text}")
     if slack_chunks_text:
-        raw_parts.append(f"=== RECENT SLACK ACTIVITY ===\n{slack_chunks_text}")
+        raw_parts.append(f"=== RECENT SLACK ACTIVITY (last 2 dates) ===\n{slack_chunks_text}")
     if chat_turns_text:
         raw_parts.append(f"=== RECENT Q&A WITH BOT ===\n{chat_turns_text}")
-    if transcript_text:
-        raw_parts.append(f"=== LATEST MEETING ===\n{transcript_text}")
 
     if not raw_parts:
         print("[HEARTBEAT] No context found, posting default message.", flush=True)
@@ -894,10 +893,9 @@ def run_heartbeat(channel_id: str):
         return
 
     try:
-        # Use Block Kit to force Slack to render this as an isolated bubble every time
         slack_client.chat_postMessage(
             channel=channel_id,
-            text="Project Status Update", # Notification fallback text
+            text="Project Status Update",
             blocks=[
                 {
                     "type": "divider"
@@ -916,13 +914,15 @@ def run_heartbeat(channel_id: str):
         print(f"[HEARTBEAT] Slack post failed: {e}")
 
 
-
+# ───────────────────────────────────────
+# POST /heartbeat — manual trigger / internal calls
+# ───────────────────────────────────────
 @app.post("/heartbeat")
-async def heartbeat(request: Request, background_tasks: BackgroundTasks):
+async def heartbeat_post(request: Request, background_tasks: BackgroundTasks):
     """
     POST /heartbeat
     Body: { "channel_id": "C0123456789" }
-    Called by cron every 30 minutes (5 mins for testing).
+    Can be called manually or from heartbeat_cron.py.
     """
     try:
         body = await request.json()
@@ -934,3 +934,22 @@ async def heartbeat(request: Request, background_tasks: BackgroundTasks):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+
+# ───────────────────────────────────────
+# GET /heartbeat — called by Vercel cron
+# Vercel cron can only send GET requests with no body,
+# so we read channel_id from environment variable.
+# ───────────────────────────────────────
+@app.get("/heartbeat")
+async def heartbeat_get(background_tasks: BackgroundTasks):
+    """
+    GET /heartbeat
+    Called automatically by Vercel cron every 5 minutes.
+    Reads SLACK_CHANNEL_ID from environment — set this in your Vercel project settings.
+    """
+    channel_id = os.getenv("SLACK_CHANNEL_ID")
+    if not channel_id:
+        print("[HEARTBEAT GET] SLACK_CHANNEL_ID env var not set!")
+        return {"status": "error", "message": "SLACK_CHANNEL_ID env var not set"}
+    background_tasks.add_task(run_heartbeat, channel_id)
+    return {"status": "ok", "message": f"Heartbeat triggered for {channel_id}"}

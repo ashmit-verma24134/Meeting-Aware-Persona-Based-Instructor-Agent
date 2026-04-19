@@ -186,6 +186,7 @@ def meeting_summary_node(state: MeetingState):
                 .select("id") \
                 .eq("user_id", state.get("user_id")) \
                 .not_.like("meeting_name", "slack_%") \
+                .not_.like("meeting_name", "goal_%")  # ← ADD THIS
                 .order("created_at", desc=True) \
                 .limit(1) \
                 .execute()
@@ -235,6 +236,7 @@ def meeting_summary_node(state: MeetingState):
             .select("id") \
             .eq("user_id", state.get("user_id")) \
             .not_.like("meeting_name", "slack_%") \
+            .not_.like("meeting_name", "goal_%")  # ← ADD THIS
             .order("created_at", desc=True) \
             .limit(1) \
             .execute()

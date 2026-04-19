@@ -19,7 +19,6 @@ from dotenv import load_dotenv
 from services.slack_history_service import SlackHistoryService
 from services.supabase_service import SupabaseService
 from services.embedding_api import get_embedding
-from scripts.ingest_to_supabase import update_dynamic_project_goal
 
 load_dotenv()
 
@@ -123,6 +122,7 @@ def ingest_slack_history(channel_id: str, limit: int = 500):
         # update_dynamic_project_goal internally pulls ALL past meeting transcripts
         # so the LLM sees the full project arc — slack is just the "what's happening now" signal.
         print("[SLACK INGEST] Updating dynamic project goal from Slack activity...")
+        from scripts.ingest_to_supabase import update_dynamic_project_goal  # ← lazy import here
         recent_slack_text = "\n\n".join(c["text"] for c in small_chunks[-10:])
         update_dynamic_project_goal(supabase, user_uuid, recent_slack_text)
 

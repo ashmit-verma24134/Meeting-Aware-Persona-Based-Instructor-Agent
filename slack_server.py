@@ -412,30 +412,33 @@ def process_event(event: dict):
     slack_user_id = event.get("user")
     channel_id = event.get("channel")
     text = (event.get("text") or "").strip()
+
     # Ignore blank messages
     if not text:
         return
 
+    # KEY FIX: When bot is @mentioned in a channel, Slack sends BOTH
+    # a 'message' event AND an 'app_mention' event. Skip the 'message'
+    # type if it contains a mention — let app_mention handle it exclusively.
+    if event_type == "message" and "<@" in text and event.get("channel_type") == "channel":
+        return
 
     # Remove bot mention formatting
     if event_type == "app_mention":
-        # Remove bot mention
         text = re.sub(r"<@[^>]+>", "", text).strip()
-
-        # Ignore pure mention (no command)
         if text == "":
             return
 
+    # In public channels → only respond if bot is mentioned
+    if event_type == "message" and event.get("channel_type") == "channel":
+        if "<@" not in (event.get("text") or ""):
+            return
 
     if not slack_user_id or not channel_id:
         return
 
-    # In public channels → only respond if bot is mentioned
-# In public channels, respond only if bot is mentioned
-    if event.get("channel_type") == "channel":
-        if "<@" not in (event.get("text") or ""):
-            return
     handle_user_message(slack_user_id, channel_id, text)
+
 
 def start_meeting_background(channel_id, video_url):
     try:

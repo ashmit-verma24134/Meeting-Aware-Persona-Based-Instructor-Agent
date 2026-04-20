@@ -1287,11 +1287,15 @@ def chat_answer_node(state: MeetingState):
     # --------------------------------------------------
     chat_context_parts = []
 
-    for c in chat_lines:
+for c in chat_lines:
         if isinstance(c, dict):
             q = c.get("question", "")
             a = c.get("answer", "")
-            chat_context_parts.append(f"User: {q}\nAI: {a}")
+            if a == "[context]":
+                # Pure user context — show as user statement only
+                chat_context_parts.append(f"User: {q}")
+            else:
+                chat_context_parts.append(f"User: {q}\nAI: {a}")
         elif isinstance(c, str):
             chat_context_parts.append(c)
 

@@ -444,9 +444,19 @@ def process_event(event: dict):
                 _user = _supabase.get_user_by_username(channel_id)
                 if _user:
                     _supabase.append_live_chat_to_slack_chunk(
-                        _user["id"], text, None
-                    )
-                    print(f"[CONTEXT STORE] Stored non-mention message as context")
+                                            _user["id"], text, None
+                                        )
+                                        print(f"[CONTEXT STORE] Stored non-mention message as context")
+                                        # Also store to chat_turns so chat_answer_node can see it
+                                        session = SLACK_SESSIONS.get(channel_id)
+                                        if session:
+                                            _supabase.save_chat_turn(
+                                                session_id=session["session_id"],
+                                                user_id=session["user_id"],
+                                                question=text,
+                                                answer="[context]",
+                                                source="user_context",
+                                            )
             except Exception as e:
                 print(f"[CONTEXT STORE] Failed: {e}")
             return  # Don't reply, just store
@@ -454,14 +464,23 @@ def process_event(event: dict):
     if not slack_user_id or not channel_id:
         return
 
-    # ── Store user message to chunk immediately ──
+# ── Store user message to chunk + chat_turns immediately ──
     try:
         _supabase = get_supabase_client()
         _user = _supabase.get_user_by_username(channel_id)
         if _user:
             _supabase.append_live_chat_to_slack_chunk(
-                _user["id"], text, None  # None = no bot answer yet
+                _user["id"], text, None
             )
+            session = SLACK_SESSIONS.get(channel_id)
+            if session:
+                _supabase.save_chat_turn(
+                    session_id=session["session_id"],
+                    user_id=session["user_id"],
+                    question=text,
+                    answer="[context]",
+                    source="user_context",
+                )
     except Exception as e:
         print(f"[STORE USER MSG] Failed: {e}")
 

@@ -425,8 +425,6 @@ def process_event(event: dict):
         return
 
     # ── FIX: Skip message events with bot @mentions in ANY channel type ──
-    # Slack sends both 'message' AND 'app_mention' for @mentions in channels.
-    # We process only 'app_mention', so skip the duplicate 'message' event.
     channel_type = event.get("channel_type", "")
     if event_type == "message" and "<@" in text and channel_type in ["channel", "group", "mpim"]:
         return
@@ -443,20 +441,20 @@ def process_event(event: dict):
             return
 
     if not slack_user_id or not channel_id:
-            return
+        return
 
-        # ── Store user message to chunk immediately ──
-        try:
-            _supabase = get_supabase_client()
-            _user = _supabase.get_user_by_username(channel_id)
-            if _user:
-                _supabase.append_live_chat_to_slack_chunk(
-                    _user["id"], text, None  # None = no bot answer yet
-                )
-        except Exception as e:
-            print(f"[STORE USER MSG] Failed: {e}")
+    # ── Store user message to chunk immediately ──
+    try:
+        _supabase = get_supabase_client()
+        _user = _supabase.get_user_by_username(channel_id)
+        if _user:
+            _supabase.append_live_chat_to_slack_chunk(
+                _user["id"], text, None  # None = no bot answer yet
+            )
+    except Exception as e:
+        print(f"[STORE USER MSG] Failed: {e}")
 
-        handle_user_message(slack_user_id, channel_id, text)
+    handle_user_message(slack_user_id, channel_id, text)
 
 
 def start_meeting_background(channel_id, video_url):

@@ -424,7 +424,10 @@ class SupabaseService:
 
         meeting_id = meeting["id"]
         today_date = datetime.now().strftime("%Y-%m-%d")
-        new_text_to_append = f"[User]: {question}\n[MMA AGENT]: {answer}\n"
+        if answer is None:
+            new_text_to_append = f"[User]: {question}\n"
+        else:
+            new_text_to_append = f"[User]: {question}\n[MMA AGENT]: {answer}\n"
 
         recent_chunk_resp = self.client.table("chunks") \
             .select("*") \

@@ -431,6 +431,32 @@ def process_event(event: dict):
     if event_type == "message" and "<@" in text and channel_type in ["channel", "group", "mpim"]:
         return
 
+    # ── AUTO-EMBED: store ALL user messages into live slack chunks ──
+    # Runs BEFORE the @mention filter — bot EMBEDS everything but only RESPONDS to @mentions.
+    # This ensures full conversation context is captured, not just bot interactions.
+    if channel_type in ["channel", "group", "mpim"] and slack_user_id and text:
+        try:
+            from services.embedding_api import get_embedding as _get_emb
+            _sb = get_supabase_client()
+            _user = _sb.get_user_by_username(channel_id)
+            if _user:
+                _meeting = _sb.get_meeting_by_name(f"slack_{channel_id}")
+                if _meeting:
+                    today = datetime.utcnow().strftime("%Y-%m-%d")
+                    _clean_text = re.sub(r"<@[^>]+>", "", text).strip()
+                    if _clean_text:
+                        _emb = _get_emb(_clean_text)
+                        _sb.client.table("chunks").insert({
+                            "meeting_id": _meeting["id"],
+                            "chunk_index": int(datetime.utcnow().timestamp()),
+                            "chunk_text": f"--- {today} ---\n[User]: {_clean_text}",
+                            "embedding": _emb,
+                            "source": "slack",
+                        }).execute()
+                        print(f"[AUTO-EMBED] Embedded user message: {_clean_text[:60]}", flush=True)
+        except Exception as _e:
+            print(f"[AUTO-EMBED] Failed to embed user message: {_e}", flush=True)
+
     # ── Remove bot mention formatting ──
     if event_type == "app_mention":
         text = re.sub(r"<@[^>]+>", "", text).strip()
@@ -711,17 +737,23 @@ def run_heartbeat(channel_id: str):
     user_id = user["id"]
     print(f"[HEARTBEAT] User found: {user_id}")
 
+    # ── 1b. Auto-sync Slack history before generating check-in ──
+    # This ensures we always have the freshest data from Slack
+    try:
+        print(f"[HEARTBEAT] Auto-syncing Slack history for channel {channel_id}...")
+        ingest_slack_history(channel_id=channel_id, limit=500)
+        print(f"[HEARTBEAT] Slack sync complete.")
+    except Exception as e:
+        print(f"[HEARTBEAT] Slack auto-sync failed (continuing): {e}")
+
     # ── 2. Get slack meeting ──
-    # NOTE: Auto-sync removed — heartbeat reads from DB directly.
-    # Slack chunks are populated by /sync_slack command, not re-ingested here.
     meeting_name = f"slack_{channel_id}"
     meeting = supabase.get_meeting_by_name(meeting_name)
-    print(f"[HEARTBEAT] Slack meeting found: {meeting is not None} | name={meeting_name}", flush=True)
+    print(f"[HEARTBEAT] Slack meeting found: {meeting is not None} | name={meeting_name}")
 
     # ── 3. Fetch last 2 dates of slack chunks ──
     summary_slack_chunks_count = 0
     slack_chunks_text = ""
-    slack_dates_found = []
     if meeting:
         try:
             result = supabase.client.table("chunks") \
@@ -731,7 +763,7 @@ def run_heartbeat(channel_id: str):
                 .order("id", desc=True) \
                 .limit(50) \
                 .execute()
-            print(f"[HEARTBEAT] Slack chunks in DB: {len(result.data) if result.data else 0}", flush=True)
+            print(f"[HEARTBEAT] Slack chunks fetched from DB: {len(result.data) if result.data else 0}", flush=True)
             if result.data:
                 collected_chunks = []
                 date_pattern = re.compile(r'---\s*(\d{4}-\d{2}-\d{2})\s*---')
@@ -751,13 +783,11 @@ def run_heartbeat(channel_id: str):
                 chunks = list(reversed(collected_chunks))
                 slack_chunks_text = "\n\n".join(chunks)
                 summary_slack_chunks_count = len(chunks)
-                slack_dates_found = sorted(seen_dates)
-                print(f"[HEARTBEAT] SLACK CONTEXT → {summary_slack_chunks_count} chunks | dates: {slack_dates_found}", flush=True)
-                print(f"[HEARTBEAT] SLACK PREVIEW → {slack_chunks_text[:200]}...", flush=True)
+                print(f"[HEARTBEAT] Slack context preview: {slack_chunks_text[:50]}...", flush=True)
         except Exception as e:
             print(f"[HEARTBEAT] Slack chunks fetch failed: {e}", flush=True)
     else:
-        print(f"[HEARTBEAT] No slack meeting record — slack chunks SKIPPED. Run /sync_slack first.", flush=True)
+        print(f"[HEARTBEAT] No slack meeting record — slack chunks SKIPPED", flush=True)
 
     # ── 4. Fetch last 20 chat turns ──
     summary_chat_turns = 0
@@ -767,10 +797,7 @@ def run_heartbeat(channel_id: str):
         if turns:
             chat_turns_text = "\n".join(turns)
             summary_chat_turns = len(turns)
-            print(f"[HEARTBEAT] CHAT TURNS CONTEXT → {summary_chat_turns} turns", flush=True)
-            print(f"[HEARTBEAT] CHAT PREVIEW → {chat_turns_text[:200]}...", flush=True)
-        else:
-            print(f"[HEARTBEAT] No chat turns found for user {user_id}", flush=True)
+            print(f"[HEARTBEAT] Chat context preview: {chat_turns_text[:50]}...", flush=True)
     except Exception as e:
         print(f"[HEARTBEAT] Chat turns fetch failed: {e}", flush=True)
 
@@ -792,14 +819,10 @@ def run_heartbeat(channel_id: str):
                     .limit(8) \
                     .execute()
 
-                chunk_count = len(transcript_result.data) if transcript_result.data else 0
-                print(f"[HEARTBEAT] MEETING CONTEXT → '{rm.get('meeting_name')}' | {chunk_count} chunks (first 8)", flush=True)
-
                 if transcript_result.data:
                     meeting_text = "\n\n".join(
                         c["chunk_text"] for c in transcript_result.data if c.get("chunk_text")
                     )
-                    print(f"[HEARTBEAT] MEETING PREVIEW → {meeting_text[:200]}...", flush=True)
                     meeting_parts.append(f"[Meeting: {rm.get('meeting_name', 'Unknown')}]\n{meeting_text}")
 
             transcript_text = "\n\n".join(meeting_parts)
@@ -808,6 +831,8 @@ def run_heartbeat(channel_id: str):
         print(f"[HEARTBEAT] Transcript fetch failed: {e}", flush=True)
 
     # ── 5b. Fetch Evolving Project Goal ──
+    # The goal is built from ALL past meetings and updated on each new meeting ingestion.
+    # It represents the accumulated understanding of the project's overall objective.
     goal_text = ""
     try:
         goal_meeting_name = f"goal_{user_id}"
@@ -827,23 +852,20 @@ def run_heartbeat(channel_id: str):
 
             if goal_chunks.data:
                 goal_text = goal_chunks.data[0].get("chunk_text", "")
-                print(f"[HEARTBEAT] GOAL CONTEXT → {len(goal_text)} chars", flush=True)
-                print(f"[HEARTBEAT] GOAL PREVIEW → {goal_text[:300]}...", flush=True)
-            else:
-                print(f"[HEARTBEAT] Goal meeting exists but no chunk found — run /sync_slack", flush=True)
+                print(f"[HEARTBEAT] Goal loaded: {goal_text[:80]}...", flush=True)
         else:
-            print(f"[HEARTBEAT] No goal record found — run /sync_slack to generate it", flush=True)
+            print(f"[HEARTBEAT] No goal record found for user {user_id}", flush=True)
     except Exception as e:
         print(f"[HEARTBEAT] Goal fetch failed: {e}", flush=True)
 
-    # ── 6. Combine + full context log ──
-    print("\n" + "="*60, flush=True)
-    print("🧠 HEARTBEAT CONTEXT SUMMARY", flush=True)
-    print(f"  📌 GOAL          : {'✅ ' + str(len(goal_text)) + ' chars' if goal_text else '❌ MISSING — run /sync_slack'}", flush=True)
-    print(f"  📝 MEETINGS      : {'✅ ' + str(summary_transcript_metrics) + ' meetings (first 8 chunks each)' if summary_transcript_metrics else '❌ none found'}", flush=True)
-    print(f"  💬 SLACK         : {'✅ ' + str(summary_slack_chunks_count) + ' chunks | dates: ' + str(slack_dates_found) if summary_slack_chunks_count else '❌ none — run /sync_slack'}", flush=True)
-    print(f"  🗨️  CHAT TURNS   : {'✅ ' + str(summary_chat_turns) + ' turns' if summary_chat_turns else '❌ none found'}", flush=True)
-    print("="*60 + "\n", flush=True)
+    # ── 6. Combine ──
+    print("\n" + "="*50, flush=True)
+    print("🚀 HEARTBEAT FETCH SUMMARY 🚀", flush=True)
+    print(f"✅ Slack Chunks Fetched: {summary_slack_chunks_count} (spanning 2 dates max)", flush=True)
+    print(f"✅ Transcript Meetings Included: {summary_transcript_metrics}", flush=True)
+    print(f"✅ Chat Turns Fetched: {summary_chat_turns}", flush=True)
+    print(f"✅ Goal Extracted: {'Yes — ' + goal_text[:60] if goal_text else 'No'}", flush=True)
+    print("="*50 + "\n", flush=True)
 
     raw_parts = []
     if goal_text:

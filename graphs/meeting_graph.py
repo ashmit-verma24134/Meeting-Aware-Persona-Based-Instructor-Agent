@@ -1064,29 +1064,6 @@ def chunk_answer_node(state: MeetingState):
     retrieved = state.get("retrieved_chunks", [])
 
     if not retrieved:
-        try:
-            gen_prompt = f"""You are a helpful project assistant.
-Answer the question concisely in 1-2 sentences using your general knowledge.
-If you are unsure, say so.
-
-Question: {query}
-
-Answer:"""
-            response = client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=[{"role": "user", "content": gen_prompt}],
-                temperature=0.0,
-                max_tokens=150,
-            )
-            general_answer = response.choices[0].message.content.strip()
-            if general_answer:
-                state["candidate_answer"] = general_answer
-                state["confidence"] = 0.5
-                state["method"] = "general_knowledge"
-                return state
-        except Exception as e:
-            print(f"General knowledge fallback failed: {e}")
-
         state["candidate_answer"] = SAFE_ABSTAIN
         state["confidence"] = 0.0
         state["method"] = "no_evidence"
@@ -1094,10 +1071,6 @@ Answer:"""
 
     # -----------------------------------
     # CONFIDENCE THRESHOLD TUNING
-    # Different question types need different thresholds
-    # Factual (who/what/when) → stricter → less hallucination
-    # General (how/why/explain) → looser → more answers
-    # Date questions → very loose → date filter already did the work
     # -----------------------------------
     q_lower = query.lower()
 
@@ -1125,12 +1098,11 @@ Answer:"""
     # Filter chunks below threshold
     filtered = [c for c in retrieved if c.get("similarity", 0.0) >= sim_threshold]
     if not filtered:
-        # Fallback: keep top 1 regardless of threshold
         filtered = retrieved[:1]
         print("[THRESHOLD] All below threshold, keeping top 1")
 
     # -----------------------------------
-    # TOP-K — max 3 to avoid cross-chunk hallucination
+    # TOP-K
     # -----------------------------------
     sorted_chunks = sorted(
         filtered,
@@ -1155,29 +1127,10 @@ Answer:"""
     )
 
     if confidence <= 0.0 or not answer:
-            state["candidate_answer"] = SAFE_ABSTAIN
-            state["confidence"] = 0.0
-            state["method"] = "no_evidence"
-
-            # ── General knowledge fallback even when chunks exist but are irrelevant ──
-            try:
-                gen_resp = client.chat.completions.create(
-                    model="llama-3.1-8b-instant",
-                    messages=[{"role": "user", "content": f"Answer concisely using your knowledge:\n{query}"}],
-                    temperature=0.0,
-                    max_tokens=150,
-                )
-                gen_answer = gen_resp.choices[0].message.content.strip()
-                if gen_answer:
-                    state["candidate_answer"] = gen_answer
-                    state["confidence"] = 0.5
-                    state["method"] = "general_knowledge_fallback"
-                    return state
-            except Exception:
-                pass
-
-            state["method"] = "not_in_transcript"
-            return state
+        state["candidate_answer"] = SAFE_ABSTAIN
+        state["confidence"] = 0.0
+        state["method"] = "not_in_transcript"
+        return state
 
     state["candidate_answer"] = answer
     state["confidence"] = round(confidence, 3)
@@ -1420,24 +1373,23 @@ KEY FACTS ESTABLISHED:
     # Semantic Sufficiency Check
     # --------------------------------------------------
     sufficiency_prompt = f"""
-You are checking whether the QUESTION can be answered EXPLICITLY
-using ONLY the information present in the CHAT HISTORY below.
+    You are checking whether the QUESTION can be reasonably answered
+    using the information present in the CHAT HISTORY below.
 
-STRICT RULES:
-- Reply YES only if the EXACT answer is clearly and explicitly stated in the chat history.
-- Reply NO if the answer requires ANY information not explicitly mentioned in the chat.
-- Reply NO if chat history only contains questions without answers.
-- Reply NO if you would need to guess or infer — only YES if answer is 100% explicit.
-- User messages in the chat count as context too, not just AI responses.
+    RULES:
+    - Reply YES if the chat history contains a directly relevant answer OR closely related context that can answer the question.
+    - Reply YES if a similar entity was discussed and the same type of information is being asked.
+    - Reply NO only if the chat history has absolutely no relevant information.
+    - User messages in the chat count as context too, not just AI responses.
 
-CHAT HISTORY (includes both user messages and AI responses):
-{chat_context}
+    CHAT HISTORY:
+    {chat_context}
 
-QUESTION:
-{state["question"]}
+    QUESTION:
+    {state["question"]}
 
-Reply with only YES or NO:
-""".strip()
+    Reply with only YES or NO:
+    """.strip()
 
     try:
         verdict_resp = client.chat.completions.create(

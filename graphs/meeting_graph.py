@@ -1283,11 +1283,12 @@ def chat_answer_node(state: MeetingState):
         return state
 
     # --------------------------------------------------
+# --------------------------------------------------
     # Build structured chat context
     # --------------------------------------------------
     chat_context_parts = []
 
-for c in chat_lines:
+    for c in chat_lines:
         if isinstance(c, dict):
             q = c.get("question", "")
             a = c.get("answer", "")
@@ -1306,7 +1307,6 @@ for c in chat_lines:
         state["decision"] = Decision.RETRIEVAL_ONLY
         state["method"] = "chat_empty_context"
         return state
-
     # --------------------------------------------------
     # CHAT MEMORY SUMMARIZATION
     # If history is long (>10 turns), compress it into a

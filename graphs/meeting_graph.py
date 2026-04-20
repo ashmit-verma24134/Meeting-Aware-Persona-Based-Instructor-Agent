@@ -1155,10 +1155,29 @@ Answer:"""
     )
 
     if confidence <= 0.0 or not answer:
-        state["candidate_answer"] = SAFE_ABSTAIN
-        state["confidence"] = 0.0
-        state["method"] = "not_in_transcript"
-        return state
+            state["candidate_answer"] = SAFE_ABSTAIN
+            state["confidence"] = 0.0
+            state["method"] = "no_evidence"
+
+            # ── General knowledge fallback even when chunks exist but are irrelevant ──
+            try:
+                gen_resp = client.chat.completions.create(
+                    model="llama-3.1-8b-instant",
+                    messages=[{"role": "user", "content": f"Answer concisely using your knowledge:\n{query}"}],
+                    temperature=0.0,
+                    max_tokens=150,
+                )
+                gen_answer = gen_resp.choices[0].message.content.strip()
+                if gen_answer:
+                    state["candidate_answer"] = gen_answer
+                    state["confidence"] = 0.5
+                    state["method"] = "general_knowledge_fallback"
+                    return state
+            except Exception:
+                pass
+
+            state["method"] = "not_in_transcript"
+            return state
 
     state["candidate_answer"] = answer
     state["confidence"] = round(confidence, 3)

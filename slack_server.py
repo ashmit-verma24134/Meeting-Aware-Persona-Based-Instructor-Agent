@@ -443,9 +443,20 @@ def process_event(event: dict):
             return
 
     if not slack_user_id or not channel_id:
-        return
+            return
 
-    handle_user_message(slack_user_id, channel_id, text)
+        # ── Store user message to chunk immediately ──
+        try:
+            _supabase = get_supabase_client()
+            _user = _supabase.get_user_by_username(channel_id)
+            if _user:
+                _supabase.append_live_chat_to_slack_chunk(
+                    _user["id"], text, None  # None = no bot answer yet
+                )
+        except Exception as e:
+            print(f"[STORE USER MSG] Failed: {e}")
+
+        handle_user_message(slack_user_id, channel_id, text)
 
 
 def start_meeting_background(channel_id, video_url):

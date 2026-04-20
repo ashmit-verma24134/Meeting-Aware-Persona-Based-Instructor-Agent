@@ -361,25 +361,11 @@ def retrieve_chunks_node(state: MeetingState):
 
     import re as _re
 
-    # -----------------------------------
-    # DETECT SPECIFIC VALUE QUERY
-    # For queries asking for IDs, secrets, tokens, links — BM25 dominates.
-    # Vector search finds chunks semantically similar to the question
-    # (e.g. someone else asking the same thing), not the answer chunk.
-    # -----------------------------------
-# General pattern: Catches ANY word followed by an underscore or space, 
-    # and then id, key, secret, token, etc. (e.g., github id, stripe_key, aws secret)
-# -----------------------------------
-    # DETECT SPECIFIC VALUE QUERY
-    # -----------------------------------
     is_specific_value_query = state.get("is_hunting_for_exact_value", False)
     
     if is_specific_value_query:
         print(f"[SPECIFIC VALUE] LLM Detected Exact Value Search — BM25 will dominate")
 
-    # -----------------------------------
-    # QUERY EXPANSION — skip for specific value queries
-    # -----------------------------------
     SYNONYMS = {
         "course": "course class subject lecture",
         "bot": "bot agent assistant",
@@ -425,14 +411,12 @@ def retrieve_chunks_node(state: MeetingState):
         results = []
 
     if not results:
-        # FALLBACK: If it's a summary/latest query, prime it with the latest meeting's first chunk
         q_lower = query_text.lower()
         if any(w in q_lower for w in ["summary", "summarize", "highlights", "overview", "recap", "latest", "most recent"]):
             print(f"[RETRIEVE] Search returned 0, but detected summary intent. Attempting Force-Fetch...")
             try:
                 recent_m = supabase.get_latest_meeting_by_user(state["user_id"])
                 if recent_m:
-                    # Get the first chunk to act as a seed
                     seed_resp = supabase.client.table("chunks") \
                         .select("*") \
                         .eq("meeting_id", recent_m["id"]) \
@@ -444,7 +428,7 @@ def retrieve_chunks_node(state: MeetingState):
                             "meeting_id": recent_m["id"],
                             "chunk_index": 0,
                             "chunk_text": seed_resp.data[0]["chunk_text"],
-                            "similarity": 0.5, # Dummy score to pass filters
+                            "similarity": 0.5,
                             "source": seed_resp.data[0].get("source", "transcript")
                         }]
                         print(f"[RETRIEVE] Force-Fetch success: Seeded meeting {recent_m['id']}")
@@ -479,13 +463,6 @@ def retrieve_chunks_node(state: MeetingState):
         state["meeting_indices"] = []
         return state
 
-    # -----------------------------------
-    # BM25 HYBRID SEARCH
-    # Run keyword search in parallel with vector search
-    # Vector catches semantic matches, BM25 catches exact keywords
-    # Chunks found by both get a score boost
-    # Chunks only found by BM25 get added to the pool
-    # -----------------------------------
     try:
         bm25_results = supabase.match_chunks_bm25(
             query_text=query_text,
@@ -508,7 +485,6 @@ def retrieve_chunks_node(state: MeetingState):
                     chunk_key = row["meeting_id"] + str(row["chunk_index"])
 
                     if chunk_key not in existing_ids:
-                        # Found by BM25 but missed by vector — add it
                         clean_chunks.append({
                             "meeting_id": row["meeting_id"],
                             "chunk_index": row["chunk_index"],
@@ -518,9 +494,6 @@ def retrieve_chunks_node(state: MeetingState):
                         })
                         existing_ids.add(chunk_key)
                     else:
-                        # Found by both — boost score
-                        # For specific value queries, BM25 match is a strong
-                        # signal — boost much more aggressively
                         boost_multiplier = 2.0 if is_specific_value_query else 0.3
                         for c in clean_chunks:
                             if (
@@ -536,8 +509,53 @@ def retrieve_chunks_node(state: MeetingState):
         print(f"[BM25] Hybrid search failed: {e}")
 
     # -----------------------------------
-    # Sort by similarity FIRST
+    # LIVE INJECT — always force latest 3 slack chunks into pool
+    # Bypasses vector search lag for freshly written chunks
     # -----------------------------------
+    try:
+        _user_resp = supabase.client.table("users") \
+            .select("username") \
+            .eq("id", state["user_id"]) \
+            .limit(1).execute()
+        if _user_resp.data:
+            _channel_id = _user_resp.data[0]["username"]
+            _slack_meeting = supabase.get_meeting_by_name(f"slack_{_channel_id}")
+            if _slack_meeting:
+                _latest_resp = supabase.client.table("chunks") \
+                    .select("*") \
+                    .eq("meeting_id", _slack_meeting["id"]) \
+                    .eq("source", "slack") \
+                    .order("chunk_index", desc=True) \
+                    .limit(3) \
+                    .execute()
+                if _latest_resp.data:
+                    existing_keys = {
+                        f"{c['meeting_id']}_{c['chunk_index']}"
+                        for c in clean_chunks
+                    }
+                    for row in _latest_resp.data:
+                        key = f"{row['meeting_id']}_{row['chunk_index']}"
+                        if key not in existing_keys:
+                            clean_chunks.append({
+                                "meeting_id": row["meeting_id"],
+                                "chunk_index": row["chunk_index"],
+                                "text": row.get("chunk_text", ""),
+                                "similarity": 0.99,
+                                "rerank_score": 0.99,
+                                "source": "slack",
+                            })
+                            existing_keys.add(key)
+                            print(f"[LIVE INJECT] Injected latest slack chunk idx={row['chunk_index']}")
+                        else:
+                            # Already in pool — force score to top
+                            for c in clean_chunks:
+                                if f"{c['meeting_id']}_{c['chunk_index']}" == key:
+                                    c["similarity"] = 0.99
+                                    c["rerank_score"] = 0.99
+                                    break
+    except Exception as e:
+        print(f"[LIVE INJECT] Failed: {e}")
+
     clean_chunks = sorted(
         clean_chunks,
         key=lambda c: c["similarity"],
@@ -546,9 +564,6 @@ def retrieve_chunks_node(state: MeetingState):
 
     q_text = (state.get("question", "") + " " + state.get("standalone_query", "")).lower()
 
-    # -----------------------------------
-    # SOURCE-AWARE ROUTING
-    # -----------------------------------
     SLACK_KEYS = {
         "slack", "channel", "discuss", "discussed", "chat",
         "said", "typed", "message", "conversation", "talked"
@@ -575,15 +590,14 @@ def retrieve_chunks_node(state: MeetingState):
             clean_chunks = transcript_only
             print("[SOURCE ROUTE] Forced to transcript only")
 
-    # -----------------------------------
-    # RE-RANKING
-    # -----------------------------------
-    q_words = set(_re.findall(r'\b\w{2,}\b', q_text)) # <--- Changed {3,} to {2,}
+    q_words = set(_re.findall(r'\b\w{2,}\b', q_text))
 
     for chunk in clean_chunks:
-        chunk_words = set(_re.findall(r'\b\w{2,}\b', chunk.get("text", "").lower())) # <--- Changed {3,} to {2,}        
+        chunk_words = set(_re.findall(r'\b\w{2,}\b', chunk.get("text", "").lower()))
         keyword_overlap = len(q_words & chunk_words)
-        chunk["rerank_score"] = chunk["similarity"] + (0.05 * keyword_overlap)
+        # Don't override live inject score
+        if chunk.get("rerank_score", 0) != 0.99:
+            chunk["rerank_score"] = chunk["similarity"] + (0.05 * keyword_overlap)
 
     clean_chunks = sorted(
         clean_chunks,
@@ -592,13 +606,9 @@ def retrieve_chunks_node(state: MeetingState):
     )
     print(f"[RERANK] Re-ranked {len(clean_chunks)} chunks by keyword overlap")
 
-    # -----------------------------------
-    # PENALIZE QUESTION-ONLY CHUNKS
-    # Chunks where >60% of lines are questions contain no answers.
-    # These rank high on keyword overlap but are useless for answering.
-    # Penalize them so answer-containing chunks surface instead.
-    # -----------------------------------
     for chunk in clean_chunks:
+        if chunk.get("rerank_score", 0) == 0.99:
+            continue  # Don't penalize live injected chunks
         text = chunk.get("text", "")
         lines = [
             l.strip() for l in text.split("\n")
@@ -611,10 +621,7 @@ def retrieve_chunks_node(state: MeetingState):
                 chunk["rerank_score"] = (
                     chunk.get("rerank_score", chunk["similarity"]) * 0.2
                 )
-                print(
-                    f"[PENALIZE] Question-only chunk penalized "
-                    f"(ratio={question_ratio:.2f})"
-                )
+                print(f"[PENALIZE] Question-only chunk penalized (ratio={question_ratio:.2f})")
 
     clean_chunks = sorted(
         clean_chunks,
@@ -623,9 +630,6 @@ def retrieve_chunks_node(state: MeetingState):
     )
     print(f"[PENALIZE] Re-sorted after question-only penalty")
 
-    # -----------------------------------
-    # DATE + SLACK KEYWORD LOGIC
-    # -----------------------------------
     detected_date = None
 
     m = _re.search(r'(\d{4})[-/](\d{2})[-/](\d{2})', q_text)
@@ -676,8 +680,8 @@ def retrieve_chunks_node(state: MeetingState):
         boosted = False
 
         for chunk in clean_chunks:
-            if chunk.get("source") == "slack":
-                chunk_words = set(_re.findall(r'\b\w{2,}\b', chunk.get("text", "").lower())) # <--- Changed {3,} to {2,}                
+            if chunk.get("source") == "slack" and chunk.get("rerank_score", 0) != 0.99:
+                chunk_words = set(_re.findall(r'\b\w{2,}\b', chunk.get("text", "").lower()))
                 hits = len(q_words & chunk_words)
                 if hits >= 2:
                     chunk["similarity"] += 0.15 * hits
@@ -687,12 +691,12 @@ def retrieve_chunks_node(state: MeetingState):
             clean_chunks = sorted(clean_chunks, key=lambda c: c["similarity"], reverse=True)
 
             for i, chunk in enumerate(clean_chunks):
-                if chunk.get("source") == "slack":
+                if chunk.get("source") == "slack" and chunk.get("rerank_score", 0) != 0.99:
                     lines = chunk.get("text", "").split("\n")
                     relevant = []
                     seen = set()
                     for j, line in enumerate(lines):
-                        line_words = set(_re.findall(r'\b\w{2,}\b', line.lower())) # <--- Changed {3,} to {2,}
+                        line_words = set(_re.findall(r'\b\w{2,}\b', line.lower()))
                         if len(q_words & line_words) >= 1:
                             start = max(0, j - 5)
                             end = min(len(lines), j + 15)
@@ -705,9 +709,6 @@ def retrieve_chunks_node(state: MeetingState):
 
             print(f"[SLACK BOOST] Applied keyword boost + windowing to slack chunks")
 
-    # -----------------------------------
-    # Temporal filtering (latest meeting)
-    # -----------------------------------
     if state.get("temporal_constraint") == "latest":
         try:
             latest_meeting = supabase.get_latest_meeting_by_user(
@@ -722,9 +723,6 @@ def retrieve_chunks_node(state: MeetingState):
         except Exception as e:
             print("Latest meeting fetch failed:", e)
 
-    # -----------------------------------
-    # CONTEXT EXPANSION (+/- 2 chunks)
-    # -----------------------------------
     expanded_chunks_map = {}
     target_indices_by_meeting = {}
 
@@ -733,7 +731,7 @@ def retrieve_chunks_node(state: MeetingState):
         if mid not in target_indices_by_meeting:
             target_indices_by_meeting[mid] = []
         target_indices_by_meeting[mid].append(c["chunk_index"])
-        expanded_chunks_map[f"{mid}_{c['chunk_index']}"] = c  # Keep original
+        expanded_chunks_map[f"{mid}_{c['chunk_index']}"] = c
 
     for mid, indices in target_indices_by_meeting.items():
         try:
@@ -748,9 +746,6 @@ def retrieve_chunks_node(state: MeetingState):
     clean_chunks = list(expanded_chunks_map.values())
     state["context_extended"] = True
 
-    # -----------------------------------
-    # Sort by transcript order
-    # -----------------------------------
     clean_chunks = sorted(
         clean_chunks,
         key=lambda c: (c["meeting_id"], c["chunk_index"])

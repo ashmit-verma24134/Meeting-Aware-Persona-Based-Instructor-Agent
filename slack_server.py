@@ -435,8 +435,8 @@ def process_event(event: dict):
         if text == "":
             return
 
-# ── In public channels → store all messages, but only respond if mentioned ──
-    if event_type == "message" and channel_type == "channel":
+# ── In ALL channel types → store all messages, only reply if mentioned ──
+    if event_type == "message" and channel_type in ["channel", "group", "mpim"]:
         if "<@" not in (event.get("text") or ""):
             # Store to chunk as context even if bot not mentioned
             try:
@@ -978,10 +978,7 @@ async def heartbeat_get(background_tasks: BackgroundTasks):
         return {"status": "error", "message": "SLACK_CHANNEL_ID env var not set"}
     background_tasks.add_task(run_heartbeat, channel_id)
     return {"status": "ok", "message": f"Heartbeat triggered for {channel_id}"}# ─────────────────────────────────────────────────────────────────
-# PASTE THIS BLOCK INTO slack_server.py, right before the final line:
-# meeting_graph = graph.compile()
-# (or at the bottom of slack_server.py after all the route definitions)
-# ─────────────────────────────────────────────────────────────────
+
 
 @app.get("/debug")
 async def debug_retrieval():

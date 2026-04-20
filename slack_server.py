@@ -445,9 +445,7 @@ def process_event(event: dict):
                 _supabase = get_supabase_client()
                 _user = _supabase.get_user_by_username(channel_id)
                 if _user:
-                    _supabase.append_live_chat_to_slack_chunk(
-                        _user["id"], text, None
-                    )
+                    _supabase.append_live_chat_to_slack_chunk(_user["id"], text, None)
                     print(f"[CONTEXT STORE] Stored non-mention message as context")
                     session = SLACK_SESSIONS.get(channel_id)
                     if session:

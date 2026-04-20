@@ -66,6 +66,7 @@ RULES:
 -NEVER include lines formatted as "[Name]: text" in your answer.
 -NEVER include URLs, Run IDs, or chunk metadata in your answer unless the question specifically asks for them.
 - When the chunk contains a conversation log, READ it to extract the answer, then answer in your OWN words as a clean paragraph.
+- [User]: lines in the context that make declarative statements (not questions) ARE valid factual context — extract and paraphrase them as answers.
 - If a chunk describes something visual (e.g. "menu bar", "screen", "window visible") and the question is NOT about visuals or screen content, ignore that chunk entirely.
 - If the question is about a person and their name appears in the context as a speaker or subject with relevant facts, answer from the context directly.
 

@@ -1245,14 +1245,12 @@ def chat_answer_node(state: MeetingState):
     # These must NEVER be answered from chat memory
     # --------------------------------------------------
     FORCE_RETRIEVAL_KEYS = [
-        "summarize", "summary", "overview", "highlights", "takeaways",
-        "what happened", "what was discussed", "what did we discuss",
-        "summarise", "give me a summary", "latest meeting",
-        "what sources", "how does", "what does", "limitations",
-        "what kind", "what are", "how can", "why does", "who are",
-        "what is the role", "splitting", "chunking", "performance",
-        "retrieval", "what all", "how many", "what were", "what was used",
-    ]
+            "summarize", "summary", "overview", "highlights", "takeaways",
+            "what happened", "what was discussed", "what did we discuss",
+            "summarise", "give me a summary", "latest meeting",
+            "what sources", "limitations", "splitting", "chunking",
+            "performance", "retrieval",
+        ]
     q_lower = state["question"].lower()
     if any(k in q_lower for k in FORCE_RETRIEVAL_KEYS):
         print("Force retrieval — summary/overview question")
@@ -1283,7 +1281,6 @@ def chat_answer_node(state: MeetingState):
         return state
 
     # --------------------------------------------------
-# --------------------------------------------------
     # Build structured chat context
     # --------------------------------------------------
     chat_context_parts = []

@@ -375,6 +375,7 @@ def ingest_background(channel_id, run_id):
             text=f"Ingestion failed:\n{str(e)}"
         )
 
+
 def process_event(event: dict):
     if not event:
         return
@@ -390,6 +391,24 @@ def process_event(event: dict):
         "thread_broadcast"
     ]:
         return
+
+    event_type = event.get("type")
+    if event_type not in ["message", "app_mention"]:
+        return
+
+    channel_type = event.get("channel_type", "")
+    text = (event.get("text") or "").strip()
+
+    if not text:
+        return
+
+    # ── Skip BEFORE dedup: message events with @mention are handled by app_mention ──
+    # Without this, the message event poisons the dedup cache and app_mention gets skipped
+    if event_type == "message" and "<@" in text and channel_type in ["channel", "group", "mpim"]:
+        return
+
+    slack_user_id = event.get("user")
+    channel_id = event.get("channel")
 
     event_id = event.get("client_msg_id") or event.get("event_ts")
     if not event_id:
@@ -413,50 +432,32 @@ def process_event(event: dict):
     except Exception as e:
         print(f"[DEDUP] Supabase check failed (continuing): {e}")
 
-    event_type = event.get("type")
-    if event_type not in ["message", "app_mention"]:
-        return
-
-    slack_user_id = event.get("user")
-    channel_id = event.get("channel")
-    text = (event.get("text") or "").strip()
-
-    if not text:
-        return
-
-    # ── FIX: Skip message events with bot @mentions in ANY channel type ──
-    channel_type = event.get("channel_type", "")
-    if event_type == "message" and "<@" in text and channel_type in ["channel", "group", "mpim"]:
-        return
-
     # ── Remove bot mention formatting ──
     if event_type == "app_mention":
         text = re.sub(r"<@[^>]+>", "", text).strip()
         if text == "":
             return
 
-# ── In ALL channel types → store all messages, only reply if mentioned ──
+    # ── In ALL channel types → store all messages, only reply if mentioned ──
     if event_type == "message" and channel_type in ["channel", "group", "mpim"]:
         if "<@" not in (event.get("text") or ""):
-            # Store to chunk as context even if bot not mentioned
             try:
                 _supabase = get_supabase_client()
                 _user = _supabase.get_user_by_username(channel_id)
                 if _user:
                     _supabase.append_live_chat_to_slack_chunk(
-                                            _user["id"], text, None
-                                        )
-                                        print(f"[CONTEXT STORE] Stored non-mention message as context")
-                                        # Also store to chat_turns so chat_answer_node can see it
-                                        session = SLACK_SESSIONS.get(channel_id)
-                                        if session:
-                                            _supabase.save_chat_turn(
-                                                session_id=session["session_id"],
-                                                user_id=session["user_id"],
-                                                question=text,
-                                                answer="[context]",
-                                                source="user_context",
-                                            )
+                        _user["id"], text, None
+                    )
+                    print(f"[CONTEXT STORE] Stored non-mention message as context")
+                    session = SLACK_SESSIONS.get(channel_id)
+                    if session:
+                        _supabase.save_chat_turn(
+                            session_id=session["session_id"],
+                            user_id=session["user_id"],
+                            question=text,
+                            answer="[context]",
+                            source="user_context",
+                        )
             except Exception as e:
                 print(f"[CONTEXT STORE] Failed: {e}")
             return  # Don't reply, just store
@@ -464,7 +465,7 @@ def process_event(event: dict):
     if not slack_user_id or not channel_id:
         return
 
-# ── Store user message to chunk + chat_turns immediately ──
+    # ── Store user message to chunk + chat_turns immediately ──
     try:
         _supabase = get_supabase_client()
         _user = _supabase.get_user_by_username(channel_id)
@@ -485,6 +486,7 @@ def process_event(event: dict):
         print(f"[STORE USER MSG] Failed: {e}")
 
     handle_user_message(slack_user_id, channel_id, text)
+
 
 
 def start_meeting_background(channel_id, video_url):

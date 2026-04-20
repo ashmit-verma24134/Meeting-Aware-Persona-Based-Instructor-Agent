@@ -186,7 +186,6 @@ def meeting_summary_node(state: MeetingState):
                 .select("id") \
                 .eq("user_id", state.get("user_id")) \
                 .not_.like("meeting_name", "slack_%") \
-                .not_.like("meeting_name", "goal_%") \
                 .order("created_at", desc=True) \
                 .limit(1) \
                 .execute()
@@ -236,7 +235,6 @@ def meeting_summary_node(state: MeetingState):
             .select("id") \
             .eq("user_id", state.get("user_id")) \
             .not_.like("meeting_name", "slack_%") \
-            .not_.like("meeting_name", "goal_%") \
             .order("created_at", desc=True) \
             .limit(1) \
             .execute()
@@ -337,6 +335,8 @@ SUMMARY:
  
     state["context_extended"] = False
     return state
+
+_SUPABASE_CLIENT = None
 
 
 def get_supabase_client():
@@ -1399,17 +1399,23 @@ KEY FACTS ESTABLISHED:
     # Semantic Sufficiency Check
     # --------------------------------------------------
     sufficiency_prompt = f"""
-You are checking whether the QUESTION can be answered
-using information already provided in earlier ASSISTANT responses.
+You are checking whether the QUESTION can be answered EXPLICITLY
+using ONLY the information present in the CHAT HISTORY below.
 
-IF you can answer Reply with YES 
-IF you can not answer(means answer is not in context) reply with NO
+STRICT RULES:
+- Reply YES only if the EXACT answer is clearly and explicitly stated in the chat history.
+- Reply NO if the answer requires ANY information not explicitly mentioned in the chat.
+- Reply NO if chat history only contains questions without answers.
+- Reply NO if you would need to guess or infer — only YES if answer is 100% explicit.
+- User messages in the chat count as context too, not just AI responses.
 
-ASSISTANT MESSAGES:
-{assistant_only}
+CHAT HISTORY (includes both user messages and AI responses):
+{chat_context}
 
 QUESTION:
 {state["question"]}
+
+Reply with only YES or NO:
 """.strip()
 
     try:

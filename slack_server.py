@@ -435,10 +435,21 @@ def process_event(event: dict):
         if text == "":
             return
 
-    # ── In public channels → only respond if bot is mentioned ──
+# ── In public channels → store all messages, but only respond if mentioned ──
     if event_type == "message" and channel_type == "channel":
         if "<@" not in (event.get("text") or ""):
-            return
+            # Store to chunk as context even if bot not mentioned
+            try:
+                _supabase = get_supabase_client()
+                _user = _supabase.get_user_by_username(channel_id)
+                if _user:
+                    _supabase.append_live_chat_to_slack_chunk(
+                        _user["id"], text, None
+                    )
+                    print(f"[CONTEXT STORE] Stored non-mention message as context")
+            except Exception as e:
+                print(f"[CONTEXT STORE] Failed: {e}")
+            return  # Don't reply, just store
 
     if not slack_user_id or not channel_id:
         return

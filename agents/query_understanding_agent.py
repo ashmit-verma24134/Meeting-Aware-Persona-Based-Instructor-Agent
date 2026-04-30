@@ -36,7 +36,7 @@ def understand_query(
     )
     
     # Check for "specific value" keywords even in non-referential queries
-    VALUE_KEYWORDS = ["id", "key", "secret", "token", "password", "url", "link", "arn"]
+    VALUE_KEYWORDS = ["id", "key", "secret", "token", "password", "url", "link", "arn", "model", "tool", "framework", "library"]
     q_lower = q.lower()
     is_hunting_hint = any(word in q_lower for word in VALUE_KEYWORDS)
 

@@ -49,7 +49,7 @@ def select_dominant_meeting(chunks: List[Dict]) -> Optional[str]:
     dominance_ratio = weighted_counts[dominant_meeting] / total_weight
 
     # Require stronger dominance threshold
-    if dominance_ratio >= 0.50:
+    if dominance_ratio >= 0.40:
         return dominant_meeting
 
     return None

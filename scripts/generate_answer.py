@@ -84,8 +84,7 @@ OTHER RULES:
 - For questions asking what happened on a specific date or what was discussed/done, 
   give a comprehensive summary covering ALL activity in the context — do NOT limit 
   yourself to 1–3 sentences. Use as many sentences as needed to cover everything.
-- For all other questions, answer in 1–3 concise sentences.- Do NOT include bare timestamps like [00:15:30] in your answer unless you also know the calendar date.
-
+"- For simple factual questions (who, which, where), answer in 1–3 concise sentences. For complex or multi-part questions, use as many sentences as needed.- Do NOT include bare timestamps"
 EXAMPLES:
 Q: Who was presenting in the meeting?
 A: Gautam Shroff was presenting in the meeting.
@@ -131,7 +130,7 @@ Answer:
             model="llama-3.1-8b-instant",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.0,
-            max_tokens=500,
+            max_tokens=800,
         )
 
         answer = response.choices[0].message.content.strip()

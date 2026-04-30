@@ -92,7 +92,6 @@ def clean_answer(text: Optional[str], max_sentences: int = 4) -> str:
     # Only block clearly speculative filler patterns.
     hallucination_patterns = [
         r"\bmany approaches\b",
-        r"\betc\b",
     ]
 
     for pattern in hallucination_patterns:

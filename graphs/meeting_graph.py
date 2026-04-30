@@ -540,7 +540,7 @@ def retrieve_chunks_node(state: MeetingState):
                                 "meeting_id": row["meeting_id"],
                                 "chunk_index": row["chunk_index"],
                                 "text": row.get("chunk_text", ""),
-                                "similarity": 0.99,
+                                "similarity": 0.55,
                                 "rerank_score": 0.99,
                                 "source": "slack",
                             })
@@ -579,10 +579,10 @@ def retrieve_chunks_node(state: MeetingState):
     force_transcript = any(k in q_lower_words for k in TRANSCRIPT_KEYS)
 
     if force_slack and not force_transcript:
-        slack_only = [c for c in clean_chunks if c.get("source") == "slack"]
-        if slack_only:
-            clean_chunks = slack_only
-            print("[SOURCE ROUTE] Forced to slack only")
+        for c in clean_chunks:
+            if c.get("source") == "slack":
+                c["similarity"] += 0.25
+        clean_chunks = sorted(clean_chunks, key=lambda c: c["similarity"], reverse=True)
 
     elif force_transcript and not force_slack:
         transcript_only = [c for c in clean_chunks if c.get("source") == "transcript"]
@@ -597,7 +597,7 @@ def retrieve_chunks_node(state: MeetingState):
         keyword_overlap = len(q_words & chunk_words)
         # Don't override live inject score
         if chunk.get("rerank_score", 0) != 0.99:
-            chunk["rerank_score"] = chunk["similarity"] + (0.05 * keyword_overlap)
+            chunk["rerank_score"] = chunk["similarity"] + (0.15 * keyword_overlap)
 
     clean_chunks = sorted(
         clean_chunks,

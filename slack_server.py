@@ -156,9 +156,26 @@ def start_and_reply(channel_id, video_url, response_url):
 def sync_slack_and_reply(channel_id, response_url):
     try:
         ingest_slack_history(channel_id=channel_id, limit=5000)
+        try:
+            from scripts.ingest_to_supabase import update_dynamic_project_goal
+            supabase = get_supabase_client()
+            user = supabase.get_user_by_username(channel_id)
+            if user:
+                slack_meeting = supabase.get_meeting_by_name(f"slack_{channel_id}")
+                if slack_meeting:
+                    recent = supabase.client.table("chunks") \
+                        .select("chunk_text") \
+                        .eq("meeting_id", slack_meeting["id"]) \
+                        .order("chunk_index", desc=False) \
+                        .limit(10).execute()
+                    if recent.data:
+                        slack_text = "\n\n".join(c["chunk_text"] for c in recent.data)
+                        update_dynamic_project_goal(supabase, user["id"], slack_text)
+        except Exception as e:
+            print(f"[SYNC] Goal update failed: {e}")
         http_requests.post(response_url, json={
             "response_type": "in_channel",
-            "text": "Slack history synced!"
+            "text": "Slack history synced and goal updated! ✅"
         })
     except Exception as e:
         http_requests.post(response_url, json={
@@ -726,6 +743,33 @@ RULES:
 """.strip()
 
 
+def run_heartbeat_all_channels():
+    """Run proactive checkin for ALL channels the bot is present in."""
+    try:
+        response = slack_client.conversations_list(
+            types="public_channel,private_channel",
+            limit=200
+        )
+        channels = response.get("channels", [])
+        bot_channels = [c for c in channels if c.get("is_member")]
+        
+        print(f"[HEARTBEAT ALL] Found {len(bot_channels)} channels")
+        
+        import time
+        for channel in bot_channels:
+            channel_id = channel["id"]
+            try:
+                print(f"[HEARTBEAT ALL] Processing: {channel_id}")
+                run_heartbeat(channel_id)
+                time.sleep(2)  # small gap between channels
+            except Exception as e:
+                print(f"[HEARTBEAT ALL] Failed for {channel_id}: {e}")
+                continue
+                
+    except Exception as e:
+        print(f"[HEARTBEAT ALL] Failed to fetch channels: {e}")
+
+
 def run_heartbeat(channel_id: str):
     from groq import Groq as _Groq
     from datetime import timedelta
@@ -963,40 +1007,15 @@ def run_heartbeat(channel_id: str):
 # ───────────────────────────────────────
 @app.post("/heartbeat")
 async def heartbeat_post(request: Request, background_tasks: BackgroundTasks):
-    """
-    POST /heartbeat
-    Body: { "channel_id": "C0123456789" }
-    Can be called manually or from heartbeat_cron.py.
-    """
-    try:
-        body = await request.json()
-        channel_id = body.get("channel_id")
-        if not channel_id:
-            return {"status": "error", "message": "channel_id required"}
-        background_tasks.add_task(run_heartbeat, channel_id)
-        return {"status": "ok", "message": f"Heartbeat triggered for {channel_id}"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    background_tasks.add_task(run_heartbeat_all_channels)
+    return {"status": "ok", "message": "Heartbeat triggered for all channels"}
 
 
-# ───────────────────────────────────────
-# GET /heartbeat — called by Vercel cron
-# Vercel cron can only send GET requests with no body,
-# so we read channel_id from environment variable.
-# ───────────────────────────────────────
+# REPLACE the existing GET /heartbeat:
 @app.get("/heartbeat")
 async def heartbeat_get(background_tasks: BackgroundTasks):
-    """
-    GET /heartbeat
-    Called automatically by Vercel cron every 5 minutes.
-    Reads SLACK_CHANNEL_ID from environment — set this in your Vercel project settings.
-    """
-    channel_id = os.getenv("SLACK_CHANNEL_ID")
-    if not channel_id:
-        print("[HEARTBEAT GET] SLACK_CHANNEL_ID env var not set!")
-        return {"status": "error", "message": "SLACK_CHANNEL_ID env var not set"}
-    background_tasks.add_task(run_heartbeat, channel_id)
-    return {"status": "ok", "message": f"Heartbeat triggered for {channel_id}"}# ─────────────────────────────────────────────────────────────────
+    background_tasks.add_task(run_heartbeat_all_channels)
+    return {"status": "ok", "message": "Heartbeat triggered for all channels"}
 
 
 @app.get("/debug")

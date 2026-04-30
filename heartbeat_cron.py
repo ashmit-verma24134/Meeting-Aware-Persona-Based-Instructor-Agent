@@ -1,11 +1,9 @@
 """
 heartbeat_cron.py
 
-Calls the /heartbeat endpoint every 5 minutes.
+Calls the /heartbeat endpoint every 15 minutes for ALL channels.
 Run this on any machine:
     python heartbeat_cron.py
-
-Later: change INTERVAL_MINUTES to 60 or 120 for production.
 """
 
 import time
@@ -16,16 +14,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── Config ──
-VERCEL_URL = os.getenv("VERCEL_URL", "https://your-app.vercel.app")
-CHANNEL_ID = os.getenv("SLACK_CHANNEL_ID")
-BYPASS_TOKEN = os.getenv("VERCEL_AUTOMATION_BYPASS_SECRET")  # add this to .env
-INTERVAL_MINUTES = 1  # change to 60 or 120 for production
+VERCEL_URL = os.getenv("VERCEL_URL", "https://meeting-aware-persona-based-instructor-agent-k9bv-2w5v247fm.vercel.app")
+BYPASS_TOKEN = os.getenv("VERCEL_AUTOMATION_BYPASS_SECRET")
+INTERVAL_MINUTES = 15  # every 15 minutes
 
 def trigger_heartbeat():
     try:
         response = requests.post(
             f"{VERCEL_URL}/heartbeat",
-            json={"channel_id": CHANNEL_ID},
+            json={},  # no channel_id needed — server handles all channels
             headers={"x-vercel-protection-bypass": BYPASS_TOKEN} if BYPASS_TOKEN else {},
             timeout=10
         )
@@ -34,7 +31,7 @@ def trigger_heartbeat():
         print(f"[CRON] Heartbeat failed: {e}")
 
 if __name__ == "__main__":
-    print(f"[CRON] Starting heartbeat cron — every {INTERVAL_MINUTES} min for channel {CHANNEL_ID}")
+    print(f"[CRON] Starting heartbeat cron — every {INTERVAL_MINUTES} min for ALL channels")
     while True:
         trigger_heartbeat()
         time.sleep(INTERVAL_MINUTES * 60)

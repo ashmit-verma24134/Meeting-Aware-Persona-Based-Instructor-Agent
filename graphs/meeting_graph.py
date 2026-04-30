@@ -1249,7 +1249,7 @@ def chat_answer_node(state: MeetingState):
             "what happened", "what was discussed", "what did we discuss",
             "summarise", "give me a summary", "latest meeting",
             "what sources", "limitations", "splitting", "chunking",
-            "performance", "retrieval",
+            "performance", "retrieval", "who is",
         ]
     q_lower = state["question"].lower()
     if any(k in q_lower for k in FORCE_RETRIEVAL_KEYS):

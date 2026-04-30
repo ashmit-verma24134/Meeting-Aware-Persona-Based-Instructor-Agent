@@ -74,7 +74,7 @@ CRITICAL — CHUNK CONTAINS THE QUESTION BEING ASKED, NOT AN ANSWER:
 -If a chunk contains the question being asked, look at the surrounding lines (AI responses or other user messages) within that same chunk for the answer before discarding it.
 
 WHEN CONTEXT DOES NOT CONTAIN THE ANSWER:
-- If the question is general knowledge (a well-known person, historical figure, scientific concept, geography, technology), answer it from your own knowledge concisely in 1–2 sentences.
+- If the context does not contain the answer, respond with exactly: 'The answer is not available in the provided context.'
 - If the question is NOT general knowledge and the context does not contain the answer, respond with exactly: "The answer is not available in the provided context."
 - Do NOT fabricate or infer answers from unrelated chunks.
 

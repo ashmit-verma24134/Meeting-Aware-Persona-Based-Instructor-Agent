@@ -1109,7 +1109,7 @@ def chunk_answer_node(state: MeetingState):
     if q_words_set & PEOPLE_KEYS:
         MAX_CONTEXT_CHUNKS = 6
     elif q_words_set & DATE_KEYS:
-        MAX_CONTEXT_CHUNKS = 8
+        MAX_CONTEXT_CHUNKS = 15
     else:
         MAX_CONTEXT_CHUNKS = 3
     selected_chunks = sorted_chunks[:MAX_CONTEXT_CHUNKS]
@@ -1246,10 +1246,10 @@ def chat_answer_node(state: MeetingState):
     # --------------------------------------------------
     FORCE_RETRIEVAL_KEYS = [
             "summarize", "summary", "overview", "highlights", "takeaways",
-            "what happened", "what was discussed", "what did we discuss",
+            "what happened", "what all happened", "what was discussed", "what did we discuss",
             "summarise", "give me a summary", "latest meeting",
             "what sources", "limitations", "splitting", "chunking",
-            "performance", "retrieval", "who is",
+            "performance", "retrieval", "who is", "what is", "where is",
         ]
     q_lower = state["question"].lower()
     if any(k in q_lower for k in FORCE_RETRIEVAL_KEYS):

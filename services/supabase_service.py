@@ -8,9 +8,6 @@ load_dotenv()
 
 class SupabaseService:
 
-    # =========================================================
-    # INIT
-    # =========================================================
 
     def __init__(self):
         url = os.getenv("SUPABASE_URL")
@@ -21,9 +18,6 @@ class SupabaseService:
 
         self.client: Client = create_client(url, key)
 
-    # =========================================================
-    # USERS
-    # =========================================================
 
     def get_user_by_username(self, username: str) -> Optional[Dict]:
         response = (
@@ -104,9 +98,7 @@ class SupabaseService:
         )
         return response.data[0] if response.data else None
 
-    # =========================================================
-    # TRANSCRIPTS
-    # =========================================================
+
 
     def transcript_exists(self, meeting_id: str) -> bool:
         response = (
@@ -125,9 +117,7 @@ class SupabaseService:
             "raw_text": raw_text
         }, on_conflict="meeting_id").execute()
 
-    # =========================================================
-    # CHUNKS
-    # =========================================================
+
 
     def chunks_exist(self, meeting_id: str) -> bool:
         response = (
@@ -159,6 +149,8 @@ class SupabaseService:
 
         if not response.data:
             raise Exception("Chunk insert failed")
+    
+    # CONTEXT EXPANSION LOGIC
 
     def get_adjacent_chunks(self, meeting_id: str, chunk_indices: List[int], window: int = 2) -> List[Dict]:
         """Fetch adjacent chunks (+/- window) for a given set of matched chunk indices."""
@@ -191,9 +183,9 @@ class SupabaseService:
                 })
         return clean_chunks
 
-    # =========================================================
-    # VECTOR SEARCH
-    # =========================================================
+
+
+    #VECTOR SEARCH
 
     def match_chunks_by_user(
         self,
@@ -213,10 +205,7 @@ class SupabaseService:
 
         return response.data or []
 
-    # =========================================================
-    # BM25 KEYWORD SEARCH
-    # =========================================================
-
+    # BM25 KEYWORD SEARCH    
     def match_chunks_bm25(
         self,
         query_text: str,
@@ -237,15 +226,7 @@ class SupabaseService:
             print(f"[BM25] Search failed: {e}")
             return []
 
-    # =========================================================
     # SESSIONS
-    # =========================================================
-
-    def create_session(self, session_id: str, user_id: str):
-        self.client.table("sessions").insert({
-            "session_id": session_id,
-            "user_id": user_id
-        }).execute()
 
     def end_session(self, session_id: str):
         self.client.table("sessions") \
@@ -254,26 +235,11 @@ class SupabaseService:
             .execute()
 
     def create_session_if_not_exists(self, session_id: str, user_id: str):
-        existing = (
-            self.client
-            .table("sessions")
-            .select("id")
-            .eq("session_id", session_id)
-            .limit(1)
-            .execute()
-        )
+        self.client.table("sessions").upsert(
+            {"session_id": session_id, "user_id": user_id},
+            on_conflict="session_id"
+        ).execute()
 
-        if existing.data:
-            return
-
-        self.client.table("sessions").insert({
-            "session_id": session_id,
-            "user_id": user_id
-        }).execute()
-
-    # =========================================================
-    # CHAT MEMORY
-    # =========================================================
 
     def create_session_for_user(self, user_id):
         from uuid import uuid4
@@ -313,6 +279,8 @@ class SupabaseService:
             return False
         return self.chunks_exist(meeting["id"])
 
+
+    #Session Memory
     def save_chat_turn(
         self,
         session_id: str,
@@ -401,6 +369,8 @@ class SupabaseService:
                 lines.append(f"AI: {r['answer']}")
 
         return lines
+    
+    #appending live chunks
 
     def append_live_chat_to_slack_chunk(self, user_id: str, question: str, answer: str):
         from services.embedding_api import get_embedding
@@ -480,10 +450,10 @@ class SupabaseService:
             except Exception as e:
                 print(f"[AUTO-EMBED] Failed to insert new chunk: {e}")
 
-    # =========================================================
+    
     # EVENT DEDUPLICATION (Serverless-safe)
     # Requires table: CREATE TABLE slack_events (event_id TEXT PRIMARY KEY, created_at TIMESTAMPTZ DEFAULT NOW());
-    # =========================================================
+    
 
     def is_event_processed(self, event_id: str) -> bool:
         """
@@ -506,9 +476,9 @@ class SupabaseService:
             return False
 
 
-# =========================================================
+
 # GLOBAL SUPABASE SINGLETON
-# =========================================================
+
 
 _SUPABASE_INSTANCE = None
 

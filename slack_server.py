@@ -55,6 +55,8 @@ STAGE_ACTIVE = "ACTIVE"
 # ── Heartbeat cooldown tracker (in-memory) ──
 _LAST_HEARTBEAT = {}  # channel_id → datetime
 HEARTBEAT_COOLDOWN_MINUTES = 0
+SESSION_TIMEOUT_MINUTES = 25
+
 
 
 def ingest_and_reply(channel_id, run_id, response_url):
@@ -553,18 +555,35 @@ def handle_user_message(slack_user_id: str, channel_id: str, text: str):
 
     user_id = user["id"]
 
-    session = SLACK_SESSIONS.get(channel_id)
 
-    # ── Create session if not exists ──
+    session = SLACK_SESSIONS.get(channel_id)
+    now = datetime.utcnow()
+
+    if session is not None:
+        last_activity = session.get("last_activity_at")
+        if last_activity and (now - last_activity).total_seconds() > SESSION_TIMEOUT_MINUTES * 60:
+            print(f"[SESSION] Timeout for channel {channel_id} — creating new session")
+            # end old session in DB
+            try:
+                supabase.end_session(session["session_id"])
+            except Exception as e:
+                print(f"[SESSION] Failed to end old session: {e}")
+            # force create new
+            session = None
+            SLACK_SESSIONS.pop(channel_id, None)
+
     if session is None:
         sid = f"{channel_id}_slack_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
-        supabase.create_session(sid, user_id)
-
+        supabase.create_session_if_not_exists(sid, user_id)
         session = {
             "user_id": user_id,
             "session_id": sid,
+            "last_activity_at": now,
         }
         SLACK_SESSIONS[channel_id] = session
+
+    # Update last activity on every message
+    SLACK_SESSIONS[channel_id]["last_activity_at"] = now
 
     # ── EXIT ──
     if text.lower().strip() == "exit":

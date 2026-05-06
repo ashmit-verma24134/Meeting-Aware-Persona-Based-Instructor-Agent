@@ -14,6 +14,7 @@ Usage:
 """
 
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
 
 from services.slack_history_service import SlackHistoryService
@@ -27,7 +28,7 @@ load_dotenv()
 _SYNC_IN_PROGRESS = set()
 
 
-def ingest_slack_history(channel_id: str, limit: int = 500):
+def ingest_slack_history(channel_id: str, limit: int = 5000):
     """
     Fetch Slack channel messages → group by day → embed → store in Supabase.
     One chunk per calendar day (e.g. all March 22 messages = one chunk).
@@ -97,26 +98,35 @@ def ingest_slack_history(channel_id: str, limit: int = 500):
         full_text = "\n\n".join(c["text"] for c in small_chunks)
         supabase.upsert_transcript(meeting_id, full_text)
 
-        # ── Embed each chunk and insert ──
-        chunk_rows = []
+        # ── Embed each chunk in parallel ──
+        chunk_rows = [None] * len(small_chunks)
 
-        for idx, chunk in enumerate(small_chunks):
-            embedding_text = chunk["text"]
-            embedding = get_embedding(embedding_text)
-
-            chunk_rows.append({
+        def embed_one(args):
+            idx, chunk = args
+            embedding = get_embedding(chunk["text"])
+            print(f"[SLACK INGEST] Embedded chunk {idx} for date {chunk.get('date', 'unknown')}")
+            return idx, {
                 "meeting_id": meeting_id,
                 "chunk_index": idx,
                 "chunk_text": chunk["text"],
                 "embedding": embedding,
                 "source": "slack",
-            })
+            }
 
-            print(f"[SLACK INGEST] Embedded chunk {idx} for date {chunk.get('date', 'unknown')}")
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [executor.submit(embed_one, (i, c)) for i, c in enumerate(small_chunks)]
+            for future in as_completed(futures):
+                idx, row = future.result()
+                chunk_rows[idx] = row
 
-        if chunk_rows:
-            supabase.insert_chunks(chunk_rows)
-            print(f"[SLACK INGEST] Inserted {len(chunk_rows)} slack chunks.")
+        # ── Batch insert every 20 chunks ──
+        BATCH_SIZE = 20
+        for i in range(0, len(chunk_rows), BATCH_SIZE):
+            batch = chunk_rows[i:i + BATCH_SIZE]
+            supabase.insert_chunks(batch)
+            print(f"[SLACK INGEST] Inserted batch {i//BATCH_SIZE + 1} ({len(batch)} chunks)")
+
+        print(f"[SLACK INGEST] Inserted {len(chunk_rows)} slack chunks total.")
 
         # ── Update goal AFTER all chunks are safely inserted ──
         # Pass only the most recent slack dates (last 10 chunks) as the activity signal.

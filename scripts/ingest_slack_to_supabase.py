@@ -68,6 +68,11 @@ def ingest_slack_history(channel_id: str, limit: int = 5000):
 
         print(f"[SLACK INGEST] {len(small_chunks)} small chunks generated")
 
+        # ── SIRF RECENT 60 CHUNKS — timeout fix ──
+        if len(small_chunks) > 60:
+            print(f"[SLACK INGEST] Trimming to last 60 chunks (was {len(small_chunks)})")
+            small_chunks = small_chunks[-60:]
+
         # ── Ensure user exists ──
         user = supabase.get_user_by_username(channel_id)
         if not user:
@@ -129,9 +134,6 @@ def ingest_slack_history(channel_id: str, limit: int = 5000):
         print(f"[SLACK INGEST] Inserted {len(chunk_rows)} slack chunks total.")
 
         # ── Update goal AFTER all chunks are safely inserted ──
-        # Pass only the most recent slack dates (last 10 chunks) as the activity signal.
-        # update_dynamic_project_goal internally pulls ALL past meeting transcripts
-        # so the LLM sees the full project arc — slack is just the "what's happening now" signal.
         print("[SLACK INGEST] Updating dynamic project goal from Slack activity...")
         recent_slack_text = "\n\n".join(c["text"] for c in small_chunks[-10:])
         update_dynamic_project_goal(supabase, user_uuid, recent_slack_text)

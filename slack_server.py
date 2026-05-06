@@ -157,7 +157,7 @@ def start_and_reply(channel_id, video_url, response_url):
 
 def sync_slack_and_reply(channel_id, response_url):
     try:
-        ingest_slack_history(channel_id=channel_id, limit=5000)
+        ingest_slack_history(channel_id=channel_id, limit=2000)
         try:
             from scripts.ingest_to_supabase import update_dynamic_project_goal
             supabase = get_supabase_client()

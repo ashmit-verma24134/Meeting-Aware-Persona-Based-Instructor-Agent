@@ -219,7 +219,6 @@ def handle_pdf_file_upload(channel_id, file_id, filename=None, download_url=None
     log.info(f"[PDF UPLOAD] Started — file_id={file_id} filename={filename} channel={channel_id}")
     try:
         from scripts.ingest_pdf import ingest_pdf
-        import tempfile
 
         # Only call files_info when we don't already have the download URL
         if not download_url:
@@ -234,30 +233,48 @@ def handle_pdf_file_upload(channel_id, file_id, filename=None, download_url=None
                 log.warning(f"[PDF UPLOAD] No download URL found for {file_id}")
                 return
 
-        log.info(f"[PDF UPLOAD] Downloading {filename} from Slack — URL: {download_url[:80]}")
-        log.info(f"[PDF UPLOAD] SLACK_BOT_TOKEN present: {bool(SLACK_BOT_TOKEN)}")
-        headers = {"Authorization": f"Bearer {SLACK_BOT_TOKEN}"}
+        log.info(f"[PDF UPLOAD] Downloading {filename} — URL prefix: {download_url[:60]}")
         import time as _time
+        import tempfile as _tempfile
+        headers = {"Authorization": f"Bearer {SLACK_BOT_TOKEN}"}
         t0 = _time.time()
-        try:
-            resp = http_requests.get(download_url, headers=headers, timeout=60)
-            log.info(f"[PDF UPLOAD] Download response: status={resp.status_code} size={len(resp.content)} bytes time={_time.time()-t0:.2f}s")
-            resp.raise_for_status()
-        except http_requests.exceptions.Timeout:
-            log.error("[PDF UPLOAD] Download TIMED OUT after 60s")
-            raise
-        except http_requests.exceptions.SSLError as e:
-            log.error(f"[PDF UPLOAD] SSL error during download: {e}")
-            raise
-        except Exception as e:
-            log.error(f"[PDF UPLOAD] Download failed after {_time.time()-t0:.2f}s: {type(e).__name__}: {e}")
-            raise
-        log.info(f"[PDF UPLOAD] Downloaded {len(resp.content)} bytes in {_time.time()-t0:.2f}s")
 
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-        tmp.write(resp.content)
+        # Stream the download so we can log progress and detect hangs early
+        log.info("[PDF UPLOAD] Opening stream connection to Slack...")
+        try:
+            stream_resp = http_requests.get(
+                download_url, headers=headers,
+                stream=True, timeout=(10, 60)  # (connect timeout, read timeout)
+            )
+            log.info(f"[PDF UPLOAD] Got response headers — status={stream_resp.status_code} ({_time.time()-t0:.2f}s)")
+            stream_resp.raise_for_status()
+        except http_requests.exceptions.ConnectTimeout:
+            log.error("[PDF UPLOAD] CONNECT timeout — could not reach Slack file server in 10s")
+            raise
+        except http_requests.exceptions.ReadTimeout:
+            log.error("[PDF UPLOAD] READ timeout — Slack file server connected but stopped sending data")
+            raise
+        except http_requests.exceptions.SSLError as ssl_e:
+            log.error(f"[PDF UPLOAD] SSL error: {ssl_e}")
+            raise
+        except Exception as dl_e:
+            log.error(f"[PDF UPLOAD] Download error ({type(dl_e).__name__}): {dl_e}")
+            raise
+
+        log.info("[PDF UPLOAD] Reading file content in chunks...")
+        chunks_data = []
+        bytes_read = 0
+        for chunk in stream_resp.iter_content(chunk_size=65536):
+            if chunk:
+                chunks_data.append(chunk)
+                bytes_read += len(chunk)
+        file_bytes = b"".join(chunks_data)
+        log.info(f"[PDF UPLOAD] Read complete — {bytes_read} bytes in {_time.time()-t0:.2f}s")
+
+        tmp = _tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+        tmp.write(file_bytes)
         tmp.close()
-        log.info(f"[PDF UPLOAD] Saved to temp file {tmp.name}")
+        log.info(f"[PDF UPLOAD] Saved to temp file {tmp.name} ({len(file_bytes)} bytes)")
 
         def post_progress(msg):
             log.info(f"[PDF UPLOAD] Progress: {msg}")

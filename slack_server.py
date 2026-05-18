@@ -171,21 +171,21 @@ def ingest_url_and_reply(channel_id, url, response_url):
         })
 
 
-def handle_pdf_file_upload(channel_id, file_id, filename=None):
+def handle_pdf_file_upload(channel_id, file_id, filename=None, download_url=None):
     """Download a PDF uploaded to Slack and ingest it."""
     from scripts.ingest_pdf import ingest_pdf
     import tempfile
     try:
-        file_info = slack_client.files_info(file=file_id)
-        file_data = file_info.get("file", {})
-
-        if file_data.get("filetype") != "pdf":
-            return
-
-        filename = filename or file_data.get("name", "file.pdf")
-        download_url = file_data.get("url_private_download") or file_data.get("url_private")
+        # Only call files_info when we don't already have the download URL
+        # (primary file_share path passes it directly to avoid the extra API call)
         if not download_url:
-            return
+            file_data = slack_client.files_info(file=file_id).get("file", {})
+            if file_data.get("filetype") != "pdf":
+                return
+            filename = filename or file_data.get("name", "file.pdf")
+            download_url = file_data.get("url_private_download") or file_data.get("url_private")
+            if not download_url:
+                return
 
         headers = {"Authorization": f"Bearer {SLACK_BOT_TOKEN}"}
         resp = http_requests.get(download_url, headers=headers, timeout=60)
@@ -490,14 +490,15 @@ def process_event(event: dict):
             if f.get("filetype") == "pdf" and channel:
                 file_id = f.get("id")
                 filename = f.get("name", "file.pdf")
-                if file_id:
+                download_url = f.get("url_private_download") or f.get("url_private")
+                if file_id and download_url:
                     slack_client.chat_postMessage(
                         channel=channel,
                         text=f"PDF detected: `{filename}` — ingestion starting..."
                     )
                     threading.Thread(
                         target=handle_pdf_file_upload,
-                        args=(channel, file_id, filename),
+                        args=(channel, file_id, filename, download_url),
                         daemon=True,
                     ).start()
         return
@@ -521,13 +522,14 @@ def process_event(event: dict):
                 file_data = slack_client.files_info(file=file_id).get("file", {})
                 if file_data.get("filetype") == "pdf":
                     filename = file_data.get("name", "file.pdf")
+                    dl_url = file_data.get("url_private_download") or file_data.get("url_private")
                     slack_client.chat_postMessage(
                         channel=channel,
                         text=f"PDF detected: `{filename}` — ingestion starting..."
                     )
                     threading.Thread(
                         target=handle_pdf_file_upload,
-                        args=(channel, file_id, filename),
+                        args=(channel, file_id, filename, dl_url),
                         daemon=True,
                     ).start()
             except Exception as e:

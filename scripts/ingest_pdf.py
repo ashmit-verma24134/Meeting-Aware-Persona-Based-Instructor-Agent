@@ -31,6 +31,13 @@ def _chunk_text(text: str, max_words: int = MAX_CHUNK_WORDS) -> list[str]:
 def _extract_pdf_text(path: str) -> str:
     import pdfplumber
     logger.info(f"[PDF] Opening file: {path}")
+    with open(path, "rb") as f:
+        magic = f.read(4)
+    if magic != b"%PDF":
+        raise ValueError(
+            f"Downloaded file is not a valid PDF (magic bytes: {magic!r}). "
+            "Slack may have returned an HTML error page or the file is corrupted."
+        )
     pages = []
     with pdfplumber.open(path) as pdf:
         total_pages = len(pdf.pages)

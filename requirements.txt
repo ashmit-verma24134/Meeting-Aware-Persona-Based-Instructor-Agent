@@ -8,4 +8,7 @@ pydantic
 langgraph
 groq
 python-multipart
-gradio_client  
+gradio_client
+pdfplumber
+beautifulsoup4
+lxml

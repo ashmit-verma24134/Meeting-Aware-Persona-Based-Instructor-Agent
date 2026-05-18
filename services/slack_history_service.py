@@ -84,10 +84,24 @@ class SlackHistoryService:
                     except Exception:
                         speaker = user_id
 
+                # Collect PDF file attachments for later ingestion
+                pdf_files = [
+                    {
+                        "file_id": f.get("id"),
+                        "name": f.get("name", "file.pdf"),
+                        "download_url": f.get("url_private_download") or f.get("url_private"),
+                    }
+                    for f in msg.get("files", [])
+                    if f.get("filetype") == "pdf" and (
+                        f.get("url_private_download") or f.get("url_private")
+                    )
+                ]
+
                 messages.append({
                     "text": text,
                     "user": speaker,
                     "timestamp": msg.get("ts", ""),
+                    "pdf_files": pdf_files,
                 })
 
             # Pagination
@@ -165,6 +179,20 @@ class SlackHistoryService:
 
             for msg_line in daily[date]:
                 words_in_msg = len(msg_line.split())
+
+                # Single message larger than max_words — flush & split it directly
+                if words_in_msg > max_words:
+                    if current_messages:
+                        chunk_text = f"--- {date} ---\n" + "\n\n".join(current_messages)
+                        chunks.append({"date": date, "text": chunk_text})
+                        current_messages = []
+                        current_words = 0
+                    msg_words = msg_line.split()
+                    for start in range(0, len(msg_words), max_words):
+                        sub = " ".join(msg_words[start:start + max_words])
+                        chunks.append({"date": date, "text": f"--- {date} ---\n{sub}"})
+                    continue
+
                 if current_words + words_in_msg > max_words and current_messages:
                     # Finalize current chunk
                     chunk_text = f"--- {date} ---\n" + "\n\n".join(current_messages)
@@ -174,7 +202,7 @@ class SlackHistoryService:
                     })
                     current_messages = []
                     current_words = 0
-                
+
                 current_messages.append(msg_line)
                 current_words += words_in_msg
 

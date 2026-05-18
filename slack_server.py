@@ -155,6 +155,64 @@ def start_and_reply(channel_id, video_url, response_url):
 # ───────────────────────────────────────
 
 
+
+def ingest_url_and_reply(channel_id, url, response_url):
+    from scripts.ingest_url import ingest_url
+    try:
+        count, meeting_name = ingest_url(url, channel_id)
+        http_requests.post(response_url, json={
+            "response_type": "in_channel",
+            "text": f"Link ingested: {count} chunks stored as `{meeting_name}`. You can now ask questions about it!"
+        })
+    except Exception as e:
+        http_requests.post(response_url, json={
+            "response_type": "in_channel",
+            "text": f"Link ingest failed: {str(e)}"
+        })
+
+
+def handle_pdf_file_upload(channel_id, file_id):
+    """Download a PDF uploaded to Slack and ingest it."""
+    from scripts.ingest_pdf import ingest_pdf
+    import tempfile
+    try:
+        file_info = slack_client.files_info(file=file_id)
+        file_data = file_info.get("file", {})
+
+        if file_data.get("filetype") != "pdf":
+            return
+
+        download_url = file_data.get("url_private_download") or file_data.get("url_private")
+        if not download_url:
+            return
+
+        headers = {"Authorization": f"Bearer {SLACK_BOT_TOKEN}"}
+        resp = http_requests.get(download_url, headers=headers, timeout=60)
+        resp.raise_for_status()
+
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+        tmp.write(resp.content)
+        tmp.close()
+
+        # Pass file_id as source_id so the same PDF is never ingested twice
+        count, meeting_name = ingest_pdf(tmp.name, channel_id, source_id=file_id)
+        os.unlink(tmp.name)
+
+        if count == 0:
+            return  # Already ingested, no need to notify
+
+        slack_client.chat_postMessage(
+            channel=channel_id,
+            text=f"PDF ingested: {count} chunks stored as `{meeting_name}`. You can now ask questions about it!"
+        )
+
+    except Exception as e:
+        slack_client.chat_postMessage(
+            channel=channel_id,
+            text=f"Failed to process uploaded PDF: {str(e)}"
+        )
+
+
 def sync_slack_and_reply(channel_id, response_url):
     try:
         ingest_slack_history(channel_id=channel_id, limit=5000)
@@ -282,7 +340,22 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
             )
             return {
                 "response_type": "in_channel",
-                "text": "Syncing Slack history for this channel..."
+                "text": "Syncing Slack history for this channel... Google Doc links will be ingested automatically."
+            }
+
+        # ---------- /link ----------
+        if command == "/link":
+            url = (text or "").strip()
+            if not url:
+                return {
+                    "response_type": "in_channel",
+                    "text": "Usage: `/link <url>` — provide any web page URL to extract and index."
+                }
+            response_url = form.get("response_url")
+            background_tasks.add_task(ingest_url_and_reply, channel_id, url, response_url)
+            return {
+                "response_type": "in_channel",
+                "text": f"Processing link `{url[:80]}`..."
             }
 
     return {"status": "ok"}
@@ -412,6 +485,19 @@ def process_event(event: dict):
         return
 
     event_type = event.get("type")
+
+    # ── Handle PDF file uploads ──
+    if event_type == "file_shared":
+        file_id = event.get("file_id") or (event.get("file") or {}).get("id")
+        channel = event.get("channel_id") or event.get("channel")
+        if file_id and channel:
+            threading.Thread(
+                target=handle_pdf_file_upload,
+                args=(channel, file_id),
+                daemon=True,
+            ).start()
+        return
+
     if event_type not in ["message", "app_mention"]:
         return
 
@@ -544,6 +630,8 @@ def start_meeting_background(channel_id, video_url):
 # USER HANDLER
 # ───────────────────────────────────────
 
+
+# a fx for handling pdf will be made
 def handle_user_message(slack_user_id: str, channel_id: str, text: str):
 
     supabase = get_supabase_client()

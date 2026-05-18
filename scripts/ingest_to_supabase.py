@@ -10,11 +10,21 @@ load_dotenv()
 # KEYFRAME CHUNKING
 # ===================================================
 
+MAX_CHUNK_WORDS = 400
+
+
+def _split_large_text(text: str, max_words: int = MAX_CHUNK_WORDS) -> list[str]:
+    words = text.split()
+    if len(words) <= max_words:
+        return [text]
+    return [" ".join(words[i:i + max_words]) for i in range(0, len(words), max_words)]
+
+
 def chunk_by_keyframe(text: str) -> list[dict]:
     pattern = re.compile(r'(\[\d{2}:\d{2}:\d{2}(?:\.\d+)?\])')
     parts = pattern.split(text)
 
-    chunks = []
+    raw_chunks = []
     i = 0
 
     while i < len(parts):
@@ -31,31 +41,37 @@ def chunk_by_keyframe(text: str) -> list[dict]:
             if speaker_match:
                 speaker = speaker_match.group(1)
 
-            words = content.split()
-            topic = " ".join(words[:6]) if words else ""
-
-            chunks.append({
+            raw_chunks.append({
                 "text": content,
                 "timestamp_start": timestamp,
-                "topic": topic,
                 "speaker": speaker,
             })
         else:
             i += 1
 
-    if not chunks:
+    if not raw_chunks:
         print("[CHUNK] No timestamps found — falling back to word-level chunking")
         words = text.split()
-        step = 300
-        for idx in range(0, len(words), step):
-            chunk_text = " ".join(words[idx:idx + step])
+        for idx in range(0, len(words), MAX_CHUNK_WORDS):
+            chunk_text = " ".join(words[idx:idx + MAX_CHUNK_WORDS])
             if chunk_text:
-                chunks.append({
+                raw_chunks.append({
                     "text": chunk_text,
                     "timestamp_start": None,
-                    "topic": " ".join(chunk_text.split()[:6]),
                     "speaker": None,
                 })
+
+    # Split any chunk that exceeds MAX_CHUNK_WORDS to keep embeddings accurate
+    chunks = []
+    for rc in raw_chunks:
+        for sub in _split_large_text(rc["text"]):
+            words = sub.split()
+            chunks.append({
+                "text": sub,
+                "timestamp_start": rc["timestamp_start"],
+                "topic": " ".join(words[:6]) if words else "",
+                "speaker": rc["speaker"],
+            })
 
     return chunks
 

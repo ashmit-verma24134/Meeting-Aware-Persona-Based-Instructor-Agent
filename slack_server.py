@@ -163,6 +163,39 @@ def start_and_reply(channel_id, video_url, response_url):
 
 
 
+def _get_base_url() -> str:
+    vercel_url = os.getenv("VERCEL_URL", "")
+    if vercel_url:
+        return f"https://{vercel_url}"
+    return os.getenv("APP_URL", "http://localhost:8000")
+
+
+def _fire_pdf_processing(channel_id: str, file_id: str, filename: str, download_url: str):
+    """
+    Fire-and-forget POST to /process-pdf — becomes its own independent Vercel
+    function invocation so it isn't killed when the /slack/events handler returns.
+    """
+    base_url = _get_base_url()
+    log = logging.getLogger(__name__)
+    log.info(f"[PDF FIRE] Dispatching to {base_url}/process-pdf for file_id={file_id}")
+    try:
+        http_requests.post(
+            f"{base_url}/process-pdf",
+            json={
+                "file_id": file_id,
+                "channel_id": channel_id,
+                "filename": filename,
+                "download_url": download_url,
+            },
+            timeout=5,
+        )
+    except Exception:
+        # Timeout is expected — we only care that the request was sent,
+        # not that we received the response. The /process-pdf invocation
+        # continues independently on Vercel.
+        pass
+
+
 def ingest_url_and_reply(channel_id, url, response_url):
     from scripts.ingest_url import ingest_url
     try:
@@ -291,7 +324,46 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
             return {"challenge": body.get("challenge")}
 
         if body.get("type") == "event_callback":
-            event = body.get("event")
+            event = body.get("event", {})
+            subtype = event.get("subtype", "")
+            event_type = event.get("type", "")
+
+            # ── PDF uploads: fire to /process-pdf (new Vercel invocation) inline ──
+            if subtype == "file_share" or event_type == "file_shared":
+                channel = event.get("channel") or event.get("channel_id")
+                files = event.get("files", [])
+
+                # file_shared type carries file_id, not full file object
+                if event_type == "file_shared" and not files:
+                    file_id = event.get("file_id") or (event.get("file") or {}).get("id")
+                    if file_id and channel:
+                        try:
+                            file_data = slack_client.files_info(file=file_id).get("file", {})
+                            if file_data.get("filetype") == "pdf":
+                                files = [{
+                                    "id": file_id,
+                                    "name": file_data.get("name", "file.pdf"),
+                                    "filetype": "pdf",
+                                    "url_private_download": file_data.get("url_private_download") or file_data.get("url_private"),
+                                }]
+                        except Exception as e:
+                            logging.getLogger(__name__).warning(f"[PDF] files_info failed: {e}")
+
+                for f in files:
+                    if f.get("filetype") == "pdf" and channel:
+                        file_id = f.get("id")
+                        filename = f.get("name", "file.pdf")
+                        download_url = f.get("url_private_download") or f.get("url_private")
+                        if file_id and download_url:
+                            slack_client.chat_postMessage(
+                                channel=channel,
+                                text=f"PDF detected: `{filename}` — ingestion starting..."
+                            )
+                            _fire_pdf_processing(channel, file_id, filename, download_url)
+
+                return {"status": "ok"}
+
+            # ── All other events via background task ──
             background_tasks.add_task(process_event, event)
 
         return {"status": "ok"}
@@ -389,6 +461,34 @@ async def slack_events(request: Request, background_tasks: BackgroundTasks):
             }
 
     return {"status": "ok"}
+
+
+@app.post("/process-pdf")
+async def process_pdf_endpoint(request: Request):
+    """
+    Internal endpoint that runs as its own Vercel invocation.
+    Called by _fire_pdf_processing() from /slack/events.
+    Has up to maxDuration (300s) to complete — no thread killing.
+    """
+    log = logging.getLogger(__name__)
+    try:
+        data = await request.json()
+        file_id = data.get("file_id")
+        channel_id = data.get("channel_id")
+        filename = data.get("filename", "file.pdf")
+        download_url = data.get("download_url")
+
+        if not file_id or not channel_id:
+            log.warning("[PROCESS-PDF] Missing file_id or channel_id")
+            return {"error": "missing fields"}
+
+        log.info(f"[PROCESS-PDF] Received job — file_id={file_id} channel={channel_id} filename={filename}")
+        handle_pdf_file_upload(channel_id, file_id, filename, download_url)
+        return {"status": "ok"}
+
+    except Exception as e:
+        log.exception(f"[PROCESS-PDF] Endpoint error: {e}")
+        return {"error": str(e)}
 
 
 # ───────────────────────────────────────
@@ -508,26 +608,6 @@ def process_event(event: dict):
 
     subtype = event.get("subtype", "")
 
-    # ── Handle PDF file uploads (primary path: message with subtype file_share) ──
-    if subtype == "file_share":
-        channel = event.get("channel")
-        for f in event.get("files", []):
-            if f.get("filetype") == "pdf" and channel:
-                file_id = f.get("id")
-                filename = f.get("name", "file.pdf")
-                download_url = f.get("url_private_download") or f.get("url_private")
-                if file_id and download_url:
-                    slack_client.chat_postMessage(
-                        channel=channel,
-                        text=f"PDF detected: `{filename}` — ingestion starting..."
-                    )
-                    threading.Thread(
-                        target=handle_pdf_file_upload,
-                        args=(channel, file_id, filename, download_url),
-                        daemon=True,
-                    ).start()
-        return
-
     if subtype in [
         "bot_message",
         "message_changed",
@@ -537,29 +617,6 @@ def process_event(event: dict):
         return
 
     event_type = event.get("type")
-
-    # ── Fallback: file_shared event type (secondary, some Slack configs send this) ──
-    if event_type == "file_shared":
-        file_id = event.get("file_id") or (event.get("file") or {}).get("id")
-        channel = event.get("channel_id") or event.get("channel")
-        if file_id and channel:
-            try:
-                file_data = slack_client.files_info(file=file_id).get("file", {})
-                if file_data.get("filetype") == "pdf":
-                    filename = file_data.get("name", "file.pdf")
-                    dl_url = file_data.get("url_private_download") or file_data.get("url_private")
-                    slack_client.chat_postMessage(
-                        channel=channel,
-                        text=f"PDF detected: `{filename}` — ingestion starting..."
-                    )
-                    threading.Thread(
-                        target=handle_pdf_file_upload,
-                        args=(channel, file_id, filename, dl_url),
-                        daemon=True,
-                    ).start()
-            except Exception as e:
-                print(f"[PDF] file_shared fallback error: {e}")
-        return
 
     if event_type not in ["message", "app_mention"]:
         return

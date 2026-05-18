@@ -9,7 +9,7 @@
   "crons": [
     {
       "path": "/heartbeat",
-      "schedule": "0 * * * *"
+      "schedule": "0 9 * * *"
     }
   ],
   "functions": {

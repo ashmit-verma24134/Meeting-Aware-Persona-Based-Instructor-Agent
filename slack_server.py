@@ -239,37 +239,62 @@ def handle_pdf_file_upload(channel_id, file_id, filename=None, download_url=None
         headers = {"Authorization": f"Bearer {SLACK_BOT_TOKEN}"}
         t0 = _time.time()
 
-        # Stream the download so we can log progress and detect hangs early
-        log.info("[PDF UPLOAD] Opening stream connection to Slack...")
-        try:
-            stream_resp = http_requests.get(
-                download_url, headers=headers,
-                stream=True, timeout=(10, 60)  # (connect timeout, read timeout)
-            )
-            log.info(f"[PDF UPLOAD] Got response headers — status={stream_resp.status_code} ({_time.time()-t0:.2f}s)")
-            stream_resp.raise_for_status()
-        except http_requests.exceptions.ConnectTimeout:
-            log.error("[PDF UPLOAD] CONNECT timeout — could not reach Slack file server in 10s")
-            raise
-        except http_requests.exceptions.ReadTimeout:
-            log.error("[PDF UPLOAD] READ timeout — Slack file server connected but stopped sending data")
-            raise
-        except http_requests.exceptions.SSLError as ssl_e:
-            log.error(f"[PDF UPLOAD] SSL error: {ssl_e}")
-            raise
-        except Exception as dl_e:
-            log.error(f"[PDF UPLOAD] Download error ({type(dl_e).__name__}): {dl_e}")
-            raise
+        # Retry loop: on SSL/connection failure, re-fetch a fresh URL from files_info
+        MAX_DOWNLOAD_RETRIES = 3
+        file_bytes = None
+        last_dl_error = None
+        current_url = download_url
 
-        log.info("[PDF UPLOAD] Reading file content in chunks...")
-        chunks_data = []
-        bytes_read = 0
-        for chunk in stream_resp.iter_content(chunk_size=65536):
-            if chunk:
-                chunks_data.append(chunk)
-                bytes_read += len(chunk)
-        file_bytes = b"".join(chunks_data)
-        log.info(f"[PDF UPLOAD] Read complete — {bytes_read} bytes in {_time.time()-t0:.2f}s")
+        for attempt in range(MAX_DOWNLOAD_RETRIES):
+            if attempt > 0:
+                backoff = 2 ** attempt
+                log.info(f"[PDF UPLOAD] Retry {attempt}/{MAX_DOWNLOAD_RETRIES-1} — sleeping {backoff}s then re-fetching URL")
+                _time.sleep(backoff)
+                try:
+                    fresh_data = slack_client.files_info(file=file_id).get("file", {})
+                    fresh_url = fresh_data.get("url_private_download") or fresh_data.get("url_private")
+                    if fresh_url:
+                        current_url = fresh_url
+                        log.info(f"[PDF UPLOAD] Fresh URL obtained on retry {attempt}")
+                except Exception as info_err:
+                    log.warning(f"[PDF UPLOAD] files_info re-fetch failed: {info_err} — reusing previous URL")
+
+            try:
+                log.info(f"[PDF UPLOAD] Download attempt {attempt+1}/{MAX_DOWNLOAD_RETRIES}...")
+                stream_resp = http_requests.get(
+                    current_url, headers=headers,
+                    stream=True, timeout=(15, 90),
+                )
+                log.info(f"[PDF UPLOAD] Got response headers — status={stream_resp.status_code} ({_time.time()-t0:.2f}s)")
+                stream_resp.raise_for_status()
+
+                log.info("[PDF UPLOAD] Reading file content in chunks...")
+                chunks_data = []
+                bytes_read = 0
+                for chunk in stream_resp.iter_content(chunk_size=65536):
+                    if chunk:
+                        chunks_data.append(chunk)
+                        bytes_read += len(chunk)
+                file_bytes = b"".join(chunks_data)
+                log.info(f"[PDF UPLOAD] Read complete — {bytes_read} bytes in {_time.time()-t0:.2f}s")
+                break  # success
+
+            except http_requests.exceptions.SSLError as ssl_e:
+                last_dl_error = ssl_e
+                log.warning(f"[PDF UPLOAD] SSL error on attempt {attempt+1}: {ssl_e}")
+            except http_requests.exceptions.ConnectTimeout as e:
+                last_dl_error = e
+                log.warning(f"[PDF UPLOAD] Connect timeout on attempt {attempt+1}")
+            except http_requests.exceptions.ReadTimeout as e:
+                last_dl_error = e
+                log.warning(f"[PDF UPLOAD] Read timeout on attempt {attempt+1}")
+            except Exception as e:
+                last_dl_error = e
+                log.warning(f"[PDF UPLOAD] Download error on attempt {attempt+1} ({type(e).__name__}): {e}")
+
+        if file_bytes is None:
+            log.error(f"[PDF UPLOAD] All {MAX_DOWNLOAD_RETRIES} download attempts failed")
+            raise last_dl_error
 
         tmp = _tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
         tmp.write(file_bytes)

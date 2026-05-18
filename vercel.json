@@ -12,6 +12,12 @@
       "dest": "/api/index.py"
     }
   ],
+  "crons": [
+    {
+      "path": "/heartbeat",
+      "schedule": "0 * * * *"
+    }
+  ],
   "functions": {
     "api/index.py": {
       "maxDuration": 300

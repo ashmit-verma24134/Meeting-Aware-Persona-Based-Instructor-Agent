@@ -1,8 +1,7 @@
 import json
 from scripts.hf_json_to_txt import convert_hf_json_to_txt
 
-# 👉 path to your JSON file
-JSON_PATH = "lmd.json"
+JSON_PATH = "sample.json"
 def main():
     with open(JSON_PATH, "r", encoding="utf-8") as f:
         data = json.load(f)

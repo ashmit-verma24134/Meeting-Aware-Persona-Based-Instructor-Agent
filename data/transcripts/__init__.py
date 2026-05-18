@@ -1,4 +1,4 @@
-# data/transcripts/__init__.py
+# Transcript storage utilities
 
 import os
 

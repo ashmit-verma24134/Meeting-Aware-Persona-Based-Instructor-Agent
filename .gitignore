@@ -41,6 +41,7 @@ tmp/
 temp/
 *.bak
 *.old
+meeting_*.txt
 
 
 .env_deploy

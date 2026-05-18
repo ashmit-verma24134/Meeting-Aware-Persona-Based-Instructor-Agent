@@ -12,7 +12,7 @@ print("KEY loaded:", SUPABASE_KEY is not None)
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Try inserting a dummy meeting
+# Insert a test meeting record to verify connection
 response = supabase.table("meetings").insert({
     "meeting_name": "test_meeting"
 }).execute()

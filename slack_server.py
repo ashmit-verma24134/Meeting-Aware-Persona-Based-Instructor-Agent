@@ -171,7 +171,7 @@ def ingest_url_and_reply(channel_id, url, response_url):
         })
 
 
-def handle_pdf_file_upload(channel_id, file_id):
+def handle_pdf_file_upload(channel_id, file_id, filename=None):
     """Download a PDF uploaded to Slack and ingest it."""
     from scripts.ingest_pdf import ingest_pdf
     import tempfile
@@ -182,6 +182,7 @@ def handle_pdf_file_upload(channel_id, file_id):
         if file_data.get("filetype") != "pdf":
             return
 
+        filename = filename or file_data.get("name", "file.pdf")
         download_url = file_data.get("url_private_download") or file_data.get("url_private")
         if not download_url:
             return
@@ -194,22 +195,26 @@ def handle_pdf_file_upload(channel_id, file_id):
         tmp.write(resp.content)
         tmp.close()
 
-        # Pass file_id as source_id so the same PDF is never ingested twice
         count, meeting_name = ingest_pdf(tmp.name, channel_id, source_id=file_id)
         os.unlink(tmp.name)
 
         if count == 0:
-            return  # Already ingested, no need to notify
+            slack_client.chat_postMessage(
+                channel=channel_id,
+                text=f"`{filename}` was already ingested previously — nothing changed."
+            )
+            return
 
         slack_client.chat_postMessage(
             channel=channel_id,
-            text=f"PDF ingested: {count} chunks stored as `{meeting_name}`. You can now ask questions about it!"
+            text=f"`{filename}` ingested successfully — {count} chunks ready for Q&A!"
         )
 
     except Exception as e:
+        label = f"`{filename}`" if filename else "PDF"
         slack_client.chat_postMessage(
             channel=channel_id,
-            text=f"Failed to process uploaded PDF: {str(e)}"
+            text=f"Failed to process {label}: {str(e)}"
         )
 
 
@@ -476,7 +481,28 @@ def process_event(event: dict):
     if event.get("bot_id"):
         return
 
-    if event.get("subtype") in [
+    subtype = event.get("subtype", "")
+
+    # ── Handle PDF file uploads (primary path: message with subtype file_share) ──
+    if subtype == "file_share":
+        channel = event.get("channel")
+        for f in event.get("files", []):
+            if f.get("filetype") == "pdf" and channel:
+                file_id = f.get("id")
+                filename = f.get("name", "file.pdf")
+                if file_id:
+                    slack_client.chat_postMessage(
+                        channel=channel,
+                        text=f"PDF detected: `{filename}` — ingestion starting..."
+                    )
+                    threading.Thread(
+                        target=handle_pdf_file_upload,
+                        args=(channel, file_id, filename),
+                        daemon=True,
+                    ).start()
+        return
+
+    if subtype in [
         "bot_message",
         "message_changed",
         "message_deleted",
@@ -486,16 +512,26 @@ def process_event(event: dict):
 
     event_type = event.get("type")
 
-    # ── Handle PDF file uploads ──
+    # ── Fallback: file_shared event type (secondary, some Slack configs send this) ──
     if event_type == "file_shared":
         file_id = event.get("file_id") or (event.get("file") or {}).get("id")
         channel = event.get("channel_id") or event.get("channel")
         if file_id and channel:
-            threading.Thread(
-                target=handle_pdf_file_upload,
-                args=(channel, file_id),
-                daemon=True,
-            ).start()
+            try:
+                file_data = slack_client.files_info(file=file_id).get("file", {})
+                if file_data.get("filetype") == "pdf":
+                    filename = file_data.get("name", "file.pdf")
+                    slack_client.chat_postMessage(
+                        channel=channel,
+                        text=f"PDF detected: `{filename}` — ingestion starting..."
+                    )
+                    threading.Thread(
+                        target=handle_pdf_file_upload,
+                        args=(channel, file_id, filename),
+                        daemon=True,
+                    ).start()
+            except Exception as e:
+                print(f"[PDF] file_shared fallback error: {e}")
         return
 
     if event_type not in ["message", "app_mention"]:

@@ -271,8 +271,13 @@ def handle_pdf_file_upload(channel_id, file_id, filename=None, download_url=None
                     current_url, headers=headers,
                     stream=True, timeout=(15, 90),
                 )
-                log.info(f"[PDF UPLOAD] Got response headers — status={stream_resp.status_code} ({_time.time()-t0:.2f}s)")
+                log.info(f"[PDF UPLOAD] Got response headers — status={stream_resp.status_code} content-type={stream_resp.headers.get('content-type','?')} ({_time.time()-t0:.2f}s)")
                 stream_resp.raise_for_status()
+
+                content_type = stream_resp.headers.get("content-type", "")
+                if "text/html" in content_type:
+                    preview = stream_resp.content[:500].decode("utf-8", errors="replace")
+                    raise ValueError(f"Slack returned HTML instead of file (Content-Type: {content_type}). Response preview: {preview}")
 
                 log.info("[PDF UPLOAD] Reading file content in chunks...")
                 chunks_data = []

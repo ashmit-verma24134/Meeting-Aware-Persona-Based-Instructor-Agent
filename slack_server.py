@@ -177,9 +177,10 @@ def _fire_pdf_processing(channel_id: str, file_id: str, filename: str, download_
     """
     base_url = _get_base_url()
     log = logging.getLogger(__name__)
+    log.info(f"[PDF FIRE] base_url resolved to: {base_url}")
     log.info(f"[PDF FIRE] Dispatching to {base_url}/process-pdf for file_id={file_id}")
     try:
-        http_requests.post(
+        resp = http_requests.post(
             f"{base_url}/process-pdf",
             json={
                 "file_id": file_id,
@@ -189,11 +190,11 @@ def _fire_pdf_processing(channel_id: str, file_id: str, filename: str, download_
             },
             timeout=5,
         )
-    except Exception:
-        # Timeout is expected — we only care that the request was sent,
-        # not that we received the response. The /process-pdf invocation
-        # continues independently on Vercel.
-        pass
+        log.info(f"[PDF FIRE] /process-pdf responded: {resp.status_code}")
+    except http_requests.exceptions.Timeout:
+        log.info("[PDF FIRE] /process-pdf timed out after 5s — expected, invocation continues independently")
+    except Exception as e:
+        log.error(f"[PDF FIRE] Failed to reach /process-pdf: {type(e).__name__}: {e}")
 
 
 def ingest_url_and_reply(channel_id, url, response_url):
@@ -233,11 +234,25 @@ def handle_pdf_file_upload(channel_id, file_id, filename=None, download_url=None
                 log.warning(f"[PDF UPLOAD] No download URL found for {file_id}")
                 return
 
-        log.info(f"[PDF UPLOAD] Downloading {filename} from Slack...")
+        log.info(f"[PDF UPLOAD] Downloading {filename} from Slack — URL: {download_url[:80]}")
+        log.info(f"[PDF UPLOAD] SLACK_BOT_TOKEN present: {bool(SLACK_BOT_TOKEN)}")
         headers = {"Authorization": f"Bearer {SLACK_BOT_TOKEN}"}
-        resp = http_requests.get(download_url, headers=headers, timeout=60)
-        resp.raise_for_status()
-        log.info(f"[PDF UPLOAD] Downloaded {len(resp.content)} bytes")
+        import time as _time
+        t0 = _time.time()
+        try:
+            resp = http_requests.get(download_url, headers=headers, timeout=60)
+            log.info(f"[PDF UPLOAD] Download response: status={resp.status_code} size={len(resp.content)} bytes time={_time.time()-t0:.2f}s")
+            resp.raise_for_status()
+        except http_requests.exceptions.Timeout:
+            log.error("[PDF UPLOAD] Download TIMED OUT after 60s")
+            raise
+        except http_requests.exceptions.SSLError as e:
+            log.error(f"[PDF UPLOAD] SSL error during download: {e}")
+            raise
+        except Exception as e:
+            log.error(f"[PDF UPLOAD] Download failed after {_time.time()-t0:.2f}s: {type(e).__name__}: {e}")
+            raise
+        log.info(f"[PDF UPLOAD] Downloaded {len(resp.content)} bytes in {_time.time()-t0:.2f}s")
 
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
         tmp.write(resp.content)

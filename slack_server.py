@@ -164,10 +164,16 @@ def start_and_reply(channel_id, video_url, response_url):
 
 
 def _get_base_url() -> str:
+    # VERCEL_PROJECT_PRODUCTION_URL is the stable production domain (no deployment protection)
+    # VERCEL_URL is deployment-specific and may be protected — avoid for self-calls
+    for env_key in ("VERCEL_PROJECT_PRODUCTION_URL", "APP_URL"):
+        val = os.getenv(env_key, "")
+        if val:
+            return f"https://{val}" if not val.startswith("http") else val
     vercel_url = os.getenv("VERCEL_URL", "")
     if vercel_url:
         return f"https://{vercel_url}"
-    return os.getenv("APP_URL", "http://localhost:8000")
+    return "http://localhost:8000"
 
 
 def _fire_pdf_processing(channel_id: str, file_id: str, filename: str, download_url: str):

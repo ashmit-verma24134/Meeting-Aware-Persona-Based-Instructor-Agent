@@ -586,10 +586,10 @@ def retrieve_chunks_node(state: MeetingState):
         clean_chunks = sorted(clean_chunks, key=lambda c: c["similarity"], reverse=True)
 
     elif force_transcript and not force_slack:
-        transcript_only = [c for c in clean_chunks if c.get("source") == "transcript"]
-        if transcript_only:
-            clean_chunks = transcript_only
-            print("[SOURCE ROUTE] Forced to transcript only")
+        non_slack = [c for c in clean_chunks if c.get("source") != "slack"]
+        if non_slack:
+            clean_chunks = non_slack
+            print("[SOURCE ROUTE] Excluded slack, kept transcript+link+pdf")
 
     q_words = set(_re.findall(r'\b\w{2,}\b', q_text))
 
@@ -668,14 +668,14 @@ def retrieve_chunks_node(state: MeetingState):
         print(f"[DATE FILTER] Detected date: {detected_date}")
         date_chunks = [
             c for c in clean_chunks
-            if c.get("source") == "slack"
+            if c.get("source") in ("slack", "link", "pdf")
             and detected_date in c.get("text", "")
         ]
         if date_chunks:
-            print(f"[DATE FILTER] Found {len(date_chunks)} slack chunks for {detected_date}")
+            print(f"[DATE FILTER] Found {len(date_chunks)} chunks for {detected_date}")
             clean_chunks = date_chunks
         else:
-            print(f"[DATE FILTER] No slack chunks for {detected_date}, keeping all")
+            print(f"[DATE FILTER] No chunks matched {detected_date}, keeping all")
 
     else:
         boosted = False

@@ -1,11 +1,18 @@
 import os
 import json
+import logging
 import threading
 import requests as http_requests
 import re
 
 from datetime import datetime
 from threading import Lock
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 from services.supabase_service import get_supabase_client
 from scripts.hf_json_to_txt import convert_hf_json_to_txt
 from scripts.ingest_to_supabase import ingest_single_file
@@ -173,30 +180,47 @@ def ingest_url_and_reply(channel_id, url, response_url):
 
 def handle_pdf_file_upload(channel_id, file_id, filename=None, download_url=None):
     """Download a PDF uploaded to Slack and ingest it."""
-    from scripts.ingest_pdf import ingest_pdf
-    import tempfile
+    import logging
+    log = logging.getLogger(__name__)
+    log.info(f"[PDF UPLOAD] Started — file_id={file_id} filename={filename} channel={channel_id}")
     try:
+        from scripts.ingest_pdf import ingest_pdf
+        import tempfile
+
         # Only call files_info when we don't already have the download URL
-        # (primary file_share path passes it directly to avoid the extra API call)
         if not download_url:
+            log.info(f"[PDF UPLOAD] No download_url in event, calling files_info for {file_id}")
             file_data = slack_client.files_info(file=file_id).get("file", {})
             if file_data.get("filetype") != "pdf":
+                log.info(f"[PDF UPLOAD] Not a PDF (filetype={file_data.get('filetype')}), skipping")
                 return
             filename = filename or file_data.get("name", "file.pdf")
             download_url = file_data.get("url_private_download") or file_data.get("url_private")
             if not download_url:
+                log.warning(f"[PDF UPLOAD] No download URL found for {file_id}")
                 return
 
+        log.info(f"[PDF UPLOAD] Downloading {filename} from Slack...")
         headers = {"Authorization": f"Bearer {SLACK_BOT_TOKEN}"}
         resp = http_requests.get(download_url, headers=headers, timeout=60)
         resp.raise_for_status()
+        log.info(f"[PDF UPLOAD] Downloaded {len(resp.content)} bytes")
 
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
         tmp.write(resp.content)
         tmp.close()
+        log.info(f"[PDF UPLOAD] Saved to temp file {tmp.name}")
 
-        count, meeting_name = ingest_pdf(tmp.name, channel_id, source_id=file_id)
+        def post_progress(msg):
+            log.info(f"[PDF UPLOAD] Progress: {msg}")
+            slack_client.chat_postMessage(channel=channel_id, text=msg)
+
+        log.info(f"[PDF UPLOAD] Calling ingest_pdf for {filename}...")
+        count, meeting_name = ingest_pdf(
+            tmp.name, channel_id, source_id=file_id, on_progress=post_progress
+        )
         os.unlink(tmp.name)
+        log.info(f"[PDF UPLOAD] ingest_pdf returned count={count} meeting={meeting_name}")
 
         if count == 0:
             slack_client.chat_postMessage(
@@ -212,6 +236,7 @@ def handle_pdf_file_upload(channel_id, file_id, filename=None, download_url=None
 
     except Exception as e:
         label = f"`{filename}`" if filename else "PDF"
+        log.exception(f"[PDF UPLOAD] Exception while processing {label}")
         slack_client.chat_postMessage(
             channel=channel_id,
             text=f"Failed to process {label}: {str(e)}"
